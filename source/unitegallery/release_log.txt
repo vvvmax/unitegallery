@@ -1,0 +1,37 @@
+version (29.11.2014) 1.1.2
+
+- bug fix: when controls not alwqays on, don't show progress bar
+- bug fix: fixed fullscreen on ie11
+
+version 1.1.1
+
+-feature: added option: slider_videoplay_button_type. slider video play button type, square or round
+
+version 1.1 (20.10.2014)
+
+-feature: add grid bottom and grid top types
+-feature: added media players for youtube, vimeo, html5 video, soundcloud, wistia
+-feature: get automatically youtube images and thumbs by id
+-feature: added option: slider_zoom_max_ratio for limit the zooming
+-feature: added option: slider_scale_mode_media - saparate scale mode option for slider media item
+
+-bug fix: fixed first image was not loaded sometimes.
+
+version 1.0.3
+
+-feature: add grid bottom and grid top types
+
+version 1.0.2
+
+-bug fix: fixed avia strip navigation.
+
+version 1.0.1
+
+- bug fix: removed max-width:100% from the images
+- bug fix: added strip arrows to alexis theme
+- change: set option "debug errors" to false
+- bug fix: added transition setting to strip scroll, was hard coded.
+- bug fix: fixed small bug in compact theme related to galllery resize
+- bug fix: fixed compatability with other draggable components
+
+version 1.0 - first release

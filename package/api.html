@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>Unite Gallery - Using API</title>
+
+	<script type='text/javascript' src='unitegallery/js/jquery-11.0.min.js'></script>	
+	<script type='text/javascript' src='unitegallery/js/unitegallery.min.js'></script>	
+
+	<link rel='stylesheet' href='unitegallery/css/unite-gallery.css' type='text/css' />
+	
+	<script type='text/javascript' src='unitegallery/themes/compact/ug-theme-compact.js'></script>
+	
+	
+</head>
+
+<body>
+	
+	<h2>Using API</h2>
+	
+	<div id="gallery" style="display:none;">
+	
+		<img alt="Preview Image 1"
+			 src="images/thumbs/thumb1.jpg"
+			 data-image="images/big/image1.jpg"
+			 data-description="Preview Image 1 Description">
+		
+		<img alt="Preview Image 2"
+			 src="images/thumbs/thumb2.jpg"
+			 data-image="images/big/image2.jpg"
+			 data-description="Preview Image 2 Description">
+			 
+		<img alt="Preview Image 3"
+			 src="images/thumbs/thumb3.jpg"
+			 data-image="images/big/image3.jpg"
+			 data-description="Preview Image 3 Description">
+			 
+		<img alt="Preview Image 4"
+			 src="images/thumbs/thumb4.jpg"
+			 data-image="images/big/image4.jpg"
+			 data-description="Preview Image 4 Description">
+		
+		<img alt="Preview Image 5"
+			 src="images/thumbs/thumb1.jpg"
+			 data-image="images/big/image1.jpg"
+			 data-description="Preview Image 5 Description">
+		
+		<img alt="Preview Image 6"
+			 src="images/thumbs/thumb2.jpg"
+			 data-image="images/big/image2.jpg"
+			 data-description="Preview Image 6 Description">
+			 
+		<img alt="Preview Image 7"
+			 src="images/thumbs/thumb3.jpg"
+			 data-image="images/big/image3.jpg"
+			 data-description="Preview Image 7 Description">
+			 
+		<img alt="Preview Image 8"
+			 src="images/thumbs/thumb4.jpg"
+			 data-image="images/big/image4.jpg"
+			 data-description="Preview Image 8 Description">
+			 
+		<img alt="Preview Image 9"
+			 src="images/thumbs/thumb1.jpg"
+			 data-image="images/big/image1.jpg"
+			 data-description="Preview Image 9 Description">
+		
+		<img alt="Preview Image 10"
+			 src="images/thumbs/thumb2.jpg"
+			 data-image="images/big/image2.jpg"
+			 data-description="Preview Image 10 Description">
+			 
+		<img alt="Preview Image 11"
+			 src="images/thumbs/thumb3.jpg"
+			 data-image="images/big/image3.jpg"
+			 data-description="Preview Image 11 Description">
+			 
+		<img alt="Preview Image 12"
+			 src="images/thumbs/thumb4.jpg"
+			 data-image="images/big/image4.jpg"
+			 data-description="Preview Image 12 Description">
+			 
+		<img alt="Preview Image 13"
+			 src="images/thumbs/thumb1.jpg"
+			 data-image="images/big/image1.jpg"
+			 data-description="Preview Image 13 Description">
+		
+		<img alt="Preview Image 14"
+			 src="images/thumbs/thumb2.jpg"
+			 data-image="images/big/image2.jpg"
+			 data-description="Preview Image 14 Description">
+			 
+		<img alt="Preview Image 15"
+			 src="images/thumbs/thumb3.jpg"
+			 data-image="images/big/image3.jpg"
+			 data-description="Preview Image 15 Description">
+			 
+		<img alt="Preview Image 16"
+			 src="images/thumbs/thumb4.jpg"
+			 data-image="images/big/image4.jpg"
+			 data-description="Preview Image 16 Description">
+			 
+	</div>
+	
+	<br><br>		
+		<input type="button" value="Next Image" onclick="api.nextItem()">
+		<input type="button" value="Prev Image" onclick="api.prevItem()">
+		<input type="button" value="Play" onclick="api.play()">
+		<input type="button" value="Stop" onclick="api.stop()">
+		<input type="button" value="Toggle Fullscreen" onclick="api.toggleFullscreen()">
+		<input type="button" value="Zoom In" onclick="api.zoomIn()">
+		<input type="button" value="Zoom Out" onclick="api.zoomOut()">
+		<input type="button" value="Reset Zoom" onclick="api.resetZoom()">
+		<input type="button" value="Resize" onclick="api.resize(800)">
+		<input type="button" value="Select Item" onclick="api.selectItem(4)">
+		<input type="button" value="Get Item" onclick="alert(api.getItem(4).title)">
+	<br><br>		
+			
+	
+		
+	<script type="text/javascript">
+		var api;
+
+		jQuery(document).ready(function(){
+			api = jQuery("#gallery").unitegallery();
+		
+		
+			//those are the eventws you can use:
+			
+			api.on("item_change",function(num, data){		//on item change, get item number and item data
+				
+				if(console)
+					console.log(data);
+				//do something
+			});
+	
+			api.on("resize",function(){				//on gallery resize
+				//do something
+			});
+	
+			api.on("enter_fullscreen",function(){	//on enter fullscreen
+				//do something
+			});
+	
+			api.on("exit_fullscreen",function(){	//on exit fulscreen
+				//do something
+			});
+			
+			api.on("play",function(){				//on start playing
+				//do something
+			});
+	
+			api.on("stop",function(){				//on stop playing
+				//do something
+			});
+	
+			api.on("pause",function(){				//on pause playing
+				//do something
+			});
+	
+			api.on("continue",function(){			//on continue playing
+				//do something
+			});
+			
+			
+		});
+			
+			
+	</script>
+
+	
+</body>
+</html>

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>Unite Gallery - Slider Theme</title>
+
+	<script type='text/javascript' src='unitegallery/js/jquery-11.0.min.js'></script>	
+	<script type='text/javascript' src='unitegallery/js/unitegallery.min.js'></script>	
+
+	<link rel='stylesheet' href='unitegallery/css/unite-gallery.css' type='text/css' />
+	
+	<script type='text/javascript' src='unitegallery/themes/slider/ug-theme-slider.js'></script>
+	
+	
+</head>
+
+<body>
+	
+	<h2>Slider Theme Example</h2>
+	
+	<div id="gallery" style="display:none;">
+	
+		<img alt="Preview Image 1"
+			 src="images/thumbs/thumb1.jpg"
+			 data-image="images/big/image1.jpg"
+			 data-description="Preview Image 1 Description">
+		
+		<img alt="Preview Image 2"
+			 src="images/thumbs/thumb2.jpg"
+			 data-image="images/big/image2.jpg"
+			 data-description="Preview Image 2 Description">
+			 
+		<img alt="Preview Image 3"
+			 src="images/thumbs/thumb3.jpg"
+			 data-image="images/big/image3.jpg"
+			 data-description="Preview Image 3 Description">
+			 
+		<img alt="Preview Image 4"
+			 src="images/thumbs/thumb4.jpg"
+			 data-image="images/big/image4.jpg"
+			 data-description="Preview Image 4 Description">
+		
+		<img alt="Preview Image 5"
+			 src="images/thumbs/thumb1.jpg"
+			 data-image="images/big/image1.jpg"
+			 data-description="Preview Image 5 Description">
+		
+	</div>
+	
+	<script type="text/javascript">
+
+		jQuery(document).ready(function(){
+
+			jQuery("#gallery").unitegallery();
+
+		});
+		
+	</script>
+
+
+</body>
+</html>

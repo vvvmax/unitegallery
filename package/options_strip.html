@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>Unite Gallery - Strip Panel Options</title>
+
+	<script type='text/javascript' src='unitegallery/js/jquery-11.0.min.js'></script>	
+	<script type='text/javascript' src='unitegallery/js/unitegallery.min.js'></script>	
+
+	<link rel='stylesheet' href='unitegallery/css/unite-gallery.css' type='text/css' />
+	
+	<script type='text/javascript' src='unitegallery/themes/compact/ug-theme-compact.js'></script>
+	
+	
+</head>
+
+<body>
+	
+	<h2>Strip thumbs panel related options (watch the page source)</h2>
+	
+	<div id="gallery" style="display:none;">
+	
+		<img alt="Preview Image 1"
+			 src="images/thumbs/thumb1.jpg"
+			 data-image="images/big/image1.jpg"
+			 data-description="Preview Image 1 Description">
+		
+		<img alt="Preview Image 2"
+			 src="images/thumbs/thumb2.jpg"
+			 data-image="images/big/image2.jpg"
+			 data-description="Preview Image 2 Description">
+
+		<img alt="Youtube Video"
+			 data-type="youtube"
+			 data-videoid="A3PDXmYoF5U"
+			 data-description="You can include youtube videos easily!">
+			 
+		<img alt="Preview Image 3"
+			 src="images/thumbs/thumb3.jpg"
+			 data-image="images/big/image3.jpg"
+			 data-description="Preview Image 3 Description">
+
+		<img alt="Vimeo Video"
+			 data-type="vimeo"
+			 src="http://i.vimeocdn.com/video/447294219_200x150.jpg"
+			 data-image="http://i.vimeocdn.com/video/447294219_640.jpg"
+			 data-videoid="73234449"
+			 data-description="This gallery can also play vimeo videos!">
+			
+		<img alt="Preview Image 4"
+			 src="images/thumbs/thumb4.jpg"
+			 data-image="images/big/image4.jpg"
+			 data-description="Preview Image 4 Description">
+		
+		<img alt="Html5 Video"
+			 src="images/thumbs/html5_video.png"
+			 data-type="html5video"
+			 data-image="http://video-js.zencoder.com/oceans-clip.png"
+			 data-videoogv="http://video-js.zencoder.com/oceans-clip.ogv"
+			 data-videowebm="http://video-js.zencoder.com/oceans-clip.webm"
+			 data-videomp4="http://video-js.zencoder.com/oceans-clip.mp4"
+	    	 data-description="This is html5 video demo played by mediaelement2 player">
+		
+		<img alt="Preview Image 5"
+			 src="images/thumbs/thumb1.jpg"
+			 data-image="images/big/image1.jpg"
+			 data-description="Preview Image 5 Description">
+
+		<img alt="Wistia Video"			
+			 src="images/thumbs/wistia_video.jpg"
+			 data-type="wistia"
+			 data-image="images/big/wistia_video.jpg"
+			 data-videoid="9oedgxuciv"
+			 data-description="Hey, the gallery plays Wistia videos too!">
+				
+		<img alt="Preview Image 6"
+			 src="images/thumbs/thumb2.jpg"
+			 data-image="images/big/image2.jpg"
+			 data-description="Preview Image 6 Description">
+
+
+		<img alt="Sound Cloud Track"			
+			 src="images/thumbs/sound_cloud.jpg"
+			 data-type="soundcloud"
+			 data-image="images/thumbs/sound_cloud.jpg"
+			 data-trackid="8390970"
+			 data-description="This gallery can play a soundcloud track">
+
+			 
+		<img alt="Preview Image 7"
+			 src="images/thumbs/thumb3.jpg"
+			 data-image="images/big/image3.jpg"
+			 data-description="Preview Image 7 Description">
+
+			 
+		<img alt="Preview Image 8"
+			 src="images/thumbs/thumb4.jpg"
+			 data-image="images/big/image4.jpg"
+			 data-description="Preview Image 8 Description">
+			 
+		<img alt="Preview Image 9"
+			 src="images/thumbs/thumb1.jpg"
+			 data-image="images/big/image1.jpg"
+			 data-description="Preview Image 9 Description">
+		
+		<img alt="Preview Image 10"
+			 src="images/thumbs/thumb2.jpg"
+			 data-image="images/big/image2.jpg"
+			 data-description="Preview Image 10 Description">
+			 
+		<img alt="Preview Image 11"
+			 src="images/thumbs/thumb3.jpg"
+			 data-image="images/big/image3.jpg"
+			 data-description="Preview Image 11 Description">
+			 
+	</div>
+	
+	<script type="text/javascript">
+
+		jQuery(document).ready(function(){
+
+			jQuery("#gallery").unitegallery({
+				
+				//THUMBS OPTIONS - RELATING TO BOTH, STRIP AND GRID PANELS
+
+				thumb_width:88,								//thumb width
+				thumb_height:50,							//thumb height
+
+				thumb_border_effect:true,					//true, false - specify if the thumb has border
+				thumb_border_width: 0,						//thumb border width
+				thumb_border_color: "#000000",				//thumb border color
+				thumb_over_border_width: 0,					//thumb border width in mouseover state
+				thumb_over_border_color: "#d9d9d9",			//thumb border color in mouseover state
+				thumb_selected_border_width: 1,				//thumb width in selected state
+				thumb_selected_border_color: "#d9d9d9",		//thumb border color in selected state
+
+				thumb_round_corners_radius:0,				//thumb border radius
+
+				thumb_color_overlay_effect: true,			//true,false - thumb color overlay effect, release the overlay on mouseover and selected states
+				thumb_overlay_color: "#000000",				//thumb overlay color
+				thumb_overlay_opacity: 0.4,					//thumb overlay color opacity
+				thumb_overlay_reverse:false,				//true,false - reverse the overlay, will be shown on selected state only
+
+				thumb_image_overlay_effect: false,			//true,false - images overlay effect on normal state only
+				thumb_image_overlay_type: "bw",				//bw , blur, sepia - the type of image effect overlay, black and white, sepia and blur.
+
+				thumb_transition_duration: 200,				//thumb effect transition duration
+				thumb_transition_easing: "easeOutQuad",		//thumb effect transition easing
+
+				thumb_show_loader:true,						//show thumb loader while loading the thumb
+				thumb_loader_type:"dark",					//dark, light - thumb loader type
+						 
+
+				//STRIP THUMBS PANEL OPTIONS		  
+
+				strippanel_padding_top:8,					//space from top of the panel
+				strippanel_padding_bottom:8,				//space from bottom of the panel
+
+				strippanel_padding_left:  0,				//space from left of the panel
+				strippanel_padding_right: 0,				//space from right of the panel
+
+				strippanel_enable_buttons: false,			//enable buttons from the sides of the panel
+				strippanel_buttons_skin: "",				//skin of the buttons, if empty inherit from gallery skin
+				strippanel_padding_buttons: 2,				//padding between the buttons and the panel
+
+				strippanel_buttons_role: "scroll_strip",	//scroll_strip, advance_item - the role of the buttons
+
+				strippanel_enable_handle: true,				//enable grid handle			
+				strippanel_handle_align: "top",				//top, middle, bottom , left, right, center - close handle tip align on the handle bar according panel orientation
+				strippanel_handle_offset: 0,				//offset of handle bar according the valign
+				strippanel_handle_skin: "",					//skin of the handle, if empty inherit from gallery skin
+
+				strippanel_background_color:"",				//background color of the strip wrapper, if not set, it will be taken from the css
+
+				strip_thumbs_align: "left",					//left, center, right, top, middle, bottom - the align of the thumbs when they smaller then the strip size.
+				strip_space_between_thumbs:6,				//space between thumbs
+				strip_thumb_touch_sensetivity:15,  			//from 1-100, 1 - most sensetive, 100 - most unsensetive
+				strip_scroll_to_thumb_duration:500,			//duration of scrolling to thumb
+				strip_scroll_to_thumb_easing:"easeOutCubic",		//easing of scrolling to thumb animation
+				strip_control_avia:true,					//avia control - move the strip according strip moseover position
+				strip_control_touch:true					//touch control - move the strip by dragging it
+				
+			});
+
+		});
+		
+	</script>
+
+
+</body>
+</html>
