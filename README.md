@@ -1,7 +1,13 @@
 
-#[Unite Gallery](http://unitegallery.net) - Responsive jQuery Gallery Plugin
+##[Unite Gallery](http://unitegallery.net) - Responsive jQuery Gallery Plugin
 
 Product Link: [unitegallery.net](http://unitegallery.net)
+
+This gallery has commercial versions for: [WordPress](http://wp.unitegallery.net) , [Joomla!](http://unitecms.net/premium-extensions/unite-gallery-main/default-theme) , [PrestaShop](http://ps.unitegallery.net/content/6-ug-default-theme) , [OpenCart](http://oc.unitegallery.net/index.php?route=information/information&information_id=7)
+
+Main Documentation: [main documentation page] (http://unitegallery.net/index.php?page=documentation)
+
+Themes including and options help under each theme menu [as here for example](http://unitegallery.net/index.php?page=default-options)
 
 ## Overview
 
@@ -11,6 +17,7 @@ Yet this gallery is very powerfull, fast and has the most of nowdays must have f
 
 ## Features
 
+- The gallery play VUDEO from: Youtube, Vimeo, HTML5, Wistia and SoundCloud (not a video but still )
 - Responsive - fits to every screen with automatic ratio preserve
 - Touch Enabled - Every gallery parts can be controlled by the touch on touch enabled devices
 - Responsive - The gallery can fit every screen size, and can respond to a screen size change.
