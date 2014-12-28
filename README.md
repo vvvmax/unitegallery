@@ -1,5 +1,3 @@
-unitegallery
-============
 
 #[Unite Gallery](http://unitegallery.net) - Responsive jQuery Gallery Plugin
 
