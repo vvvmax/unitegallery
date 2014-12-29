@@ -784,11 +784,11 @@ function UGYoutubeAPI(){
 	 * actually put the video
 	 */
 	function putVideoActually(divID, videoID, width, height, isAutoplay){
-		
+				
 		if(g_player && g_isPlayerReady){			
 			g_player.destroy();
 		}
-				
+		
 		var playerVars = {
 			controls:2, showinfo:1, rel:0
 		};
@@ -1013,7 +1013,7 @@ function UGYoutubeAPI(){
 
 function UGVideoPlayer(){
 	
-	var t = this, g_objThis = jQuery(this), g_functions = new UGFunctions();
+	var t = this, g_galleryID, g_objThis = jQuery(this), g_functions = new UGFunctions();
 	var g_youtubeAPI = new UGYoutubeAPI(), g_vimeoAPI = new UGVimeoAPI();
 	var g_html5API = new UGHtml5MediaAPI(), g_soundCloudAPI = new UGSoundCloudAPI(), g_wistiaAPI = new UGWistiaAPI();
 	var g_objPlayer, g_objYoutube, g_objVimeo, g_objHtml5, g_objButtonClose, g_objSoundCloud, g_objWistia;
@@ -1026,14 +1026,24 @@ function UGVideoPlayer(){
 	};
 	
 	var g_temp = {
-			standAloneMode: false
+			standAloneMode: false,
+			youtubeInnerID:"",
+			vimeoPlayerID:"",
+			html5PlayerID:"",
+			wistiaPlayerID:"",
+			soundCloudPlayerID:""
 	};
 	
 	
 	/**
 	 * init the object
 	 */
-	this.init = function(optOptions, isStandAloneMode){
+	this.init = function(optOptions, isStandAloneMode, galleryID){
+		g_galleryID = galleryID;
+		
+		if(!g_galleryID)
+			throw new Error("missing gallery ID for video player, it's a must!");
+			
 		g_options =  jQuery.extend(g_options, optOptions);
 		
 		if(isStandAloneMode && isStandAloneMode == true)
@@ -1047,12 +1057,19 @@ function UGVideoPlayer(){
 	 */
 	this.setHtml = function(objParent){
 		
+		g_temp.youtubeInnerID = g_galleryID + "_youtube_inner";
+		g_temp.vimeoPlayerID = g_galleryID + "_videoplayer_vimeo";
+		g_temp.html5PlayerID = g_galleryID + "_videoplayer_html5";
+		g_temp.wistiaPlayerID = g_galleryID + "_videoplayer_wistia";
+		g_temp.soundCloudPlayerID = g_galleryID + "_videoplayer_soundcloud";
+		
+		
 		var html = "<div class='ug-videoplayer' style='display:none'>";
-		html += "<div class='ug-videoplayer-wrapper ug-videoplayer-youtube' style='display:none'><div id='ug-videoplayer-youtube-inner'></div></div>";
-		html += "<div id='ug-videoplayer-vimeo' class='ug-videoplayer-wrapper ug-videoplayer-vimeo' style='display:none'></div>";
-		html += "<div id='ug-videoplayer-html5' class='ug-videoplayer-wrapper ug-videoplayer-html5'></div>";
-		html += "<div id='ug-videoplayer-soundcloud' class='ug-videoplayer-wrapper ug-videoplayer-soundcloud'></div>";
-		html += "<div id='ug-videoplayer-wistia' class='ug-videoplayer-wrapper ug-videoplayer-wistia'></div>";
+		html += "<div class='ug-videoplayer-wrapper ug-videoplayer-youtube' style='display:none'><div id='"+g_temp.youtubeInnerID+"'></div></div>";
+		html += "<div id='"+g_temp.vimeoPlayerID+"' class='ug-videoplayer-wrapper ug-videoplayer-vimeo' style='display:none'></div>";
+		html += "<div id='"+g_temp.html5PlayerID+"' class='ug-videoplayer-wrapper ug-videoplayer-html5'></div>";
+		html += "<div id='"+g_temp.soundCloudPlayerID+"' class='ug-videoplayer-wrapper ug-videoplayer-soundcloud'></div>";
+		html += "<div id='"+g_temp.wistiaPlayerID+"' class='ug-videoplayer-wrapper ug-videoplayer-wistia'></div>";
 		
 		if(g_temp.standAloneMode == false)
 			html += "<div class='ug-videoplayer-button-close'></div>";
@@ -1256,10 +1273,10 @@ function UGVideoPlayer(){
 		
 		g_objYoutube.show();
 		
-		if(g_youtubeAPI.isPlayerReady() == true)
+		if(g_youtubeAPI.isPlayerReady() == true && g_temp.standAloneMode == true)
 			g_youtubeAPI.changeVideo(videoID, isAutoplay);
 		else	
-			g_youtubeAPI.putVideo("ug-videoplayer-youtube-inner", videoID, "100%", "100%", isAutoplay);
+			g_youtubeAPI.putVideo(g_temp.youtubeInnerID, videoID, "100%", "100%", isAutoplay);
 	}
 	
 	
@@ -1275,10 +1292,10 @@ function UGVideoPlayer(){
 		
 		g_objVimeo.show();
 		
-		if(g_vimeoAPI.isPlayerReady())
+		if(g_vimeoAPI.isPlayerReady() && g_temp.standAloneMode == true)
 			g_vimeoAPI.changeVideo(videoID, isAutoplay);
 		else
-			g_vimeoAPI.putVideo("ug-videoplayer-vimeo", videoID, "100%", "100%", isAutoplay);
+			g_vimeoAPI.putVideo(g_temp.vimeoPlayerID, videoID, "100%", "100%", isAutoplay);
 
 	}
 	
@@ -1304,7 +1321,7 @@ function UGVideoPlayer(){
 				posterImage: posterImage 
 			};
 		
-		g_html5API.putVideo("ug-videoplayer-html5", data, "100%", "100%", isAutoplay);
+		g_html5API.putVideo(g_temp.html5PlayerID, data, "100%", "100%", isAutoplay);
 		
 	}
 
@@ -1320,7 +1337,7 @@ function UGVideoPlayer(){
 		
 		g_objSoundCloud.show();
 		
-		g_soundCloudAPI.putSound("ug-videoplayer-soundcloud", trackID, "100%", "100%", isAutoplay);
+		g_soundCloudAPI.putSound(g_temp.soundCloudPlayerID, trackID, "100%", "100%", isAutoplay);
 	}
 	
 	
@@ -1336,7 +1353,7 @@ function UGVideoPlayer(){
 		
 		g_objWistia.show();
 		
-		g_wistiaAPI.putVideo("ug-videoplayer-wistia", videoID, "100%", "100%", isAutoplay);
+		g_wistiaAPI.putVideo(g_temp.wistiaPlayerID, videoID, "100%", "100%", isAutoplay);
 	
 	}
 	

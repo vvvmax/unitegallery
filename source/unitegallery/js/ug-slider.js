@@ -174,8 +174,10 @@ function UGSlider(){
 			g_objZoomPanel.init(t, g_options);
 		}
 		
+		var galleryID = g_gallery.getGalleryID();
+		
 		//init video player
-		g_objVideoPlayer.init(g_options);		
+		g_objVideoPlayer.init(g_options, false, galleryID);		
 	}
 	
 	

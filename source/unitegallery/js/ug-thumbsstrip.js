@@ -91,44 +91,47 @@ function UGThumbsStrip(){
 		
 		g_thumbs.init(gallery, customOptions);
 		
-		//setHtml();
 	}
+	
 	
 	/**
 	 * run the strip
 	 */
 	function runStrip(){
-		
-		if(g_temp.isRunOnce == true)
-			return(false);
-		
-		g_temp.isRunOnce = true;
-		
-		g_thumbs.setHtmlProperties();
 				
+		g_thumbs.setHtmlProperties();
+		
 		initSizeParams();
 		
 		fixSize();
 		
 		positionThumbs();
 		
-		//init thumbs strip touch 
-		if(g_options.strip_control_touch == true){
-			g_touchThumbsControl = new UGTouchThumbsControl();
-			g_touchThumbsControl.init(t);
+		//run only once
+		if(g_temp.isRunOnce == false){
+			
+			//init thumbs strip touch 
+			if(g_options.strip_control_touch == true){
+				g_touchThumbsControl = new UGTouchThumbsControl();
+				g_touchThumbsControl.init(t);
+			}
+			
+			//init thumbs strip avia control
+			if(g_options.strip_control_avia == true){
+				g_aviaControl = new UGAviaControl();
+				g_aviaControl.init(t);
+			}
+		
+			checkControlsEnableDisable();
+			
+			g_thumbs.loadThumbsImages();
+			
+			initEvents();
 		}
 		
-		//init thumbs strip avia control
-		if(g_options.strip_control_avia == true){
-			g_aviaControl = new UGAviaControl();
-			g_aviaControl.init(t);
-		}
+						
+		g_temp.isRunOnce = true;
 		
-		checkControlsEnableDisable();
-		
-		g_thumbs.loadThumbsImages();
-		
-		initEvents();
 	}
 	
 	
@@ -260,6 +263,7 @@ function UGThumbsStrip(){
 	
 	/**
 	 * scroll by some number
+	 * .
 	 */
 	function scrollBy(scrollStep){
 		

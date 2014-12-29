@@ -1,4 +1,4 @@
-// Unite Gallery, Version: 1.1.2, released 29 Nov 2014 
+// Unite Gallery, Version: 1.1.6, released 29 Dec 2014 
 
 
 /**
@@ -1931,7 +1931,7 @@ var g_ugFunctions = new UGFunctions();
 /** -------------- END UgFunctions class ---------------------*/
 
 
-	
+
 	/**
 	 * prototype gallery funciton
 	 */
@@ -1950,6 +1950,32 @@ var g_ugFunctions = new UGFunctions();
 	}
 
 
+	/**
+	 * check for errors function
+	 */
+	function ugCheckForErrors(galleryID, type){
+		
+		if(typeof jQuery.fn.unitegallery == "function")
+			return(true);
+		
+		var errorMessage = "Unite Gallery Error: You have some jquery.js library include that comes after the gallery files js include.";
+		errorMessage += "<br> This include eliminates the gallery libraries, and make it not work.";
+		
+		if(type == "cms"){
+			errorMessage += "<br><br> To fix it you can:<br>&nbsp;&nbsp;&nbsp; 1. In the Gallery Settings -> Troubleshooting set option:  <strong><b>Put JS Includes To Body</b></strong> option to true.";
+			errorMessage += "<br>&nbsp;&nbsp;&nbsp; 2. Find the double jquery.js include and remove it.";
+		}else{
+			errorMessage += "<br><br> Please find and remove this jquery.js include and the gallery will work. <br> * There should be only one jquery.js include before all other js includes in the page.";			
+		}
+		
+		errorMessage = "<div style='font-size:16px;color:#BC0C06;max-width:900px;border:1px solid red;padding:10px;'>" + errorMessage + "</div>"
+		
+		jQuery(galleryID).show().html(errorMessage);
+		
+		return(false);
+	}
+
+	
 function UniteGalleryMain(){
 	
 	var t = this;
@@ -2217,11 +2243,9 @@ function UniteGalleryMain(){
 	 * if the thumbs panel don't exists, delete initial images from dom
 	 */
 	function clearInitData(){
-		
-		if(g_objThumbs)
-			return(false);
-		
+				
 		g_objWrapper.children().remove();
+		
 	}
 	
 	
@@ -2305,12 +2329,16 @@ function UniteGalleryMain(){
 				 if(itemType == "image")
 					 throw new Error("The item should not be image type");
 				 
-				 objItem.urlThumb = undefined;
+				 objItem.urlThumb = objChild.data("thumb");
 				 objItem.title = objChild.data("title");
 				 objItem.objThumbImage = null;
 			 }
 			 
 			 objItem.description = objChild.data("description");
+			 
+			 if(!objItem.description)
+				 objItem.description = "";
+			 
 			 objItem.isLoaded = false;
 			 objItem.isThumbImageLoaded = false;	//if the image loaded or error load
 			 objItem.objPreloadImage = null;
@@ -2916,6 +2944,15 @@ function UniteGalleryMain(){
 		return(objSize);
 	}
 	
+	/**
+	 * get gallery ID
+	 */
+	this.getGalleryID = function(){
+		
+		var id = g_galleryID.replace("#","");
+			
+		return(id);
+	}
 	
 	/**
 	 * get next item by current index (or current object)
@@ -3468,15 +3505,18 @@ function UniteGalleryMain(){
 	
 	/**
 	 * resize the gallery
+	 * noevent - initally false
 	 */
-	this.resize = function(newWidth, newHeight){
+	this.resize = function(newWidth, newHeight, noevent){
 		
 		g_objWrapper.css("max-width",newWidth+"px");
 		
 		if(newHeight)
 			g_objWrapper.height(newHeight);
 		
-		onGalleryResized();
+		if(!noevent && noevent !== true)
+			onGalleryResized();
+		
 	}
 	
 	
@@ -4416,6 +4456,16 @@ function UGGridPanel(){
 	}
 	
 	
+	/**
+	 * set panel disabled at start
+	 */
+	this.setDisabledAtStart = function(timeout){
+		
+		g_panelBase.setDisabledAtStart(timeout);
+		
+	}
+	
+	
 }
 
 /** -------------- Panel Base Functions ---------------------*/
@@ -4458,6 +4508,18 @@ function UGPanelsBase(){
 			g_objHandle = new UGPanelHandle();
 			g_objHandle.init(g_panel, g_objPanel, g_options, g_temp.panelType, g_gallery);
 			g_objHandle.setHtml();
+		}
+		
+		
+		//set disabled at start if exists
+		if(g_temp.isDisabledAtStart === true){
+			var html = "<div class='ug-panel-disabled-overlay'></div>";
+			g_objPanel.append(html);
+			
+			setTimeout(function(){
+				g_objPanel.children(".ug-panel-disabled-overlay").hide();
+			}, g_temp.disabledAtStartTimeout);
+		
 		}
 		
 	}
@@ -4676,6 +4738,21 @@ function UGPanelsBase(){
 	this.isPanelClosed = function() {
 
 		return (g_temp.isClosed);
+	}
+	
+	
+	/**
+	 * set the panel disabled at start, called after init before setHtml
+	 * it's enabled again after timeout end
+	 */
+	this.setDisabledAtStart = function(timeout){
+		
+		if(timeout <= 0)
+			return(false);
+			
+		g_temp.isDisabledAtStart = true;
+		g_temp.disabledAtStartTimeout = timeout;
+		
 	}
 	
 	
@@ -5075,8 +5152,10 @@ function UGSlider(){
 			g_objZoomPanel.init(t, g_options);
 		}
 		
+		var galleryID = g_gallery.getGalleryID();
+		
 		//init video player
-		g_objVideoPlayer.init(g_options);		
+		g_objVideoPlayer.init(g_options, false, galleryID);		
 	}
 	
 	
@@ -8051,10 +8130,10 @@ function UGStripPanel() {
 			return (false);
 
 		g_objStrip.run();
-
+		
 		setElementsSize();
 		placeElements();
-
+				
 		initEvents();
 
 		g_temp.isFirstRun = false;
@@ -8122,7 +8201,7 @@ function UGStripPanel() {
 	 * set elements size horizontal type
 	 */
 	function setElementsSize_hor() {
-
+		
 		// get strip height
 		var stripHeight = g_objStrip.getHeight();
 		var panelWidth = g_temp.panelWidth;
@@ -8167,11 +8246,11 @@ function UGStripPanel() {
 	 * set elements size vertical type
 	 */
 	function setElementsSize_vert() {
-
+				
 		// get strip width
 		var stripWidth = g_objStrip.getWidth();
 		var panelHeight = g_temp.panelHeight;
-
+		
 		// set buttons height
 		if (g_objButtonNext) {
 			g_objButtonPrev.width(stripWidth);
@@ -8379,9 +8458,9 @@ function UGStripPanel() {
 
 		if (g_temp.isEventsInited == true)
 			return (false);
-
+		
 		g_temp.isEventsInited = true;
-
+				
 		// buttons events
 		if (g_objButtonNext) {
 
@@ -8547,6 +8626,15 @@ function UGStripPanel() {
 	
 	}
 	
+	/**
+	 * set panel disabled at start
+	 */
+	this.setDisabledAtStart = function(timeout){
+		
+		g_panelBase.setDisabledAtStart(timeout);
+		
+	}
+	
 }
 
 
@@ -8689,15 +8777,17 @@ function UGThumbsGeneral(){
 		 * set thumbnails html properties
 		 */
 		this.setHtmlProperties = function(){
-			
+			 			
 			 //set thumb params
-			 var objThumbCss = {};
-			 objThumbCss["width"] = g_options.thumb_width+"px";
-			 objThumbCss["height"] = g_options.thumb_height+"px";
-			 		 
-			 g_objParent.children(".ug-thumb-wrapper").css(objThumbCss);
-			 
-			 setThumbsBorderRadius();		 
+			if(g_temp.customThumbs == false){
+				var objThumbCss = {};
+				 objThumbCss["width"] = g_options.thumb_width+"px";
+				 objThumbCss["height"] = g_options.thumb_height+"px";
+				 		 
+				 g_objParent.children(".ug-thumb-wrapper").css(objThumbCss);
+				 
+				 setThumbsBorderRadius();		 				
+			} 
 			 
 			 //set normal style to all the thumbs
 			 g_objParent.children(".ug-thumb-wrapper").each(function(){
@@ -8705,12 +8795,15 @@ function UGThumbsGeneral(){
 				 setThumbNormalStyle(objThumb, true);
 			 });
 			 
-			 //set thumbs loader and error params
-			 var objThumbsLoaderCss = {};
-			 objThumbsLoaderCss["width"] = g_options.thumb_width+"px";
-			 objThumbsLoaderCss["height"] = g_options.thumb_height+"px";			 
-			 g_objParent.find(".ug-thumb-loader, .ug-thumb-error, .ug-thumb-border-overlay, .ug-thumb-overlay").css(objThumbsLoaderCss);
 			 
+			 //set thumbs loader and error params
+			if(g_temp.customThumbs == false){
+				 var objThumbsLoaderCss = {};
+				 objThumbsLoaderCss["width"] = g_options.thumb_width+"px";
+				 objThumbsLoaderCss["height"] = g_options.thumb_height+"px";			 
+				 g_objParent.find(".ug-thumb-loader, .ug-thumb-error, .ug-thumb-border-overlay, .ug-thumb-overlay").css(objThumbsLoaderCss);
+			}
+			
 		}
 		
 		
@@ -10614,44 +10707,47 @@ function UGThumbsStrip(){
 		
 		g_thumbs.init(gallery, customOptions);
 		
-		//setHtml();
 	}
+	
 	
 	/**
 	 * run the strip
 	 */
 	function runStrip(){
-		
-		if(g_temp.isRunOnce == true)
-			return(false);
-		
-		g_temp.isRunOnce = true;
-		
-		g_thumbs.setHtmlProperties();
 				
+		g_thumbs.setHtmlProperties();
+		
 		initSizeParams();
 		
 		fixSize();
 		
 		positionThumbs();
 		
-		//init thumbs strip touch 
-		if(g_options.strip_control_touch == true){
-			g_touchThumbsControl = new UGTouchThumbsControl();
-			g_touchThumbsControl.init(t);
+		//run only once
+		if(g_temp.isRunOnce == false){
+			
+			//init thumbs strip touch 
+			if(g_options.strip_control_touch == true){
+				g_touchThumbsControl = new UGTouchThumbsControl();
+				g_touchThumbsControl.init(t);
+			}
+			
+			//init thumbs strip avia control
+			if(g_options.strip_control_avia == true){
+				g_aviaControl = new UGAviaControl();
+				g_aviaControl.init(t);
+			}
+		
+			checkControlsEnableDisable();
+			
+			g_thumbs.loadThumbsImages();
+			
+			initEvents();
 		}
 		
-		//init thumbs strip avia control
-		if(g_options.strip_control_avia == true){
-			g_aviaControl = new UGAviaControl();
-			g_aviaControl.init(t);
-		}
+						
+		g_temp.isRunOnce = true;
 		
-		checkControlsEnableDisable();
-		
-		g_thumbs.loadThumbsImages();
-		
-		initEvents();
 	}
 	
 	
@@ -10783,6 +10879,7 @@ function UGThumbsStrip(){
 	
 	/**
 	 * scroll by some number
+	 * .
 	 */
 	function scrollBy(scrollStep){
 		
@@ -13193,11 +13290,11 @@ function UGYoutubeAPI(){
 	 * actually put the video
 	 */
 	function putVideoActually(divID, videoID, width, height, isAutoplay){
-		
+				
 		if(g_player && g_isPlayerReady){			
 			g_player.destroy();
 		}
-				
+		
 		var playerVars = {
 			controls:2, showinfo:1, rel:0
 		};
@@ -13422,7 +13519,7 @@ function UGYoutubeAPI(){
 
 function UGVideoPlayer(){
 	
-	var t = this, g_objThis = jQuery(this), g_functions = new UGFunctions();
+	var t = this, g_galleryID, g_objThis = jQuery(this), g_functions = new UGFunctions();
 	var g_youtubeAPI = new UGYoutubeAPI(), g_vimeoAPI = new UGVimeoAPI();
 	var g_html5API = new UGHtml5MediaAPI(), g_soundCloudAPI = new UGSoundCloudAPI(), g_wistiaAPI = new UGWistiaAPI();
 	var g_objPlayer, g_objYoutube, g_objVimeo, g_objHtml5, g_objButtonClose, g_objSoundCloud, g_objWistia;
@@ -13435,14 +13532,24 @@ function UGVideoPlayer(){
 	};
 	
 	var g_temp = {
-			standAloneMode: false
+			standAloneMode: false,
+			youtubeInnerID:"",
+			vimeoPlayerID:"",
+			html5PlayerID:"",
+			wistiaPlayerID:"",
+			soundCloudPlayerID:""
 	};
 	
 	
 	/**
 	 * init the object
 	 */
-	this.init = function(optOptions, isStandAloneMode){
+	this.init = function(optOptions, isStandAloneMode, galleryID){
+		g_galleryID = galleryID;
+		
+		if(!g_galleryID)
+			throw new Error("missing gallery ID for video player, it's a must!");
+			
 		g_options =  jQuery.extend(g_options, optOptions);
 		
 		if(isStandAloneMode && isStandAloneMode == true)
@@ -13456,12 +13563,19 @@ function UGVideoPlayer(){
 	 */
 	this.setHtml = function(objParent){
 		
+		g_temp.youtubeInnerID = g_galleryID + "_youtube_inner";
+		g_temp.vimeoPlayerID = g_galleryID + "_videoplayer_vimeo";
+		g_temp.html5PlayerID = g_galleryID + "_videoplayer_html5";
+		g_temp.wistiaPlayerID = g_galleryID + "_videoplayer_wistia";
+		g_temp.soundCloudPlayerID = g_galleryID + "_videoplayer_soundcloud";
+		
+		
 		var html = "<div class='ug-videoplayer' style='display:none'>";
-		html += "<div class='ug-videoplayer-wrapper ug-videoplayer-youtube' style='display:none'><div id='ug-videoplayer-youtube-inner'></div></div>";
-		html += "<div id='ug-videoplayer-vimeo' class='ug-videoplayer-wrapper ug-videoplayer-vimeo' style='display:none'></div>";
-		html += "<div id='ug-videoplayer-html5' class='ug-videoplayer-wrapper ug-videoplayer-html5'></div>";
-		html += "<div id='ug-videoplayer-soundcloud' class='ug-videoplayer-wrapper ug-videoplayer-soundcloud'></div>";
-		html += "<div id='ug-videoplayer-wistia' class='ug-videoplayer-wrapper ug-videoplayer-wistia'></div>";
+		html += "<div class='ug-videoplayer-wrapper ug-videoplayer-youtube' style='display:none'><div id='"+g_temp.youtubeInnerID+"'></div></div>";
+		html += "<div id='"+g_temp.vimeoPlayerID+"' class='ug-videoplayer-wrapper ug-videoplayer-vimeo' style='display:none'></div>";
+		html += "<div id='"+g_temp.html5PlayerID+"' class='ug-videoplayer-wrapper ug-videoplayer-html5'></div>";
+		html += "<div id='"+g_temp.soundCloudPlayerID+"' class='ug-videoplayer-wrapper ug-videoplayer-soundcloud'></div>";
+		html += "<div id='"+g_temp.wistiaPlayerID+"' class='ug-videoplayer-wrapper ug-videoplayer-wistia'></div>";
 		
 		if(g_temp.standAloneMode == false)
 			html += "<div class='ug-videoplayer-button-close'></div>";
@@ -13665,10 +13779,10 @@ function UGVideoPlayer(){
 		
 		g_objYoutube.show();
 		
-		if(g_youtubeAPI.isPlayerReady() == true)
+		if(g_youtubeAPI.isPlayerReady() == true && g_temp.standAloneMode == true)
 			g_youtubeAPI.changeVideo(videoID, isAutoplay);
 		else	
-			g_youtubeAPI.putVideo("ug-videoplayer-youtube-inner", videoID, "100%", "100%", isAutoplay);
+			g_youtubeAPI.putVideo(g_temp.youtubeInnerID, videoID, "100%", "100%", isAutoplay);
 	}
 	
 	
@@ -13684,10 +13798,10 @@ function UGVideoPlayer(){
 		
 		g_objVimeo.show();
 		
-		if(g_vimeoAPI.isPlayerReady())
+		if(g_vimeoAPI.isPlayerReady() && g_temp.standAloneMode == true)
 			g_vimeoAPI.changeVideo(videoID, isAutoplay);
 		else
-			g_vimeoAPI.putVideo("ug-videoplayer-vimeo", videoID, "100%", "100%", isAutoplay);
+			g_vimeoAPI.putVideo(g_temp.vimeoPlayerID, videoID, "100%", "100%", isAutoplay);
 
 	}
 	
@@ -13713,7 +13827,7 @@ function UGVideoPlayer(){
 				posterImage: posterImage 
 			};
 		
-		g_html5API.putVideo("ug-videoplayer-html5", data, "100%", "100%", isAutoplay);
+		g_html5API.putVideo(g_temp.html5PlayerID, data, "100%", "100%", isAutoplay);
 		
 	}
 
@@ -13729,7 +13843,7 @@ function UGVideoPlayer(){
 		
 		g_objSoundCloud.show();
 		
-		g_soundCloudAPI.putSound("ug-videoplayer-soundcloud", trackID, "100%", "100%", isAutoplay);
+		g_soundCloudAPI.putSound(g_temp.soundCloudPlayerID, trackID, "100%", "100%", isAutoplay);
 	}
 	
 	
@@ -13745,7 +13859,7 @@ function UGVideoPlayer(){
 		
 		g_objWistia.show();
 		
-		g_wistiaAPI.putVideo("ug-videoplayer-wistia", videoID, "100%", "100%", isAutoplay);
+		g_wistiaAPI.putVideo(g_temp.wistiaPlayerID, videoID, "100%", "100%", isAutoplay);
 	
 	}
 	

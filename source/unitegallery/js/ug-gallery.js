@@ -1,4 +1,4 @@
-	
+
 	/**
 	 * prototype gallery funciton
 	 */
@@ -17,6 +17,32 @@
 	}
 
 
+	/**
+	 * check for errors function
+	 */
+	function ugCheckForErrors(galleryID, type){
+		
+		if(typeof jQuery.fn.unitegallery == "function")
+			return(true);
+		
+		var errorMessage = "Unite Gallery Error: You have some jquery.js library include that comes after the gallery files js include.";
+		errorMessage += "<br> This include eliminates the gallery libraries, and make it not work.";
+		
+		if(type == "cms"){
+			errorMessage += "<br><br> To fix it you can:<br>&nbsp;&nbsp;&nbsp; 1. In the Gallery Settings -> Troubleshooting set option:  <strong><b>Put JS Includes To Body</b></strong> option to true.";
+			errorMessage += "<br>&nbsp;&nbsp;&nbsp; 2. Find the double jquery.js include and remove it.";
+		}else{
+			errorMessage += "<br><br> Please find and remove this jquery.js include and the gallery will work. <br> * There should be only one jquery.js include before all other js includes in the page.";			
+		}
+		
+		errorMessage = "<div style='font-size:16px;color:#BC0C06;max-width:900px;border:1px solid red;padding:10px;'>" + errorMessage + "</div>"
+		
+		jQuery(galleryID).show().html(errorMessage);
+		
+		return(false);
+	}
+
+	
 function UniteGalleryMain(){
 	
 	var t = this;
@@ -284,11 +310,9 @@ function UniteGalleryMain(){
 	 * if the thumbs panel don't exists, delete initial images from dom
 	 */
 	function clearInitData(){
-		
-		if(g_objThumbs)
-			return(false);
-		
+				
 		g_objWrapper.children().remove();
+		
 	}
 	
 	
@@ -372,12 +396,16 @@ function UniteGalleryMain(){
 				 if(itemType == "image")
 					 throw new Error("The item should not be image type");
 				 
-				 objItem.urlThumb = undefined;
+				 objItem.urlThumb = objChild.data("thumb");
 				 objItem.title = objChild.data("title");
 				 objItem.objThumbImage = null;
 			 }
 			 
 			 objItem.description = objChild.data("description");
+			 
+			 if(!objItem.description)
+				 objItem.description = "";
+			 
 			 objItem.isLoaded = false;
 			 objItem.isThumbImageLoaded = false;	//if the image loaded or error load
 			 objItem.objPreloadImage = null;
@@ -983,6 +1011,15 @@ function UniteGalleryMain(){
 		return(objSize);
 	}
 	
+	/**
+	 * get gallery ID
+	 */
+	this.getGalleryID = function(){
+		
+		var id = g_galleryID.replace("#","");
+			
+		return(id);
+	}
 	
 	/**
 	 * get next item by current index (or current object)
@@ -1535,15 +1572,18 @@ function UniteGalleryMain(){
 	
 	/**
 	 * resize the gallery
+	 * noevent - initally false
 	 */
-	this.resize = function(newWidth, newHeight){
+	this.resize = function(newWidth, newHeight, noevent){
 		
 		g_objWrapper.css("max-width",newWidth+"px");
 		
 		if(newHeight)
 			g_objWrapper.height(newHeight);
 		
-		onGalleryResized();
+		if(!noevent && noevent !== true)
+			onGalleryResized();
+		
 	}
 	
 	

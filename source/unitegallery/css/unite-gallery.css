@@ -521,6 +521,15 @@ img.ug-sepia-effect{
 	cursor:pointer;
 }
 
+.ug-gallery-wrapper .ug-panel-disabled-overlay{
+	position:absolute;
+	z-index:100;
+	width:100%;
+	height:100%;
+	background-color:rgba(0,0,0,0.3);
+	background-image:url('../images/cover-grid.png');
+}
+
 
 .--------------STRIP_PANEL------------------{}
 

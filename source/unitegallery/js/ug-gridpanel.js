@@ -881,4 +881,14 @@ function UGGridPanel(){
 	}
 	
 	
+	/**
+	 * set panel disabled at start
+	 */
+	this.setDisabledAtStart = function(timeout){
+		
+		g_panelBase.setDisabledAtStart(timeout);
+		
+	}
+	
+	
 }

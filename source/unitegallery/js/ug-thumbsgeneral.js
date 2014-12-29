@@ -137,15 +137,17 @@ function UGThumbsGeneral(){
 		 * set thumbnails html properties
 		 */
 		this.setHtmlProperties = function(){
-			
+			 			
 			 //set thumb params
-			 var objThumbCss = {};
-			 objThumbCss["width"] = g_options.thumb_width+"px";
-			 objThumbCss["height"] = g_options.thumb_height+"px";
-			 		 
-			 g_objParent.children(".ug-thumb-wrapper").css(objThumbCss);
-			 
-			 setThumbsBorderRadius();		 
+			if(g_temp.customThumbs == false){
+				var objThumbCss = {};
+				 objThumbCss["width"] = g_options.thumb_width+"px";
+				 objThumbCss["height"] = g_options.thumb_height+"px";
+				 		 
+				 g_objParent.children(".ug-thumb-wrapper").css(objThumbCss);
+				 
+				 setThumbsBorderRadius();		 				
+			} 
 			 
 			 //set normal style to all the thumbs
 			 g_objParent.children(".ug-thumb-wrapper").each(function(){
@@ -153,12 +155,15 @@ function UGThumbsGeneral(){
 				 setThumbNormalStyle(objThumb, true);
 			 });
 			 
-			 //set thumbs loader and error params
-			 var objThumbsLoaderCss = {};
-			 objThumbsLoaderCss["width"] = g_options.thumb_width+"px";
-			 objThumbsLoaderCss["height"] = g_options.thumb_height+"px";			 
-			 g_objParent.find(".ug-thumb-loader, .ug-thumb-error, .ug-thumb-border-overlay, .ug-thumb-overlay").css(objThumbsLoaderCss);
 			 
+			 //set thumbs loader and error params
+			if(g_temp.customThumbs == false){
+				 var objThumbsLoaderCss = {};
+				 objThumbsLoaderCss["width"] = g_options.thumb_width+"px";
+				 objThumbsLoaderCss["height"] = g_options.thumb_height+"px";			 
+				 g_objParent.find(".ug-thumb-loader, .ug-thumb-error, .ug-thumb-border-overlay, .ug-thumb-overlay").css(objThumbsLoaderCss);
+			}
+			
 		}
 		
 		

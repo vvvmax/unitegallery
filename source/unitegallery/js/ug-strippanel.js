@@ -157,10 +157,10 @@ function UGStripPanel() {
 			return (false);
 
 		g_objStrip.run();
-
+		
 		setElementsSize();
 		placeElements();
-
+				
 		initEvents();
 
 		g_temp.isFirstRun = false;
@@ -228,7 +228,7 @@ function UGStripPanel() {
 	 * set elements size horizontal type
 	 */
 	function setElementsSize_hor() {
-
+		
 		// get strip height
 		var stripHeight = g_objStrip.getHeight();
 		var panelWidth = g_temp.panelWidth;
@@ -273,11 +273,11 @@ function UGStripPanel() {
 	 * set elements size vertical type
 	 */
 	function setElementsSize_vert() {
-
+				
 		// get strip width
 		var stripWidth = g_objStrip.getWidth();
 		var panelHeight = g_temp.panelHeight;
-
+		
 		// set buttons height
 		if (g_objButtonNext) {
 			g_objButtonPrev.width(stripWidth);
@@ -485,9 +485,9 @@ function UGStripPanel() {
 
 		if (g_temp.isEventsInited == true)
 			return (false);
-
+		
 		g_temp.isEventsInited = true;
-
+				
 		// buttons events
 		if (g_objButtonNext) {
 
@@ -651,6 +651,15 @@ function UGStripPanel() {
 		
 		g_objStrip.setCustomThumbs(funcSetHtml);
 	
+	}
+	
+	/**
+	 * set panel disabled at start
+	 */
+	this.setDisabledAtStart = function(timeout){
+		
+		g_panelBase.setDisabledAtStart(timeout);
+		
 	}
 	
 }
