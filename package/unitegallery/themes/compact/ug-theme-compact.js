@@ -409,6 +409,22 @@ function UGTheme_compact(){
 	
 	
 	/**
+	 * destroy the theme
+	 */
+	this.destroy = function(){
+		
+		g_objGallery.off(g_gallery.events.SIZE_CHANGE);
+		
+		if(g_objPanel)
+			jQuery(g_objPanel).off(g_objPanel.events.FINISH_MOVE);
+		
+		g_objPanel.destroy();
+		g_objSlider.destroy();
+		
+	}
+	
+	
+	/**
 	 * run the theme setting
 	 */
 	this.run = function(){

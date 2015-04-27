@@ -1,5 +1,7 @@
 @CHARSET "ISO-8859-1";
 
+
+
 /* ----- Strip Panel ------- */
 
 .ug-videoskin-right-no-thumb .ug-strip-panel{
@@ -104,7 +106,7 @@
 }
 .ug-under-960.ug-videoskin-right-no-thumb .ug-thumb-desc
 {
-  width:167px;
+  width:289px;
   padding-top:0px;
 }
 

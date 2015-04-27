@@ -1,4 +1,4 @@
-// Unite Gallery, Version: 1.1.6, released 29 Dec 2014 
+// Unite Gallery, Version: 1.3.7, released 23 Apr 2015 
 
 
 /**
@@ -226,6 +226,15 @@ function UG_API(gallery){
 		return(numItems);
 	}
 	
+	/**
+	 * refresh gallery with another options
+	 */
+	this.reloadGallery = function(customOptions){
+		if(!customOptions)
+			var customOptions = {};
+		
+		g_gallery.run(null, customOptions);
+	}
 	
 	
 }
@@ -337,6 +346,15 @@ function UGAviaControl(){
 	}
 	
 	
+	/**
+	 * destroy the avia control events
+	 */
+	this.destroy = function(){
+		
+		jQuery("body").off("touchstart");
+		jQuery("body").off("mousemove");
+
+	}
 	
 	
 	/**
@@ -510,6 +528,979 @@ function UGAviaControl(){
 	
 }
 
+/**
+ * carousel class
+ */
+function UGCarousel(){
+
+	var t = this, g_objThis = jQuery(this);
+	var g_gallery = new UniteGalleryMain(), g_objGallery, g_objWrapper;	
+	var g_functions = new UGFunctions(), g_arrItems, g_objTileDesign = new UGTileDesign();
+	var g_thumbs = new UGThumbsGeneral(), g_objCarouselWrapper, g_objInner, arrOrigTiles = [];
+	
+	var g_options = {
+			carousel_padding: 8,							//padding at the sides of the carousel
+			carousel_space_between_tiles: 20,				//space between tiles
+			carousel_navigation_numtiles:3,					//number of tiles to scroll when user clicks on next/prev button
+			carousel_scroll_duration:500,					//duration of scrolling to tile
+			carousel_scroll_easing:"easeOutCubic",			//easing of scrolling to tile animation
+			
+			carousel_autoplay: true,						//true,false - autoplay of the carousel on start
+			carousel_autoplay_timeout: 3000,				//autoplay timeout
+			carousel_autoplay_direction: "right",			//left,right - autoplay direction
+			carousel_autoplay_pause_onhover: true			//pause the autoplay on mouse over
+	};
+	
+	this.events = {
+			START_PLAY: "carousel_start_play",
+			PAUSE_PLAY: "carousel_pause_play",
+			STOP_PLAY: "carousel_stop_play"
+	};
+	
+	var g_temp = {
+			eventSizeChange: "thumb_size_change",
+			isFirstTimeRun:true,  //if run once
+			carouselMaxWidth: null,
+			tileWidth:0,
+			sideSpace:1500,				//the space that must be filled with items
+			spaceActionSize:500,
+			numCurrent:0,
+			touchActive: false,
+			startInnerPos: 0,
+			lastTime:0,
+			startTime:0,
+			startMousePos:0,
+			lastMousePos:0,
+			scrollShortDuration: 200,
+			scrollShortEasing: "easeOutQuad",
+			handle:null,
+			isPlayMode: false,
+			isPaused: false
+	};
+
+	
+	function __________GENERAL_________(){};
+	
+	/**
+	 * init the gallery
+	 */
+	function init(gallery, customOptions){
+		
+		g_objects = gallery.getObjects();
+		g_gallery = gallery;
+		g_objGallery = jQuery(gallery);
+		g_objWrapper = g_objects.g_objWrapper;
+		g_arrItems = g_objects.g_arrItems;
+		
+		g_options = jQuery.extend(g_options, customOptions);
+		
+		g_objTileDesign.setFixedMode();		
+		g_objTileDesign.setApproveClickFunction(isApproveTileClick);
+		g_objTileDesign.init(gallery, g_options);
+		
+		g_thumbs = g_objTileDesign.getObjThumbs();
+		g_options = g_objTileDesign.getOptions();
+		
+		g_temp.tileWidth = g_options.tile_width;
+	}
+	
+	
+	/**
+	 * set the grid panel html
+	 */
+	function setHtml(objParent){
+		
+		if(!objParent)
+			var objParent = g_objWrapper;
+		
+		var html = "<div class='ug-carousel-wrapper'><div class='ug-carousel-inner'></div></div>";
+		g_objWrapper.append(html);
+		
+		g_objCarouselWrapper = g_objWrapper.children(".ug-carousel-wrapper");
+		g_objInner = g_objCarouselWrapper.children(".ug-carousel-inner");
+		
+		g_objTileDesign.setHtml(g_objInner);
+		
+		g_thumbs.getThumbs().fadeTo(0,1);
+		
+	}
+	
+	/**
+	 * run the gallery after init and set html
+	 */
+	function run(){
+		
+		//validation
+		if(g_temp.carouselMaxWidth === null){
+			throw new Error("The carousel width not set");
+			return(false);
+		}
+		
+		//set wrapper width
+		var numTiles = g_functions.getNumItemsInSpace(g_temp.carouselMaxWidth, g_temp.tileWidth, g_options.carousel_space_between_tiles);
+		var realWidth = g_functions.getSpaceByNumItems(numTiles, g_temp.tileWidth, g_options.carousel_space_between_tiles);
+		realWidth += g_options.carousel_padding * 2;
+		
+		g_objCarouselWrapper.width(realWidth);
+		
+		if(g_temp.isFirstTimeRun == true){
+			
+			initEvents();
+			
+			g_objTileDesign.run();
+			
+			//set data indexes to tiles
+			jQuery.each(g_arrItems, function(index, item){
+				item.objThumbWrapper.data("index", index);
+				g_objWrapper.trigger(g_temp.eventSizeChange, [item.objThumbWrapper,true]);
+				item.objTileOriginal = item.objThumbWrapper.clone(true, true);
+			});
+						
+			positionTiles(true);		//set heights at first time
+			
+			if(g_options.carousel_autoplay == true)
+				startAutoplay();
+		}else{
+			
+			if(g_options.carousel_autoplay == true)
+				pauseAutoplay();
+			
+			scrollToTile(0, false);
+			
+			if(g_options.carousel_autoplay == true)
+				startAutoplay();
+		}
+		
+		positionElements();
+		
+		g_temp.isFirstTimeRun = false;
+	}
+	
+	
+	
+	function __________GETTERS_______(){};
+	
+	/**
+	 * get inner position
+	 */
+	function getInnerPos(){
+		return g_functions.getElementSize(g_objInner).left;
+	}
+	
+	/**
+	 * get mouse position
+	 */
+	function getMousePos(event){
+		return g_functions.getMousePosition(event).pageX;
+	}
+	
+	
+	/**
+	 * get all tiles
+	 */
+	function getTiles(){
+		
+		var objTiles = g_objInner.children(".ug-thumb-wrapper");
+		return(objTiles);
+	}
+	
+	
+	/**
+	 * get num tiles in some space
+	 */
+	function getNumTilesInSpace(space){
+		
+		var numItems = g_functions.getNumItemsInSpace(space, g_temp.tileWidth, g_options.carousel_space_between_tiles)
+		
+		return(numItems);
+	}
+	
+	/**
+	 * get all tiles in the inner object
+	 */
+	function getTiles(){
+		return g_objInner.children(".ug-thumb-wrapper");
+	}
+	
+	
+	/**
+	 * get num tiles
+	 */
+	function getNumTiles(){
+		return getTiles().length;
+	}
+	
+	
+	/**
+	 * get tile
+	 */
+	function getTile(numTile){
+		validateTileNum(numTile);
+		var objTiles = getTiles();
+		var objTile = jQuery(objTiles[numTile]);
+		
+		return(objTile);
+	}
+	
+	
+	/**
+	 * get first tile in the inner object
+	 */
+	function getFirstTile(){
+				
+		return g_objInner.children(".ug-thumb-wrapper").first();
+	}
+	
+	/**
+	 * get last tile in the inner object
+	 */
+	function getLastTile(){
+		
+		return g_objInner.children(".ug-thumb-wrapper").last();		
+	}
+	
+	
+	
+	/**
+	 * get clone of the time next or prev the given
+	 */
+	function getTileClones(objTile, numClones, dir){
+		
+		var index = objTile.data("index");
+		if(index == undefined){
+			throw new Error("every tile should have index!");			
+		}
+		
+		var arrClonedItems = [];
+		
+		for(var i=0;i<numClones;i++){			
+			
+			if(dir == "prev")
+				var itemToAdd = g_gallery.getPrevItem(index, true);
+			else
+				var itemToAdd = g_gallery.getNextItem(index, true);
+			
+			if(!itemToAdd){
+				throw new Error("the item to add is empty");
+			}
+			
+			var clonedTile = itemToAdd.objTileOriginal.clone(true, true);
+			
+			
+			index = itemToAdd.index;	
+			
+			clonedTile.addClass("cloned");
+			arrClonedItems.push(clonedTile);
+		}
+		
+		return(arrClonedItems);
+	}
+	
+	
+	/**
+	 * get space left from the right
+	 */
+	function getRemainSpaceRight(){
+		var wrapperSize = g_functions.getElementSize(g_objCarouselWrapper);
+		var innerSize = g_functions.getElementSize(g_objInner);
+		
+		var spaceTaken = innerSize.width - wrapperSize.width + innerSize.left;
+		var spaceRemain = g_temp.sideSpace - spaceTaken;
+		
+		return(spaceRemain);
+	}
+	
+	
+	/**
+	 * get remain space on the left
+	 */
+	function getRemainSpaceLeft(){
+		var spaceTaken = -getInnerPos();
+		var spaceRemain = g_temp.sideSpace - spaceTaken;
+		return(spaceRemain);
+	}
+	
+	/**
+	 * get carousel width
+	 */
+	function getCarouselWidth(){
+		
+		var objSize = g_functions.getElementSize(g_objCarouselWrapper);
+		return(objSize.width);
+	}
+	
+	/**
+	 * get num tiles in the carousel
+	 */
+	function getNumTilesInCarousel(){
+		
+		var width = getCarouselWidth();
+		
+		var numTiles = getNumTilesInSpace(width);
+		
+		return(numTiles);
+	}
+	
+	
+	function __________OTHER_METHODS_______(){};
+	
+	
+	/**
+	 * position existing tiles
+	 */
+	function positionTiles(setHeight){
+		
+		if(!setHeight)
+			var setHeight = false;
+		
+		var objTiles = getTiles();
+		
+		var posx = 0;
+		var maxHeight = 0, totalWidth;
+		
+		jQuery.each(objTiles, function(index, objTile){
+			objTile = jQuery(objTile);
+			g_functions.placeElement(objTile, posx, 0);
+			var tileSize = g_functions.getElementSize(objTile);
+			posx += tileSize.width + g_options.carousel_space_between_tiles;
+			maxHeight = Math.max(maxHeight, tileSize.height);
+			if(index == (objTiles.length-1))
+				totalWidth = tileSize.right;
+		});
+		
+		
+		//set heights and widths
+		g_objInner.width(totalWidth);
+		
+		maxHeight += g_options.carousel_padding * 2;
+		
+		if(setHeight === true){
+			g_objInner.height(maxHeight);
+			g_objCarouselWrapper.height(maxHeight);
+		}
+		
+		scrollToTile(g_temp.numCurrent, false);
+
+		return(totalWidth);
+	}
+	
+	
+	/**
+	 * validate that the num not more then num tiles
+	 */
+	function validateTileNum(numTile){
+
+		if(numTile > (getTiles().length-1))
+			throw new Error("Wrogn tile number: " + numTile);
+	}
+	
+	
+	/**
+	 * add tile to left
+	 */
+	function addTiles(numTiles, dir){
+		
+		if(dir == "left")
+			var anchorTile = getFirstTile();
+		else
+			var anchorTile = getLastTile();
+		
+		var clonesType = (dir == "left")?"prev":"next";
+		
+		var arrNewTiles = getTileClones(anchorTile, numTiles, clonesType);
+				
+		jQuery.each(arrNewTiles, function(index, objTile){		
+			
+			if(dir == "left")
+				g_objInner.prepend(objTile);
+			else
+				g_objInner.append(objTile);
+			
+			g_objWrapper.trigger(g_temp.eventSizeChange, objTile);
+			g_objTileDesign.loadTileImage(objTile);
+			
+		});
+		
+		
+	}
+	
+	/**
+	 * remove some tiles
+	 */
+	function removeTiles(numTilesToRemove, direction){
+		
+		validateTileNum(numTiles);
+		
+		var arrTiles = getTiles();
+		var numTiles = arrTiles.length;
+		
+		for(var i=0; i<numTilesToRemove; i++){
+			
+			if(direction == "left")
+				jQuery(arrTiles[i]).remove();
+			else{
+				jQuery(arrTiles[numTiles-1-i]).remove();
+			}
+		}
+	}
+
+	
+	/**
+	 * set inner strip position
+	 */
+	function setInnerPos(pos){
+		var objCss = {
+				"left":pos+"px"
+		};
+		
+		g_objInner.css(objCss);
+	}
+	
+	
+	/**
+	 * scroll to tile by number
+	 */
+	function scrollToTile(numTile, isAnimation, isShort){
+		
+		if(isAnimation === undefined){
+			var isAnimation = true;
+			if(g_objInner.is(":animated"))
+				return(true);
+		}
+		
+		var objTile = getTile(numTile);
+		var objSize = g_functions.getElementSize(objTile);
+		var posScroll = -objSize.left + g_options.carousel_padding;
+		
+		var objCss = {
+				"left":posScroll+"px"
+		};
+						
+		if(isAnimation === true){
+			
+			var duration = g_options.carousel_scroll_duration;
+			var easing = g_options.carousel_scroll_easing;
+			
+			if(isShort === true){
+				duration = g_temp.scrollShortDuration;
+				easing = g_temp.scrollShortEasing;
+			}
+			
+			g_objInner.stop(true).animate(objCss ,{
+				duration: duration,
+				easing: easing,
+				queue: false,
+				//progress:function(){t.triggerStripMoveEvent()},
+				complete: function(){
+					g_temp.numCurrent = numTile;
+					
+					fillSidesWithTiles(true);
+				}
+			});					
+			
+		}else{
+			g_temp.numCurrent = numTile;
+						
+			g_objInner.css(objCss);
+		}
+		
+	}
+	
+	
+	/**
+	 * get number of neerest tile
+	 */
+	function getNeerestTileNum(){
+		var innerPos = -getInnerPos();
+		var numTiles = getNumTilesInSpace(innerPos);
+		var tile1Pos = g_functions.getElementSize(getTile(numTiles)).left;
+		var tile2Pos = g_functions.getElementSize(getTile(numTiles+1)).left;
+				
+		if(Math.abs(tile1Pos - innerPos) < Math.abs(tile2Pos - innerPos))
+			return(numTiles);
+		else			
+			return(numTiles+1);
+	}
+	
+	
+	/**
+	 * get neerest tile to inner position
+	 */
+	function scrollToNeerestTile(){
+		
+		var tileNum = getNeerestTileNum();
+		scrollToTile(tileNum, true, true);
+	}
+	
+	
+	/**
+	 * fill the sides with tiles till it fil the sideSpace
+	 */
+	function fillSidesWithTiles(){
+		
+		var spaceLeft = getRemainSpaceLeft();
+		var spaceRight = getRemainSpaceRight();
+		var numItemsLeft = 0, numItemsRight = 0, numItemsRemoveLeft = 0, numItemsRemoveRight = 0;
+		
+		//trace("left: " + spaceLeft+ " right: " + spaceRight);
+		
+		//add tiles to left
+		if(spaceLeft > g_temp.spaceActionSize){
+			numItemsLeft = getNumTilesInSpace(spaceLeft);		
+			addTiles(numItemsLeft, "left");
+			
+			g_temp.numCurrent += numItemsLeft;
+			
+		}else if(spaceLeft < -g_temp.spaceActionSize){
+			var numItemsRemoveLeft = getNumTilesInSpace(Math.abs(spaceLeft));
+			removeTiles(numItemsRemoveLeft, "left");
+			g_temp.numCurrent -= numItemsRemoveLeft;
+		}
+		
+		//add tiles to right
+		if(spaceRight > g_temp.spaceActionSize){
+			numItemsRight = getNumTilesInSpace(spaceRight);
+			addTiles(numItemsRight, "right");			
+		}else if(spaceRight < -g_temp.spaceActionSize){
+			numItemsRemoveRight = getNumTilesInSpace(Math.abs(spaceRight));
+			removeTiles(numItemsRemoveRight, "right");			
+		}
+		
+		//trace("numItems: " + getNumTiles());
+		
+		//scroll to tile and position inner object
+		var isPositioned = false;
+		if(numItemsLeft || numItemsRight || numItemsRemoveLeft || numItemsRemoveRight){
+			
+			/*
+			debugLine({
+				numItemsLeft:numItemsLeft,
+				numItemsRight:numItemsRight,
+				numItemsRemoveLeft:numItemsRemoveLeft,
+				numItemsRemoveRight: numItemsRemoveRight
+			});
+			*/
+			//trace("do something");
+			
+			positionTiles();			
+			isPositioned = true
+		}
+		
+		return(isPositioned);
+	}
+	
+	
+	/**
+	 * position tiles
+	 */
+	function positionElements(isFirstTime){
+		
+		//position inner strip
+		g_functions.placeElement(g_objInner, 0, g_options.carousel_padding);
+		
+		//position sides
+		fillSidesWithTiles();
+		
+	}
+	
+	
+	
+	function __________AUTOPLAY_______(){};
+
+	/**
+	 * start autoplay
+	 */
+	function startAutoplay(){
+		
+		g_temp.isPlayMode = true;
+		g_temp.isPaused = false;
+		
+		g_objThis.trigger(t.events.START_PLAY);
+		
+		if(g_temp.handle)
+			clearInterval(g_temp.handle);
+		
+		g_temp.handle = setInterval(autoplayStep, g_options.carousel_autoplay_timeout);
+		
+	}
+	
+	/**
+	 * unpause autoplay after pause
+	 */
+	function unpauseAutoplay(){
+		
+		if(g_temp.isPlayMode == false)
+			return(true);
+		
+		if(g_temp.isPaused == false)
+			return(true);
+		
+		startAutoplay();
+	}
+	
+	/**
+	 * pause the autoplay
+	 */
+	function pauseAutoplay(){
+
+		if(g_temp.isPlayMode == false)
+			return(true);
+		
+		g_temp.isPaused = true;
+		
+		if(g_temp.handle)
+			clearInterval(g_temp.handle);
+		
+		g_objThis.trigger(t.events.PAUSE_PLAY);
+		
+	}
+
+	
+	/**
+	 * stop autoplay
+	 */
+	function stopAutoplay(){
+		if(g_temp.isPlayMode == false)
+			return(true);
+		
+		g_temp.isPaused = false;
+		g_temp.isPlayMode = false;
+		
+		if(g_temp.handle)
+			clearInterval(g_temp.handle);
+		
+		g_objThis.trigger(t.events.STOP_PLAY);
+	}
+	
+	
+	/**
+	 * autoplay step, advance the carousel by 1
+	 */
+	function autoplayStep(){
+		
+		if(g_options.carousel_autoplay_direction == "left"){
+			t.scrollRight(1);
+		}else{
+			t.scrollLeft(1);
+		}
+		
+	}
+	
+	function __________EVENTS_______(){};
+		
+	
+	/**
+	 * on touch start
+	 */
+	function onTouchStart(event){
+		
+		if(g_temp.touchActive == true)
+			return(true);
+		
+		g_temp.touchActive = true;
+		
+		pauseAutoplay();
+		
+		g_temp.startTime = jQuery.now();		
+		g_temp.startMousePos = getMousePos(event);
+		g_temp.startInnerPos = getInnerPos();
+		g_temp.lastTime = g_temp.startTime;
+		g_temp.lastMousePos = g_temp.startMousePos;
+	}
+
+	
+	/**
+	 * on touch move
+	 */
+	function onTouchMove(event){
+				
+		if(g_temp.touchActive == false)
+			return(true);
+		
+		event.preventDefault();
+		
+		g_temp.lastMousePos = getMousePos(event);
+		
+		var diff = g_temp.lastMousePos - g_temp.startMousePos;
+		var innerPos = g_temp.startInnerPos + diff;
+		var direction = (diff > 0) ? "prev":"next";
+		var innerSize = g_functions.getElementSize(g_objInner).width;
+		
+		//slow down when off limits
+		if(innerPos > 0 && direction == "prev"){
+			innerPos = innerPos / 3;
+		}
+		
+		if(innerPos < -innerSize && direction == "next"){
+			innerPos = g_temp.startInnerPos + diff / 3;
+		}
+		
+		setInnerPos(innerPos);
+	}
+	
+	
+	/**
+	 * on touch end
+	 * change panes or return to current pane
+	 */
+	function onTouchEnd(event){
+		
+		if(g_temp.touchActive == false)
+			return(true);
+		
+		//event.preventDefault();
+		g_temp.touchActive = false;
+		
+		scrollToNeerestTile();
+		
+		unpauseAutoplay();
+	}
+	
+	/**
+	 * pause the playing
+	 */
+	function onMouseEnter(event){
+		
+		if(g_options.carousel_autoplay_pause_onhover == false)
+			return(true);
+		
+		if(g_temp.isPlayMode == true && g_temp.isPaused == false)
+			pauseAutoplay();
+	}
+	
+	/**
+	 * start the playing again
+	 */
+	function onMouseLeave(event){
+		
+		if(g_options.carousel_autoplay_pause_onhover == false)
+			return(true);
+		
+		unpauseAutoplay();
+	}
+	
+	
+	/**
+	 * init panel events
+	 */
+	function initEvents(){
+			
+		g_objTileDesign.initEvents();
+		
+		//touch drag events
+		
+		//slider mouse down - drag start
+		g_objCarouselWrapper.bind("mousedown touchstart",onTouchStart);
+		
+		//on body move
+		jQuery("body").bind("mousemove touchmove",onTouchMove);
+		
+		//on body mouse up - drag end
+		jQuery(window).add("body").bind("mouseup touchend", onTouchEnd);
+		
+		g_objCarouselWrapper.hover(onMouseEnter, onMouseLeave);
+		
+	}
+	
+	
+	/**
+	 * destroy the carousel events
+	 */
+	this.destroy = function(){
+		
+		if(g_temp.handle)
+			clearInterval(g_temp.handle);
+		
+		g_objThis.off(t.events.START_PLAY);		
+		g_objThis.off(t.events.STOP_PLAY);		
+		
+		//touch drag events
+		//slider mouse down - drag start
+		g_objCarouselWrapper.unbind("mousedown");
+		g_objCarouselWrapper.unbind("touchstart");
+		
+		//on body move
+		jQuery("body").unbind("mousemove");
+		jQuery("body").unbind("touchmove");
+		
+		//on body mouse up - drag end
+		jQuery(window).add("body").unbind("mouseup").unbind("touchend");
+		
+		g_objCarouselWrapper.off("mouseenter").off("mouseleave");
+		
+		g_objTileDesign.destroy();
+	}
+
+	
+	/**
+	 * init function for avia controls
+	 */
+	this.init = function(gallery, customOptions, width){
+		if(width)
+			this.setMaxWidth(width);
+		
+		init(gallery, customOptions);
+	}
+
+	
+	/**
+	 * set the width
+	 */
+	this.setMaxWidth = function(width){
+		
+		g_temp.carouselMaxWidth = width;
+	}
+	
+	
+	/**
+	 * set html
+	 */
+	this.setHtml = function(objParent){
+		setHtml(objParent);
+	}
+	
+	/**
+	 * get the carousel element
+	 */
+	this.getElement = function(){
+		return g_objCarouselWrapper;
+	}
+	
+	/**
+	 * get tile design object
+	 */
+	this.getObjTileDesign = function(){
+		return(g_objTileDesign);
+	}
+	
+	
+	/**
+	 * get estimated height
+	 */
+	this.getEstimatedHeight = function(){
+		var height = g_options.tile_height + g_options.carousel_padding * 2;
+		return(height);
+	}
+	
+	
+	/**
+	 * set html and properties
+	 */	
+	this.run = function(){
+		run();
+	}
+	
+	
+	/**
+	 * scroll to right
+	 */
+	this.scrollRight = function(tilesToScroll){
+		
+		if(!tilesToScroll || typeof tilesToScroll == "object")
+			var tilesToScroll = g_options.carousel_navigation_numtiles;
+
+		var numTilesInCarousel = getNumTilesInCarousel();
+		if(tilesToScroll > numTilesInCarousel)
+			tilesToScroll = numTilesInCarousel;
+		
+		var numPrev = g_temp.numCurrent - tilesToScroll;
+		if(numPrev <=0)
+			numPrev = 0;
+		
+		scrollToTile(numPrev);
+	}
+	
+	
+	/**
+	 * scroll to left
+	 */
+	this.scrollLeft = function(tilesToScroll){
+				
+		if(!tilesToScroll || typeof tilesToScroll == "object")
+			var tilesToScroll = g_options.carousel_navigation_numtiles;
+		
+		var numTilesInCarousel = getNumTilesInCarousel();
+		if(tilesToScroll > numTilesInCarousel)
+			tilesToScroll = numTilesInCarousel;
+		
+		var numTiles = getNumTiles();
+		
+		var numNext = g_temp.numCurrent + tilesToScroll;
+		if(numNext >= numTiles)
+			numNext = numTiles-1;
+	
+		scrollToTile(numNext);
+	}
+	
+	/**
+	 * set scroll left button
+	 */
+	this.setScrollLeftButton = function(objButton){
+		g_functions.setButtonMobileReady(objButton);
+		g_functions.setButtonOnClick(objButton, t.scrollLeft);
+	}
+	
+	
+	/**
+	 * set scroll right button
+	 */
+	this.setScrollRightButton = function(objButton){
+		g_functions.setButtonMobileReady(objButton);
+		g_functions.setButtonOnClick(objButton, t.scrollRight);
+	}
+	
+	
+	/**
+	 * set scroll right button
+	 */
+	this.setPlayPauseButton = function(objButton){
+		g_functions.setButtonMobileReady(objButton);
+		
+		if(g_temp.isPlayMode == true && g_temp.isPaused == false){
+			objButton.addClass("ug-pause-icon");			
+		}
+		
+		g_objThis.on(t.events.START_PLAY, function(){
+			objButton.addClass("ug-pause-icon");
+		});
+		
+		g_objThis.on(t.events.STOP_PLAY, function(){
+			objButton.removeClass("ug-pause-icon");
+		});
+		
+		g_functions.setButtonOnClick(objButton, function(){
+				
+				if(g_temp.isPlayMode == false || g_temp.isPaused == true)					
+					startAutoplay();
+				else
+					stopAutoplay();
+				
+		});
+	}
+	
+	
+	/**
+	 * return if passed some significant movement
+	 */
+	function isApproveTileClick(){
+		
+		var passedTime = g_temp.lastTime - g_temp.startTime;		
+		var passedDistanceAbs = Math.abs(g_temp.lastMousePos - g_temp.startMousePos);
+		
+		if(passedTime > 300)
+			return(false);
+		
+		if(passedDistanceAbs > 30)
+			return(false);
+		
+		return(true);
+	}
+	
+	
+}
+
+
+
 
 /** -------------- MouseWheel ---------------------*/
 
@@ -617,8 +1608,10 @@ function UGFunctions(){
 		arrThemes:[],
 		isTouchDevice:-1,
 		timeCache:{},
+		dataCache:{},
 		lastEventType:"",		//for validate touchstart click
-		lastEventTime:0
+		lastEventTime:0,
+		handle: null			//interval handle
 	};
 
 	this.z__________FULL_SCREEN___________ = function(){}
@@ -763,13 +1756,13 @@ function UGFunctions(){
 	 * get image inside parent data by image (find parent and size)
 	 * scaleMode: fit, down, fill
 	 */
-	this.getImageInsideParentDataByImage = function(objImage, scaleMode){
+	this.getImageInsideParentDataByImage = function(objImage, scaleMode, objPadding){
 		
 		var objParent = objImage.parent();
 		
 		var objOrgSize = t.getImageOriginalSize(objImage);
 		
-		var objData = t.getImageInsideParentData(objParent, objOrgSize.width, objOrgSize.height, scaleMode);
+		var objData = t.getImageInsideParentData(objParent, objOrgSize.width, objOrgSize.height, scaleMode, objPadding);
 		
 		return(objData);
 	}
@@ -779,13 +1772,34 @@ function UGFunctions(){
 	 * get data of image inside parent
 	 * scaleMode: fit, down, fill
 	 */
-	this.getImageInsideParentData = function(objParent, originalWidth, originalHeight, scaleMode){
+	this.getImageInsideParentData = function(objParent, originalWidth, originalHeight, scaleMode, objPadding){
 		
+		if(!objPadding)
+			var objPadding = {};
+		
+		/*
+		if(objPadding.padding_top == 44 && objParent.parent().index() == 1 && objParent.parents(".ug-theme-slider").length){
+			trace(objParent.parent());
+			trace(objPadding.padding_top);
+		}
+		 */
 		var objOutput = {};
 				
 		var maxWidth = objParent.width();
 		var maxHeight = objParent.height();
-
+		
+		if(objPadding.padding_left)
+			maxWidth -= objPadding.padding_left;
+		
+		if(objPadding.padding_right)
+			maxWidth -= objPadding.padding_right;
+		
+		if(objPadding.padding_top)
+			maxHeight -= objPadding.padding_top;
+		
+		if(objPadding.padding_bottom)
+			maxHeight -= objPadding.padding_bottom;
+		
 		var imageWidth = null;
 		var imageHeight = "100%";
 		var imageTop = null;
@@ -838,7 +1852,6 @@ function UGFunctions(){
 				
 			}
 			
-			
 			imageWidth = Math.floor(imageWidth);
 			imageHeight = Math.floor(imageHeight);
 			
@@ -848,12 +1861,23 @@ function UGFunctions(){
 			style="position:absolute;";
 		}
 		
+		//set padding
+		if(objPadding.padding_top)
+			imageTop += objPadding.padding_top;
+		
+		if(objPadding.padding_left)
+			imageLeft += objPadding.padding_left;
+		
 		objOutput.imageWidth = imageWidth;
 		objOutput.imageHeight = imageHeight;
 		objOutput.imageTop = imageTop;
 		objOutput.imageLeft = imageLeft;
 		objOutput.imageRight = imageLeft + imageWidth;
-		objOutput.imageBottom = imageTop + imageHeight;
+		if(imageTop == 0 || imageHeight == "100%")
+			objOutput.imageBottom = null;
+		else
+			objOutput.imageBottom = imageTop + imageHeight;
+		
 		objOutput.style = style;
 		
 		return(objOutput);		
@@ -864,16 +1888,39 @@ function UGFunctions(){
 	 * get element center position inside parent 
 	 * even if the object bigger than the parent
 	 */
-	this.getElementCenterPosition = function(element){
+	this.getElementCenterPosition = function(element, objPadding){
 		
 		var parent = element.parent();
 		var objSize = t.getElementSize(element);
 		var objSizeParent = t.getElementSize(parent);
 		
+		var parentWidth = objSizeParent.width;
+		var parentHeight = objSizeParent.height;
+		
+		if(objPadding && objPadding.padding_top !== undefined)
+			parentHeight -= objPadding.padding_top;
+		
+		if(objPadding && objPadding.padding_bottom !== undefined)
+			parentHeight -= objPadding.padding_bottom;
+		
+		if(objPadding && objPadding.padding_left !== undefined)
+			parentWidth -= objPadding.padding_left;
+		
+		if(objPadding && objPadding.padding_right !== undefined)
+			parentWidth -= objPadding.padding_right;
+		
+		
 		var output = {};
-		output.left = Math.round((objSizeParent.width - objSize.width) / 2);
-		output.top = Math.round((objSizeParent.height - objSize.height) / 2);
-				
+		output.left = Math.round((parentWidth - objSize.width) / 2);
+		output.top = Math.round((parentHeight - objSize.height) / 2);
+		
+		if(objPadding && objPadding.padding_top !== undefined)
+			output.top += objPadding.padding_top;
+		
+		if(objPadding && objPadding.padding_left !== undefined)
+			output.left += objPadding.padding_left;
+		
+		
 		return(output);
 	}
 	
@@ -903,7 +1950,6 @@ function UGFunctions(){
 		
 		return(output);
 	}
-	
 	
 	
 	/**
@@ -1028,6 +2074,8 @@ function UGFunctions(){
 		return(obj);		
 	}
 	
+	
+	
 	/**
 	 * return true if the element is bigger then it's parent
 	 */
@@ -1066,9 +2114,11 @@ function UGFunctions(){
 	 * get element relative position according the parent
 	 * if the left / top is offset text (left , center, right / top, middle , bottom)
 	 */
-	this.getElementRelativePos = function(element, pos, offset){
+	this.getElementRelativePos = function(element, pos, offset, objParent){
 		
-		var objParent = element.parent();
+		if(!objParent)
+			var objParent = element.parent();
+		
 		var elementSize = t.getElementSize(element);
 		var parentSize = t.getElementSize(objParent);
 		
@@ -1117,7 +2167,7 @@ function UGFunctions(){
 	 * the mouse point is page offset position, can be null
 	 * return true if zoomed and false if not zoomed
 	 */
-	this.zoomImageInsideParent = function(objImage, zoomIn, step, point, scaleMode, maxZoomRatio){
+	this.zoomImageInsideParent = function(objImage, zoomIn, step, point, scaleMode, maxZoomRatio, objPadding){
 		
 		if(!step)
 			var step = 1.2;
@@ -1170,13 +2220,13 @@ function UGFunctions(){
 			
 			newHeight = objSize.height / zoomRatio;
 			newWidth =  objSize.width / zoomRatio;
-						
-			var objScaleData = t.getImageInsideParentData(objParent, objOriginalSize.width, objOriginalSize.height);		
-						
+			
+			var objScaleData = t.getImageInsideParentData(objParent, objOriginalSize.width, objOriginalSize.height, scaleMode, objPadding);
+			
 			//go back to original size
 			if(newWidth < objScaleData.imageWidth){
 				
-				t.scaleImageFitParent(objImage, objOriginalSize.width, objOriginalSize.height, scaleMode);
+				t.scaleImageFitParent(objImage, objOriginalSize.width, objOriginalSize.height, scaleMode, objPadding);
 				return(true);
 			}
 			
@@ -1229,11 +2279,14 @@ function UGFunctions(){
 	 * if the left / top is offset text (left , center, right / top, middle , bottom)
 	 * then put it in parent by the offset.
 	 */
-	this.placeElement = function(element, left, top, offsetLeft, offsetTop){
+	this.placeElement = function(element, left, top, offsetLeft, offsetTop, objParent){
+		
 		
 		if(jQuery.isNumeric(left) == false || jQuery.isNumeric(top) == false){
 			
-			var objParent = element.parent();
+			if(!objParent)
+				var objParent = element.parent();
+			
 			var elementSize = t.getElementSize(element);
 			var parentSize = t.getElementSize(objParent);
 		}
@@ -1341,15 +2394,46 @@ function UGFunctions(){
 	
 	}
 	
+	/**
+	 * clone element size and position
+	 */
+	this.cloneElementSizeAndPos = function(objSource, objTarget, isOuter, offsetX, offsetY){
+		
+		var objSize = objSource.position();
+		
+		if(objSize == undefined){
+			throw new Error("Can't get size, empty element");
+		}
+		
+		if(isOuter === true){
+			objSize.height = objSource.outerHeight();
+			objSize.width = objSource.outerWidth();
+		}else{
+			objSize.height = objSource.height();
+			objSize.width = objSource.width();
+		}
+		
+		objSize.left = Math.round(objSize.left);
+		objSize.top = Math.round(objSize.top);
+		
+		if(offsetX)
+			objSize.left += offsetX;
+		
+		if(offsetY)
+			objSize.top += offsetY;
+		
+		t.setElementSizeAndPosition(objTarget, objSize.left, objSize.top, objSize.width, objSize.height);
+	}
+	
 	
 	/**
 	 * place image inside parent, scale it by the options
 	 * and scale it to fit the parent.
 	 * scaleMode: fit, down, fill
 	 */
-	this.placeImageInsideParent = function(urlImage, objParent, originalWidth, originalHeight, scaleMode){
-		var obj = t.getImageInsideParentData(objParent, originalWidth, originalHeight, scaleMode);
-				
+	this.placeImageInsideParent = function(urlImage, objParent, originalWidth, originalHeight, scaleMode, objPadding){
+		var obj = t.getImageInsideParentData(objParent, originalWidth, originalHeight, scaleMode, objPadding);
+		
 		//set html image:
 		var htmlImage = "<img";
 		
@@ -1395,10 +2479,12 @@ function UGFunctions(){
 	
 		var parentWidth = objParent.outerWidth();
 		var parentHeight = objParent.outerHeight();
-				
-		var imageWidth = objImage.outerWidth();
-		var imageHeight = objImage.outerHeight();
-		 
+		
+		var objOriginalSize = t.getImageOriginalSize(objImage);
+		
+		var imageWidth = objOriginalSize.width;
+		var imageHeight = objOriginalSize.height;
+		
 		var ratio = imageWidth / imageHeight;
 		
 		var fitHeight = parentHeight;
@@ -1431,24 +2517,26 @@ function UGFunctions(){
 	 * resize image to fit the parent, scale it by the options
 	 * scaleMode: fit, down, fill
 	 */
-	this.scaleImageFitParent = function(objImage, originalWidth, originalHeight, scaleMode){
-				
+	this.scaleImageFitParent = function(objImage, originalWidth, originalHeight, scaleMode, objPadding){
+		
 		var objParent = objImage.parent();
 		
-		var obj = t.getImageInsideParentData(objParent, originalWidth, originalHeight, scaleMode);
+		var obj = t.getImageInsideParentData(objParent, originalWidth, originalHeight, scaleMode, objPadding);
 		
 		var updateCss = false;
 		
 		var objCss = {};
 		
 		if(obj.imageWidth !== null){
+			updateCss == true
 			objImage.removeAttr("width");
-			objImage.width(obj.imageWidth);
+			objCss["width"] = obj.imageWidth+"px";
 		}
 		
 		if(obj.imageHeight != null){
+			updateCss == true
 			objImage.removeAttr("height");
-			objImage.height(obj.imageHeight);
+			objCss["height"] = obj.imageHeight+"px";
 		}
 		
 		if(obj.imageTop !== null){
@@ -1501,6 +2589,33 @@ function UGFunctions(){
 		if(t.isButtonDisabled(objButton, className) == false)		
 			objButton.addClass(className);		
 	}
+
+	
+	/**
+	 * convert custom prefix options
+	 * prefix - the prefix.
+	 * base - after the prefix text. example lightbox_slider_option (lightbox - prefix, slider - base)
+	 */
+	this.convertCustomPrefixOptions = function(objOptions, prefix, base){
+			
+		if(!prefix)
+			return(objOptions);
+		
+		var modifiedOptions = {};
+		
+		jQuery.each(objOptions, function(key, option){
+			
+			if(key.indexOf(prefix + "_"+base+"_") === 0){
+				var newKey = key.replace(prefix+"_"+base+"_", base+"_");
+				modifiedOptions[newKey] = option;
+			}else{
+				modifiedOptions[key] = option;
+			}
+			
+		});
+		
+		return(modifiedOptions);
+	}
 	
 	
 	/**
@@ -1530,9 +2645,8 @@ function UGFunctions(){
 	
 	
 	this.z_________END_GALLERY_RELATED_FUNCTIONS_______ = function(){}
-		
-	this.z_________GENERAL_FUNCTIONS_______ = function(){}
-	
+
+	this.z_________MATH_FUNCTIONS_______ = function(){}
 	
 	/**
 	 * 
@@ -1555,7 +2669,7 @@ function UGFunctions(){
 		
 		return(value);
 	}
-	
+
 	
 	/**
 	 * 
@@ -1568,11 +2682,202 @@ function UGFunctions(){
 		
 		return(realValue);
 	}
+	
+	
+	/**
+	 * get distance between 2 points
+	 */
+	this.getDistance = function(x1,y1,x2,y2) {
+		
+		var distance = Math.round(Math.sqrt(Math.abs(((x2-x1)*(x2-x1)) + ((y2-y1)*(y2-y1)))));
+		
+		return distance;
+	}
+	
+	
+	/**
+	 * get center point of the 2 points
+	 */
+	this.getMiddlePoint = function(x1,y1,x2,y2){
+		var output = {}
+		output.x = x1 + Math.round((x2 - x1) / 2);
+		output.y = y1 + Math.round((y2 - y1) / 2);
+		
+		return(output);
+	}
+	
+	
+	/**
+	 * get number of items in space width gap
+	 * even item sizes
+	 */
+	this.getNumItemsInSpace = function(spaceSize, itemsSize, gapSize){
+		var numItems = Math.floor((spaceSize + gapSize) / (itemsSize + gapSize));
+		return(numItems);
+	}
+	
+	/**
+	 * get space (width in carousel for example) by num items, item size, and gap size
+	 */
+	this.getSpaceByNumItems = function(numItems, itemSize, gapSize){
+		var space = numItems * itemSize + (numItems-1) * gapSize;
+		return(space);
+	}
+	
+	/**
+	 * get column x pos with even column sizes, start from 0
+	 */
+	this.getColX = function(col, colWidth, colGap){
+		
+		var posx = col * (colWidth + colGap);
+		
+		return posx;
+	}
+	
+
+	/**
+	 * get column number by index
+	 */
+	this.getColByIndex = function(numCols, index){
+		var col = index % numCols;
+		return(col);
+	}
+	
+	
+	this.z_________END_MATH_FUNCTIONS_______ = function(){}
 
 	
+	
+	/**
+	 * store event data
+	 */
+	this.storeEventData = function(event, id, addData){
 		
+		var mousePos = t.getMousePosition(event);
+		var time = jQuery.now();
+			
+		var obj = {
+				startTime: time,
+				lastTime: time,
+				startMouseX: mousePos.pageX,
+				startMouseY: mousePos.pageY,
+				lastMouseX: mousePos.pageX,
+				lastMouseY: mousePos.pageY,
+				scrollTop: jQuery(document).scrollTop()
+		};
 		
+		if(addData)
+			obj = jQuery.extend(obj, addData);
 		
+		g_temp.dataCache[id] = obj;
+		
+	}
+	
+	
+	/**
+	 * update event data with last position
+	 */
+	this.updateStoredEventData = function(event, id, addData){
+		
+		if(!g_temp.dataCache[id])
+			throw new Error("updateEventData error: must have stored cache object");
+		
+		var obj = g_temp.dataCache[id];
+		
+		var mousePos = t.getMousePosition(event);
+		obj.lastTime = jQuery.now();
+		
+		if(mousePos.pageX !== undefined){
+			obj.lastMouseX = mousePos.pageX;
+			obj.lastMouseY = mousePos.pageY;
+		}
+		
+		if(addData)
+			obj = jQuery.extend(obj, addData);
+		
+		g_temp.dataCache[id] = obj;
+	}
+	
+	/**
+	 * get stored event data
+	 */
+	this.getStoredEventData = function(id, isVertical){
+		if(!g_temp.dataCache[id])
+			throw new Error("updateEventData error: must have stored cache object");
+		
+		var obj = g_temp.dataCache[id];
+		
+		obj.diffMouseX = obj.lastMouseX - obj.startMouseX;
+		obj.diffMouseY = obj.lastMouseY - obj.startMouseY;
+		obj.diffTime = obj.lastTime - obj.startTime;
+		
+		//get mouse position according orientation
+		if(isVertical === true){
+			obj.startMousePos = obj.lastMouseY;
+			obj.lastMousePos = obj.lastMouseY;
+			obj.diffMousePos = obj.diffMouseY;
+		}else{
+			obj.startMousePos = obj.lastMouseX;
+			obj.lastMousePos = obj.lastMouseX;
+			obj.diffMousePos = obj.diffMouseX;			
+		}
+		
+		return(obj);
+	}
+	
+	/**
+	 * return if click event approved according the done motion
+	 */
+	this.isApproveStoredEventClick = function(id, isVertical){
+		
+		if(!g_temp.dataCache[id])
+			return(true);
+		
+		var objData = t.getStoredEventData(id, isVertical);
+		
+		var passedDistanceAbs = Math.abs(objData.diffMousePos);
+		
+		if(objData.diffTime > 400)
+			return(false);
+		
+		if(passedDistanceAbs > 30)
+			return(false);
+		
+		return(true);
+		
+	}
+	
+	
+	/**
+	 * clear stored event data
+	 */
+	this.clearStoredEventData = function(id){
+		g_temp.dataCache[id] = null;
+	}
+	
+	this.z_________GENERAL_FUNCTIONS_______ = function(){}
+	
+	/**
+	 * get css size parameter, like width. if % given, leave it, if number without px - add px.
+	 */
+	this.getCssSizeParam = function(sizeParam){
+		if(jQuery.isNumeric(sizeParam))
+			return(sizeParam + "px");
+			
+		return(sizeParam);
+	}
+	
+	/**
+	 * convert hex color to rgb color
+	 */
+	this.convertHexToRGB = function(hex, opacity){
+	    hex = hex.replace('#','');
+	    r = parseInt(hex.substring(0,2), 16);
+	    g = parseInt(hex.substring(2,4), 16);
+	    b = parseInt(hex.substring(4,6), 16);
+	    result = 'rgba('+r+','+g+','+b+','+opacity+')';
+	    return result;
+	}	
 	
 	/**
 	 * get timestamp to string
@@ -1622,28 +2927,6 @@ function UGFunctions(){
 	
 	
 	/**
-	 * get distance between 2 points
-	 */
-	this.getDistance = function(x1,y1,x2,y2) {
-		
-		var distance = Math.round(Math.sqrt(Math.abs(((x2-x1)*(x2-x1)) + ((y2-y1)*(y2-y1)))));
-		
-		return distance;
-	}
-	
-	
-	/**
-	 * get center point of the 2 points
-	 */
-	this.getMiddlePoint = function(x1,y1,x2,y2){
-		var output = {}
-		output.x = x1 + Math.round((x2 - x1) / 2);
-		output.y = y1 + Math.round((y2 - y1) / 2);
-		
-		return(output);
-	}
-	
-	/**
 	 * start time debug
 	 */
 	this.startTimeDebug = function(){
@@ -1673,6 +2956,15 @@ function UGFunctions(){
 			return(true);
 		
 		return(false);
+	}
+	
+	
+	/**
+	 * tells if vertical scrollbar exists
+	 */
+	this.isScrollbarExists = function(){
+		var hasScrollbar = window.innerWidth > document.documentElement.clientWidth;
+		return(hasScrollbar);
 	}
 	
 	
@@ -1717,7 +3009,6 @@ function UGFunctions(){
 		
 		objButton.on("touchstart",function(event){
 			//event.preventDefault();
-			
 			jQuery(this).addClass("ug-nohover");
 		});
 		
@@ -1795,11 +3086,26 @@ function UGFunctions(){
 		  return(g_temp.isTouchDevice);
 	}
 	
+	
+	/**
+	 * check if it's a desctop devide
+	 */
+	this.isDesktopDevice = function(){
+		
+		var isDesktop = typeof window.screenX !== undefined && !t.isTouchDevice() ? true : false;		
+		
+		return(isDesktop);
+	}
+	
+	
 	/**
 	 * function checks if enought time passsed between function calls.
 	 * good for filtering same time events
 	 */
-	this.isTimePassed = function(handlerName){
+	this.isTimePassed = function(handlerName, timeLimit){
+		
+		if(!timeLimit)
+			var timeLimit = 100;
 		
 		var currentTime = jQuery.now();
 		if(g_temp.timeCache.hasOwnProperty(handlerName) == false)
@@ -1813,11 +3119,30 @@ function UGFunctions(){
 		
 		//debugLine(diffTime,true,true);
 		
-		if(diffTime <= 100)
+		if(diffTime <= timeLimit)
 			return(false);
 				
 		return(true);
 	}
+	
+	
+	/**
+	 * check if continious event is over like resize
+	 */
+	this.whenContiniousEventOver = function(handlerName, onEventOver, timeLimit){
+		
+		if(!timeLimit)
+			var timeLimit = 300;
+		
+		
+		if(g_temp.timeCache.hasOwnProperty(handlerName) == true && g_temp.timeCache[handlerName] != null){
+			clearTimeout(g_temp.timeCache[handlerName]);
+			g_temp.timeCache[handlerName] = null;			
+		}
+		
+		g_temp.timeCache[handlerName] = setTimeout(onEventOver, timeLimit);
+	}
+	
 	
 	/**
 	 * validate click and touchstart events. 
@@ -1853,6 +3178,18 @@ function UGFunctions(){
 			jQuery(this).removeClass(className);
 		});
 		
+	}
+	
+	/**
+	 * destroy hover effect on elements
+	 */
+	this.destroyButton = function(element){
+		element.off("mouseenter");
+		element.off("mouseleave");
+		element.off("click");
+		element.off("touchstart");
+		element.off("touchend");
+		element.off("mousedown");
 	}
 	
 	/**
@@ -1919,6 +3256,96 @@ function UGFunctions(){
 		 
 	  }	
 	
+	 
+	/**
+	 * fire event where all images are loaded
+	 */
+	this.checkImagesLoaded = function(objImages, onComplete, onProgress){
+		
+		var arrImages = [];
+		var counter = 0;
+		var numImages = objImages.length;
+		
+		//if no images - exit
+		if(numImages == 0 && onComplete){
+			onComplete();
+			return(false);
+		}
+		
+		//nested function
+		function checkComplete(image, isError){
+			counter++;
+						
+			if(typeof onProgress == "function"){
+				
+				setTimeout(function(){
+					onProgress(image, isError);
+				});
+			}
+			
+			if(counter == numImages && typeof onComplete == "function"){
+				setTimeout(function(){
+					onComplete();
+				});
+			}
+			
+		}
+		
+		
+		//start a little later
+		setTimeout(function(){
+			
+			//start the function
+			for(var index=0;index < numImages; index++){
+				var image = objImages[index];
+				
+				//arrImages.push(jQuery(image));
+				if(image.naturalWidth !== undefined && image.naturalWidth !== 0){
+					checkComplete(objImages[index], false);
+				}
+				else{
+					var proxyImage = jQuery('<img/>');
+					proxyImage.data("index", index);
+					
+					proxyImage.on("load", function(){
+						var index = jQuery(this).data("index");
+						checkComplete(objImages[index], false);
+					});
+					proxyImage.on("error", function(){
+						var index = jQuery(this).data("index");
+						checkComplete(objImages[index], true);
+					});
+					proxyImage.attr("src", image.src);			
+				}
+			}
+			
+		});
+		
+		
+	}
+	
+	
+	/**
+	 * run the function when the element size will be not 0
+	 */
+	this.waitForWidth = function(element, func){
+		var width = element.width();
+		if(width != 0){
+			func();
+			return(false);
+		}
+
+		g_temp.handle = setInterval(function(){
+			width = element.width();
+			if(width != 0){
+				clearInterval(g_temp.handle);
+				func();				
+			}
+
+		}, 300);
+		
+	}
+	
 	this.z_________END_GENERAL_FUNCTIONS_______ = function(){}
 	
 }
@@ -1980,7 +3407,7 @@ function UniteGalleryMain(){
 	
 	var t = this;
 	var g_galleryID;
-	var g_objGallery = jQuery(t), g_objWrapper, g_objStrip, g_objStripInner;
+	var g_objGallery = jQuery(t), g_objWrapper;
 	var g_objThumbs, g_objSlider, g_functions = new UGFunctions();
 	var g_arrItems = [], g_numItems, g_selectedItem = null, g_selectedItemIndex = -1;
 	var g_objTheme;
@@ -1996,7 +3423,8 @@ function UniteGalleryMain(){
 			CONTINUE_PLAYING: "continue_playing",
 			SLIDER_ACTION_START: "slider_action_start",
 			SLIDER_ACTION_END: "slider_action_end",
-			ITEM_IMAGE_UPDATED: "item_image_updated"
+			ITEM_IMAGE_UPDATED: "item_image_updated",
+			GALLERY_KEYPRESS: "gallery_keypress"
 	};
 	
 	//set the default gallery options
@@ -2004,8 +3432,8 @@ function UniteGalleryMain(){
 			gallery_width:900,							//gallery width		
 			gallery_height:500,							//gallery height
 			
-			gallery_min_width: 400,						//gallery minimal width when resizing
-			gallery_min_height: 300,					//gallery minimal height when resizing
+			gallery_min_width: 150,						//gallery minimal width when resizing
+			gallery_min_height: 100,					//gallery minimal height when resizing
 			
 			gallery_theme:"default",					//default,compact,grid,slider - select your desired theme from the list of themes.
 			gallery_skin:"default",						//default, alexis etc... - the global skin of the gallery. Will change all gallery items by default.
@@ -2032,8 +3460,10 @@ function UniteGalleryMain(){
 	var g_temp = {					//temp variables
 		objCustomOptions:{},
 		isAllItemsPreloaded:false,	//flag that tells that all items started preloading
+		isFreestyleMode:false,		//no special html additions
 		lastWidth:0,
 		lastHeigh:0,
+		handleResize: null,
 		isInited: false,
 		isPlayMode: false,
 		isPlayModePaused: false,
@@ -2048,7 +3478,10 @@ function UniteGalleryMain(){
 		isVimeoPresent:false,			//flag if present vimeo items
 		isHtml5VideoPresent:false,		//flag if present html5 video items
 		isSoundCloudPresent:false,		//flag if present soundcloud items
-		isWistiaPresent: false			//flag if some wistia movie present
+		isWistiaPresent: false,			//flag if some wistia movie present
+		resizeDelay: 100,
+		isRunFirstTime: true,
+		originalOptions: {}
 	};
 	
 	
@@ -2079,7 +3512,6 @@ function UniteGalleryMain(){
 			 if(g_ugFunctions.isThemeRegistered(defaultTheme) == false)
 				 g_options.gallery_theme = g_ugFunctions.getFirstRegisteredTheme();
 		 }
-		 		 
 		 
 		 var themeFunction = getThemeFunction(g_options.gallery_theme);
 		 
@@ -2092,8 +3524,34 @@ function UniteGalleryMain(){
 		 g_options.gallery_theme = eval(themeFunction);
 		 
 		 //init the theme
+		 
+		 //destroy last theme if exists
+		 if(g_objTheme && typeof g_objTheme.destroy == "function"){
+			
+			 g_objTheme.destroy();
+	    	 g_objWrapper.html("");
+		 }
+		 
+		// trace(g_options.tile_enable_textpanel);
+		 
 		 g_objTheme = new g_options.gallery_theme();
 		 g_objTheme.init(t, g_temp.objCustomOptions);
+		 
+	}
+	
+	
+	/**
+	 * reset all the options for the second time run
+	 */
+	function resetOptions(){
+	   	 
+		 g_options = jQuery.extend({}, g_temp.originalOptions);
+		 
+		 g_selectedItemIndex = -1;
+		 g_selectedItem = null;
+		 g_objSlider = undefined;
+		 g_objThumbs = undefined;
+		 g_objSlider = undefined; 
 	}
 	
 	
@@ -2103,60 +3561,87 @@ function UniteGalleryMain(){
 	function runGallery(galleryID, objCustomOptions){
 			 
 		     g_temp.objCustomOptions = objCustomOptions;
-			 			 
-			 g_galleryID = galleryID;
-			 g_objWrapper = jQuery(g_galleryID);
-			 if(g_objWrapper.length == 0){
-				 trace("div with id: "+g_galleryID+" not found");
-				 return(false);
-			 }
 			 
-			 //fill arrItems
-			 var arrItems = g_objWrapper.children();
+		     if(g_temp.isRunFirstTime == true){
+		    	 
+		    	 g_galleryID = galleryID;
+				 g_objWrapper = jQuery(g_galleryID);
+				 if(g_objWrapper.length == 0){
+					 trace("div with id: "+g_galleryID+" not found");
+					 return(false);
+				 }
+				 
+				 g_temp.originalOptions = jQuery.extend({}, g_options);
+				 
+				 //fill arrItems
+				 var arrItems = g_objWrapper.children();
+				 
+				 fillItemsArray(arrItems);
+				 			 
+				 loadAPIs();
+				 
+				 //hide images:
+				 g_objWrapper.children("img").fadeTo(0,0).hide();
+				 g_objWrapper.show();
+		
+				 clearInitData();
+		    	 
+		     }else{		//reset options
+		    	 resetOptions();
+		     }
 			 
-			 fillItemsArray(arrItems);
-			 			 
-			 loadAPIs();
-			 
-			 //hide images:
-			 g_objWrapper.children("img").fadeTo(0,0).hide();
-			 g_objWrapper.show();
-			 
-			 //init the theme
-			 initTheme(objCustomOptions);
-			 			 
-			 //extend params with defaults from user
+		     //extend params with defaults from user
 			 g_options = jQuery.extend(g_options, objCustomOptions);
 			 
 			 //modify and verify the params
 			 modifyInitParams(objCustomOptions);
 			 validateParams();
-			 
-			 clearInitData();
-			 
+
+			 //init the theme
+			 initTheme(objCustomOptions);
+			 			 				 
 			 //set gallery html elements
 			 setGalleryHtml();
-			 		 
+
 			 //set html properties to all elements
 			 setHtmlObjectsProperties();
 			 
+			 var galleryWidth = g_objWrapper.width();
+			 if(galleryWidth == 0){
+				 g_functions.waitForWidth(g_objWrapper, runGalleryActually);
+			 }else
+				 runGalleryActually();
+			 
+	}
+	
+	
+	/**
+	 * actually run the gallery
+	 */
+	function runGalleryActually(){
+		
+		if(g_temp.isFreestyleMode == false){
+			 	
 			 if(g_options.gallery_preserve_ratio == true)
 				 setHeightByOriginalRatio();
-			 
-			 g_objTheme.run();
-			 		 
-			 preloadBigImages();
-			 
-			 initEvents();
-			 		 
-			 //select first item
-			 if(g_numItems > 0) 
-				 t.selectItem(0);
-			 
-			 //set autoplay
-			 if(g_options.gallery_autoplay == true)
-				 t.startPlayMode();
-			 
+		 }
+		 
+		 g_objTheme.run();
+		 	 
+		 preloadBigImages();
+		 
+		 initEvents();
+		 		 
+		 //select first item
+		 if(g_numItems > 0) 
+			 t.selectItem(0);
+		 
+		 //set autoplay
+		 if(g_options.gallery_autoplay == true)
+			 t.startPlayMode();
+		 
+		 g_temp.isRunFirstTime = false;
+		
 	}
 	
 	
@@ -2187,7 +3672,6 @@ function UniteGalleryMain(){
 	 * @param objParams
 	 */
 	 function modifyInitParams(inputParams){
-		 
 		 
 		 //set default for preloading
 		 if(!g_options.gallery_images_preload_type)
@@ -2236,16 +3720,16 @@ function UniteGalleryMain(){
 		
 		 //add classes and divs
 		 g_objWrapper.addClass("ug-gallery-wrapper");
-		 		 
+		 
+		 t.setSizeClass();
 	}
 	
 	/**
 	 * if the thumbs panel don't exists, delete initial images from dom
 	 */
 	function clearInitData(){
-				
-		g_objWrapper.children().remove();
 		
+		var objItems = g_objWrapper.children().remove();
 	}
 	
 	
@@ -2287,19 +3771,29 @@ function UniteGalleryMain(){
 	 * set properties of the html objects
 	 */
 	function setHtmlObjectsProperties(){
-		 	
-			//set size		
+		   
+			var optionWidth = g_functions.getCssSizeParam(g_options.gallery_width);
+			
+		   //set size		
 		   var objCss = {
-				    "max-width":g_options.gallery_width+"px",
-					"min-width":g_options.gallery_min_width+"px",
-					"height":g_options.gallery_height+"px"
+				    //"width":optionWidth,		//make it work within tabs
+				    "max-width":optionWidth,
+					"min-width":g_functions.getCssSizeParam(g_options.gallery_min_width),
 			};
+		   
+		   if(g_temp.isFreestyleMode == false){
+			   objCss["height"] = g_options.gallery_height+"px";			   
+		   }else{
+			   objCss["overflow"] = "visible";			   
+		   }
 		   
 		   //set background color
 		   if(g_options.gallery_background_color)
 			   objCss["background-color"] = g_options.gallery_background_color;
 		   
-		   g_objWrapper.css(objCss);		 		 
+		   
+		   g_objWrapper.css(objCss);
+		   
 	}
 
 	
@@ -2307,17 +3801,28 @@ function UniteGalleryMain(){
 	 * fill items array from images object
 	 */
 	function fillItemsArray(arrChildren){
-				
+		
+		 
+		 var numIndex = 0;
+		 
 		 for(var i=0;i<arrChildren.length;i++){
 			 var objChild = jQuery(arrChildren[i]);
+			 
+			 var tagname = objChild.prop("tagName").toLowerCase();
+			 
+			 //handle link wrapper
+			 var itemLink = "";
+			 if(tagname == "a"){
+				 itemLink = objChild.attr("href");
+				 objChild = objChild.children();
+				 var tagname = objChild.prop("tagName").toLowerCase();				 
+			 }
+			 
 			 var itemType = objChild.data("type");
 			 if(itemType == undefined)
 				 itemType = "image";
-			 			 
-			 var tagname = objChild.prop("tagName").toLowerCase();
-			 			 
+			 
 			 var objItem = {};
-			 objItem.index = i;
 			 objItem.type = itemType;
 			 
 			 if(tagname == "img"){
@@ -2334,6 +3839,7 @@ function UniteGalleryMain(){
 				 objItem.objThumbImage = null;
 			 }
 			 
+			 objItem.link = itemLink;
 			 objItem.description = objChild.data("description");
 			 
 			 if(!objItem.description)
@@ -2398,8 +3904,18 @@ function UniteGalleryMain(){
 					 g_temp.isWistiaPresent = true;
 			 	break;
 			 }
-			 			 
-			 g_arrItems.push(objItem);
+			
+			 //clear not needed attributes
+			 if(objItem.objThumbImage){
+				 objItem.objThumbImage.removeAttr("data-description", "");
+				 objItem.objThumbImage.removeAttr("data-image", "");				 
+			 }
+			 
+			 if(objItem.urlThumb && objItem.urlThumb !== undefined && objItem.urlThumb != ""){
+				 objItem.index = numIndex;
+				 g_arrItems.push(objItem);
+				 numIndex++;
+			 }
 			 
 		 }
 		 
@@ -2514,7 +4030,7 @@ function UniteGalleryMain(){
 		}
 		
 		objItem.isBigImageLoadStarted = true;
-		
+				
 		objItem.objPreloadImage = jQuery('<img/>').attr("src", imageUrl);
 		objItem.objPreloadImage.data("itemIndex", objItem.index);
 		
@@ -2553,7 +4069,7 @@ function UniteGalleryMain(){
 	 * can be called from another objects like the slider
 	 */
 	this.onItemBigImageLoaded = function(event, objImage){
-		
+				
 		if(!objImage)
 			var objImage = jQuery(this);
 		
@@ -2564,6 +4080,26 @@ function UniteGalleryMain(){
 		objItem.isBigImageLoaded = true;
 		
 		var objSize = g_functions.getImageOriginalSize(objImage);
+		
+		objItem.imageWidth = objSize.width;
+		objItem.imageHeight = objSize.height;		
+	}
+	
+	/**
+	 * check and fill image size in item object
+	 */
+	this.checkFillImageSize = function(objImage, objItem){
+		
+		if(!objItem){
+			var itemIndex = objImage.data("itemIndex");
+			if(itemIndex === undefined)
+				throw new Error("Wrong image given to gallery.checkFillImageSize");
+			
+			var objItem = g_arrItems[itemIndex];
+		}
+		
+		var objSize = g_functions.getImageOriginalSize(objImage);
+		
 		objItem.imageWidth = objSize.width;
 		objItem.imageHeight = objSize.height;		
 	}
@@ -2617,6 +4153,15 @@ function UniteGalleryMain(){
 	
 	
 	/**
+	 * set freestyle mode
+	 */
+	this.setFreestyleMode = function(){
+		
+		g_temp.isFreestyleMode = true;
+	
+	}
+	
+	/**
 	 * init the thumbs panel object
 	 * type - strip / grid
 	 */	
@@ -2651,7 +4196,7 @@ function UniteGalleryMain(){
 	/**
 	 * init the slider
 	 */	
-	this.initSlider = function(customOptions){
+	this.initSlider = function(customOptions, optionsPrefix){
 		 
 		 //mix options with user options
 		 if(!customOptions)
@@ -2660,7 +4205,7 @@ function UniteGalleryMain(){
 		 customOptions = jQuery.extend(customOptions, g_temp.objCustomOptions);
 		 
 		 g_objSlider = new UGSlider();		 
-		 g_objSlider.init(t, customOptions);
+		 g_objSlider.init(t, customOptions, optionsPrefix);
 	}
 	
 	
@@ -2707,38 +4252,36 @@ function UniteGalleryMain(){
 	 * on keypress - keyboard control
 	 */
 	function onKeyPress(event){
-				
-		 var altKey = event.altKey;
+						 		 
 		 var keyCode = (event.charCode) ? event.charCode :((event.keyCode) ? event.keyCode :((event.which) ? event.which : 0));
 		 
 		 switch(keyCode){
 			 case 39:	//right key
 				 t.nextItem();
+				 event.preventDefault();
 			 break;
 			 case 37:	//left key
 				 t.prevItem();
-			 break;
-			 case 102:	//f key
-				 if(altKey)
-					 t.toFullScreen();
-			 break;
-			 case 112:
-				 if(altKey)
-					 t.togglePlayMode();
+				 event.preventDefault();
 			 break;
 		 }
 		 
+			g_objGallery.trigger(t.events.GALLERY_KEYPRESS, keyCode);
 	}
+	
 	
 	/**
 	 * check that the gallery resized, if do, trigger onresize event
 	 */
 	function onGalleryResized(){
+		
+		t.setSizeClass();
+		
 		var objSize = t.getSize();
 				
 		if(objSize.width != g_temp.lastWidth || objSize.height != g_temp.lastHeight){
 			
-			if(g_options.gallery_preserve_ratio == true)
+			if(g_options.gallery_preserve_ratio == true && g_temp.isFreestyleMode == false)
 				setHeightByOriginalRatio();
 			
 			storeLastSize();
@@ -2823,7 +4366,11 @@ function UniteGalleryMain(){
 		
 		 //on resize event
 		 storeLastSize();
-		 jQuery(window).resize(onGalleryResized);
+		 
+		 jQuery(window).resize(function(){
+			 g_objWrapper.css("width","auto");
+			 g_functions.whenContiniousEventOver("gallery_resize", onGalleryResized, g_temp.resizeDelay);
+		 });
 		 
 		 //fullscreen:
 		 g_functions.addFullScreenChangeEvent(onFullScreenChange);
@@ -2833,6 +4380,7 @@ function UniteGalleryMain(){
 			 
 			 jQuery(g_objSlider).on(g_objSlider.events.ITEM_CHANGED, function(){
 				 var sliderIndex = g_objSlider.getCurrentItemIndex();
+				 				 
 				 if(sliderIndex != -1)
 					 t.selectItem(sliderIndex);
 			 });
@@ -2851,9 +4399,8 @@ function UniteGalleryMain(){
 		 		 
 		 //add keyboard events
 		 if(g_options.gallery_control_keyboard == true)
-			 jQuery("body").keypress(onKeyPress);
-		 
-		 
+			 jQuery(document).keydown(onKeyPress);
+		 		 
 		 
 			 
 	}
@@ -2861,6 +4408,12 @@ function UniteGalleryMain(){
 	
 	function __________GENERAL_______(){};
 	
+	/**
+	 * get items array
+	 */
+	this.getArrItems = function(){
+		return g_arrItems;
+	}
 	
 	/**
 	 * get gallery objects
@@ -2870,8 +4423,6 @@ function UniteGalleryMain(){
 		var objects = {
 			g_galleryID:g_galleryID,
 			g_objWrapper:g_objWrapper,
-			g_objStrip:g_objStrip,
-			g_objStripInner:g_objStripInner,
 			g_objThumbs:g_objThumbs,
 			g_objSlider:g_objSlider,
 			g_options:g_options,
@@ -2957,22 +4508,22 @@ function UniteGalleryMain(){
 	/**
 	 * get next item by current index (or current object)
 	 */
-	this.getNextItem = function(index){
+	this.getNextItem = function(index, forceCarousel){
 		
 		if(typeof index == "object")
 			index = index.index;
 		
 		var nextIndex = index + 1;
 		
-		if(g_numItems == 1)
+		if(forceCarousel !== true && g_numItems == 1)
 			return(null);
 		
 		if(nextIndex >= g_numItems){
 			
-			if(g_options.gallery_carousel == true)
+			if(g_options.gallery_carousel == true || forceCarousel === true)
 				nextIndex = 0;
 			else
-				return(null);			
+				return(null);
 		}
 		
 		var objItem = g_arrItems[nextIndex];
@@ -2992,7 +4543,7 @@ function UniteGalleryMain(){
 		var prevIndex = index - 1;
 		
 		if(prevIndex < 0){
-			if(g_options.gallery_carousel == true)
+			if(g_options.gallery_carousel == true || forceCarousel === true)
 				prevIndex = g_numItems - 1;
 			else
 				return(null);
@@ -3110,6 +4661,16 @@ function UniteGalleryMain(){
 	}
 	
 	
+	/**
+	 * destroy full screen button
+	 */
+	this.destroyFullscreenButton = function(objButton){
+		
+		g_functions.destroyButton(objButton);
+		
+		g_objGallery.off(t.events.ENTER_FULLSCREEN);
+		g_objGallery.off(t.events.EXIT_FULLSCREEN);
+	}
 	
 	
 	/**
@@ -3132,6 +4693,14 @@ function UniteGalleryMain(){
 		
 	}
 	
+	/**
+	 * destroy the play button
+	 */
+	this.destroyPlayButton = function(objButton){
+		g_functions.destroyButton(objButton);
+		g_objGallery.off(t.events.START_PLAY);
+		g_objGallery.off(t.events.STOP_PLAY);
+	}
 	
 	/**
 	 * set playing progress indicator
@@ -3158,8 +4727,24 @@ function UniteGalleryMain(){
 	}
 	
 	
-	
 	this.___________END_SET_CONTROLS___________ = function(){}
+	
+	
+	/**
+	 * remove all size classes
+	 */
+	function removeAllSizeClasses(objWrapper){
+		
+		if(!objWrapper)
+			objWrapper = g_objWrapper;
+		
+		objWrapper.removeClass("ug-under-480");
+		objWrapper.removeClass("ug-under-780");
+		objWrapper.removeClass("ug-under-960");
+	}
+	
+	
+	
 	
 	/**
 	 * retrigger event from another objects
@@ -3343,7 +4928,7 @@ function UniteGalleryMain(){
 		
 		if(typeof objItem == "number")
 			objItem = t.getItem(objItem);
-				
+		
 		var itemIndex = objItem.index;
 		if(itemIndex == g_selectedItemIndex)
 			return(true);
@@ -3357,8 +4942,9 @@ function UniteGalleryMain(){
 		//reset playback, if playing
 		if(g_temp.isPlayMode == true)
 			t.resetPlaying();
+		
+		g_objGallery.trigger(t.events.ITEM_CHANGE, objItem);
 				
-		g_objGallery.trigger(t.events.ITEM_CHANGE);
 	}
 	
 	
@@ -3366,7 +4952,7 @@ function UniteGalleryMain(){
 	 * go to next item
 	 */
 	this.nextItem = function(){
-				
+		
 		var newItemIndex = g_selectedItemIndex + 1;
 		
 		if(g_numItems == 0)
@@ -3509,6 +5095,7 @@ function UniteGalleryMain(){
 	 */
 	this.resize = function(newWidth, newHeight, noevent){
 		
+		g_objWrapper.css("width", "auto");
 		g_objWrapper.css("max-width",newWidth+"px");
 		
 		if(newHeight)
@@ -3517,6 +5104,50 @@ function UniteGalleryMain(){
 		if(!noevent && noevent !== true)
 			onGalleryResized();
 		
+	}
+
+	
+	/**
+	 * set size class to the wrapper
+	 * this can work to any other wrapper too
+	 */
+	this.setSizeClass = function(objWrapper, width){
+		
+		if(!objWrapper)
+			var objWrapper = g_objWrapper;
+		
+		if(!width){
+			var objSize = t.getSize();
+			var width = objSize.width;			
+		}
+				
+		var addClass = "";
+		
+		if(width <= 480){
+			addClass = "ug-under-480";			
+		}else
+		if(width <= 780){
+			addClass = "ug-under-780";			
+		}else
+		if(width < 960){
+			addClass = "ug-under-960";
+		}
+		
+		removeAllSizeClasses(objWrapper);
+		if(addClass != "")
+			objWrapper.addClass(addClass);
+	}
+	
+	
+	/**
+	 * return if the size is suited for mobile
+	 */
+	this.isMobileMode = function(){
+		
+		if(g_objWrapper.hasClass("ug-under-480"))
+			return(true);
+		
+		return(false);
 	}
 	
 	
@@ -3538,6 +5169,7 @@ function UniteGalleryMain(){
 			 try{
 				 
 				 runGallery(galleryID, objParams);
+				 
 				 
 			 }catch(objError){
 				 if(typeof objError == "object"){
@@ -3759,13 +5391,14 @@ function UGGridPanel(){
 		g_objArrowPrev.fadeTo(0,0);
 		g_objArrowNext.fadeTo(0,0);
 		
-		//init the grid panel
-		g_options.parent_container = g_objPanel;
+		//init the grid panel		
 		g_gallery.initThumbsPanel("grid", g_options);
 		
 		//get the grid object
 		var objects = g_gallery.getObjects();
 		g_objGrid = objects.g_objThumbs;
+		
+		g_objGrid.setHtml(g_objPanel);
 		
 		setHtmlProperties();
 	}
@@ -3966,17 +5599,34 @@ function UGGridPanel(){
 				
 		if(g_objArrowPrev){
 			g_functions.addClassOnHover(g_objArrowPrev);
-			g_objGrid.setPrevPaneButton(g_objArrowPrev);			
+			g_objGrid.attachPrevPaneButton(g_objArrowPrev);			
 		}
 		
 		
 		if(g_objArrowNext){
 			g_functions.addClassOnHover(g_objArrowNext);
-			g_objGrid.setNextPaneButton(g_objArrowNext);			
+			g_objGrid.attachNextPaneButton(g_objArrowNext);			
 		}
 		
 		g_panelBase.initEvents();
 		
+	}
+	
+	
+	/**
+	 * destroy the events
+	 */
+	this.destroy = function(){
+		
+		if(g_objArrowPrev)
+			g_functions.destroyButton(g_objArrowPrev);
+		
+		if(g_objArrowNext)
+			g_functions.destroyButton(g_objArrowNext);
+		
+		g_panelBase.destroy();
+		
+		g_objGrid.destroy();
 	}
 	
 	
@@ -4468,6 +6118,1477 @@ function UGGridPanel(){
 	
 }
 
+/**
+ * tiles class
+ */
+function UGLightbox(){
+
+	var t = this, g_objThis = jQuery(this);
+	var g_gallery = new UniteGalleryMain(), g_objGallery, g_objWrapper;
+	var g_objSlider = new UGSlider(), g_objOverlay, g_objArrowLeft, g_objArrowRight, g_objButtonClose;
+	var g_functions = new UGFunctions(), g_objTextPanel = new UGTextPanel(), g_objNumbers;
+	var g_objTopPanel;
+	
+	var g_options = {
+			lightbox_type: "wide",							//compact / wide - lightbox type
+			
+			lightbox_show_textpanel: true,					//show the text panel
+			lightbox_textpanel_width: 550,					//the width of the text panel.
+			
+			lightbox_hide_arrows_onvideoplay: true,			//hide the arrows when video start playing and show when stop
+			lightbox_arrows_position: "sides",				//sides, inside: position of the arrows, used on compact type			
+			lightbox_arrows_offset: 10,						//The horizontal offset of the arrows
+			lightbox_arrows_inside_offset: 10,				//The offset from the image border if the arrows placed inside
+			lightbox_arrows_inside_alwayson: false,			//Show the arrows on mouseover, or always on.
+			
+			lightbox_overlay_color:null,					//the color of the overlay. if null - will take from css
+			lightbox_overlay_opacity:1,						//the opacity of the overlay. if null - will take from css
+			lightbox_top_panel_opacity: null,				//the opacity of the top panel
+			
+			lightbox_show_numbers: true,					//show numbers on the right side
+			lightbox_numbers_size: null,					//the size of the numbers string
+			lightbox_numbers_color: null,					//the color of the numbers
+			lightbox_numbers_padding_top:null,				//the top padding of the numbers (used in compact mode)
+			lightbox_numbers_padding_right:null,			//the right padding of the numbers (used in compact mode)
+			
+			lightbox_compact_closebutton_offsetx: 1,		//the offsetx of the close button. Valid only for compact mode
+			lightbox_compact_closebutton_offsety: 1			//the offsetx of the close button. Valid only for compact mode
+			
+	};
+	
+	this.events = {
+	};
+	
+	var g_temp = {
+			topPanelHeight: 44,
+			initTextPanelHeight: 26,		//init height for compact mode
+			isOpened: false, 
+			putSlider: true,
+			isCompact: false,
+			fadeDuration: 300,
+			positionFrom: null,
+			textPanelTop: null,
+			textPanelLeft: null,
+			isArrowsInside: false,
+			isArrowsOnHoverMode: false,
+			lastMouseX: null,
+			lastMouseY: null
+	};
+	
+	var g_defaults = {
+			lightbox_slider_controls_always_on: true,
+			lightbox_slider_enable_bullets: false,
+			lightbox_slider_enable_arrows: false,
+			lightbox_slider_enable_progress_indicator: false,
+			lightbox_slider_enable_play_button: false,
+			lightbox_slider_enable_fullscreen_button: false,
+			lightbox_slider_enable_zoom_panel: false,
+			lightbox_slider_enable_text_panel: false,
+			lightbox_slider_scale_mode_media: "down",
+			lightbox_slider_scale_mode: "down",
+			lightbox_slider_loader_type: 3,
+			lightbox_slider_loader_color: "black",
+			
+			lightbox_slider_image_padding_top: g_temp.topPanelHeight,
+			lightbox_slider_image_padding_bottom: 10,
+			
+			lightbox_slider_video_padding_top: g_temp.topPanelHeight,
+			lightbox_slider_video_padding_bottom: 0,
+			
+			lightbox_textpanel_align: "middle",
+			lightbox_textpanel_padding_top: 5,
+			lightbox_textpanel_padding_bottom: 5,
+			
+			lightbox_textpanel_enable_title: true,
+			lightbox_textpanel_enable_description: false,
+			
+			lightbox_textpanel_enable_bg:false,
+			
+			video_enable_closebutton: false,
+			slider_video_enable_closebutton: false,
+			video_youtube_showinfo: false
+	};
+	
+	var g_defaultsCompact = {
+			lightbox_slider_image_border: true,
+			lightbox_slider_image_shadow:true,
+			lightbox_overlay_opacity:0.6,
+			
+			lightbox_slider_image_padding_top: 30,
+			lightbox_slider_image_padding_bottom: 30,
+			lightbox_slider_video_padding_top: 0,
+			lightbox_slider_video_padding_bottom: 0,
+			
+			lightbox_textpanel_align: "bottom",
+			lightbox_textpanel_title_text_align: "left",
+			lightbox_textpanel_desc_text_align: "left",
+			lightbox_textpanel_padding_left: 10,			//the padding left of the textpanel
+			lightbox_textpanel_padding_right: 10
+	};
+	
+	
+	function __________GENERAL_________(){};
+	
+	
+	/**
+	 * init the gallery
+	 */
+	function initLightbox(gallery, customOptions){
+		
+		g_gallery = gallery;
+		g_objGallery = jQuery(gallery);
+		
+		g_options = jQuery.extend(g_options, g_defaults);
+		g_options = jQuery.extend(g_options, customOptions);
+		
+		if(g_options.lightbox_type == "compact"){
+			g_temp.isCompact = true;
+			g_options = jQuery.extend(g_options, g_defaultsCompact);
+			g_options = jQuery.extend(g_options, customOptions);
+		}
+		
+		//modify some options
+		modifyOptions();
+		
+		if(g_temp.putSlider == true){
+			
+			g_gallery.initSlider(g_options, "lightbox");
+			g_objects = gallery.getObjects();
+			g_objSlider = g_objects.g_objSlider;			
+		
+		}else{
+			g_objSlider = null;
+		}
+		
+			
+		if(g_options.lightbox_show_textpanel == true){
+			g_objTextPanel.init(g_gallery, g_options, "lightbox");
+		}
+		else
+			g_objTextPanel = null;
+		
+	}
+	
+	
+	/**
+	 * modify some options according user options
+	 */
+	function modifyOptions(){
+		
+		if(g_temp.isCompact == true && g_options.lightbox_show_textpanel == true){
+			g_options.lightbox_slider_image_padding_bottom = g_temp.initTextPanelHeight;
+		}
+		
+		if(g_temp.isCompact == true && g_options.lightbox_arrows_position == "inside"){
+			g_temp.isArrowsInside = true;
+		}
+
+		if(g_temp.isArrowsInside == true && g_options.lightbox_arrows_inside_alwayson == false)
+			g_temp.isArrowsOnHoverMode = true;
+		
+		
+	}
+	
+	
+	/**
+	 * put the lightbox html
+	 */
+	function putLightboxHtml(){
+		
+		var html = "";
+		var classAddition = "";
+		if(g_temp.isCompact == true){
+			classAddition = " ug-lightbox-compact";
+		}
+		
+		html += "<div class='ug-gallery-wrapper ug-lightbox"+classAddition+"'>";
+		html += "<div class='ug-lightbox-overlay'></div>";
+		
+		//set top panel only on wide mode
+		if(g_temp.isCompact == false)
+			html += "<div class='ug-lightbox-top-panel'>";
+				
+		html += 	"<div class='ug-lightbox-button-close'></div>";
+		
+		if(g_options.lightbox_show_numbers)
+			html += 	"<div class='ug-lightbox-numbers'></div>";
+		
+		if(g_temp.isCompact == false)
+			html += "</div>";	//top panel
+		
+		html += "<div class='ug-lightbox-arrow-left'></div>";		
+		html += "<div class='ug-lightbox-arrow-right'></div>";
+		
+		html += "</div>";
+		
+		g_objWrapper = jQuery(html);
+		
+		jQuery("body").append(g_objWrapper);
+		
+		if(g_objSlider)
+			g_objSlider.setHtml(g_objWrapper);
+		
+		g_objOverlay = g_objWrapper.children(".ug-lightbox-overlay");
+		
+		if(g_temp.isCompact == false)
+			g_objTopPanel = g_objWrapper.children(".ug-lightbox-top-panel");
+		
+		g_objButtonClose = g_objWrapper.find(".ug-lightbox-button-close");
+		
+		if(g_options.lightbox_show_numbers)
+			g_objNumbers = g_objWrapper.find(".ug-lightbox-numbers");
+		
+		g_objArrowLeft = g_objWrapper.children(".ug-lightbox-arrow-left");
+		g_objArrowRight = g_objWrapper.children(".ug-lightbox-arrow-right");
+		
+		if(g_objTextPanel){
+			if(g_objTopPanel)
+				g_objTextPanel.appendHTML(g_objTopPanel);
+			else
+				g_objTextPanel.appendHTML(g_objWrapper);
+		}
+
+	}
+	
+	
+	/**
+	 * set lightbox properties
+	 */
+	function setProperties(){
+		
+		if(g_options.lightbox_overlay_color !== null)
+			g_objOverlay.css("background-color", g_options.lightbox_overlay_color);
+		
+		if(g_options.lightbox_overlay_opacity !== null)
+			g_objOverlay.fadeTo(0, g_options.lightbox_overlay_opacity);
+		
+		if(g_objTopPanel && g_options.lightbox_top_panel_opacity !== null)
+			g_objTopPanel.css("background-color","rgb(0,0,0,"+g_options.lightbox_top_panel_opacity+")");
+		
+		//set numbers properties
+		if(g_objNumbers){
+			var cssNumbers = {};
+			
+			if(g_options.lightbox_numbers_size !== null)
+				cssNumbers["font-size"] = g_options.lightbox_numbers_size+"px";
+			
+			if(g_options.lightbox_numbers_color)
+				cssNumbers["color"] = g_options.lightbox_numbers_color;
+			
+			if(g_options.lightbox_numbers_padding_right !== null)
+				cssNumbers["padding-right"] = g_options.lightbox_numbers_padding_right + "px";
+			
+			if(g_options.lightbox_numbers_padding_top !== null)
+				cssNumbers["padding-top"] = g_options.lightbox_numbers_padding_top + "px";
+			
+			
+			g_objNumbers.css(cssNumbers);
+		}
+		
+	}
+	
+	
+	/**
+	 * refresh slider item with new height
+	 */
+	function refreshSliderItem(newHeight){
+		
+		if(!g_objSlider)
+			return(true);
+		
+		//set slider new image position
+		var objOptions = {
+				slider_image_padding_top: newHeight,
+				slider_video_padding_top: newHeight
+		};
+		
+		g_objSlider.setOptions(objOptions);
+		g_objSlider.refreshSlideItems();
+	
+	}
+	
+	
+	/**
+	 * handle panel height according text height
+	 */
+	function handlePanelHeight(){
+		
+		if(!g_objTopPanel)
+			return(false);
+			
+		if(!g_objTextPanel)
+			return(false);
+		
+		//check text panel size, get the panel bigger then
+		var panelHeight = g_objTopPanel.height();
+		if(panelHeight == 0)
+			return(false);
+		
+		var newPanelHeight = panelHeight;
+		
+		var textPanelHeight = g_objTextPanel.getSize().height;
+		
+		if(panelHeight != g_temp.topPanelHeight)
+			newPanelHeight = g_temp.topPanelHeight;
+		
+		if(textPanelHeight > newPanelHeight)
+			newPanelHeight = textPanelHeight;
+		
+		if(panelHeight != newPanelHeight){
+			g_objTopPanel.height(newPanelHeight);
+						
+			if(g_objSlider && g_objSlider.isAnimating() == false)
+				refreshSliderItem(newPanelHeight);
+			
+		}
+				
+	}
+
+	
+	/**
+	 * handle slider image height according the textpanel height
+	 * refresh the slider if the height is not in place
+	 */
+	function handleCompactHeight(objImageSize){
+		
+		if(g_temp.isOpened == false)
+			return(false);
+		
+		if(!g_objTextPanel)
+			return(false);
+		
+		if(!g_objSlider)
+			return(false);
+		
+		var wrapperSize = g_functions.getElementSize(g_objWrapper);
+		var textPanelSize = g_objTextPanel.getSize();
+		
+		if(textPanelSize.width == 0 || textPanelSize.height > 120)
+			return(false);
+		
+		if(!objImageSize){
+			var objImage = g_objSlider.getSlideImage();
+			var objImageSize = g_functions.getElementSize(objImage);
+		}
+		
+		if(objImageSize.height == 0 || objImageSize.width == 0)
+			return(false);
+		
+		//check elements end size
+		var totalBottom = objImageSize.bottom + textPanelSize.height;
+		
+		if(totalBottom < wrapperSize.height)
+			return(false);
+		
+		var sliderOptions = g_objSlider.getOptions();
+		
+		var imagePaddingBottom = textPanelSize.height;
+		
+		if(imagePaddingBottom != sliderOptions.slider_image_padding_bottom){
+			
+			var objOptions = {
+					slider_image_padding_bottom: imagePaddingBottom
+			};
+			
+			if(g_objSlider.isAnimating() == false){
+				g_objSlider.setOptions(objOptions);
+				g_objSlider.refreshSlideItems();
+				return(true);
+			}
+			
+		}
+		
+		return(false);
+	}
+	
+	/**
+	 * set text panel top of compact mode
+	 */
+	function setCompactTextpanelTop(objImageSize, positionPanel){
+		
+		if(!objImageSize){
+			var objImage = g_objSlider.getSlideImage();
+			var objImageSize = g_functions.getElementSize(objImage);
+		}
+		
+		g_temp.textPanelTop = objImageSize.bottom;
+		
+		if(positionPanel === true)
+			g_objTextPanel.positionPanel(g_temp.textPanelTop, g_temp.textPanelLeft);
+	}
+	
+	
+	/**
+	 * handle text panel width on compact mode, 
+	 * run when the image is ready. 
+	 * Set top position of the panel as well
+	 * position numbers as well
+	 */
+	function handleCompactTextpanelSizes(showTextpanel){
+		
+		var isActionActive = g_objSlider.isSlideActionActive();
+		if(isActionActive)
+			return(false);
+		
+		var wrapperSize = g_functions.getElementSize(g_objWrapper);
+		var objImage = g_objSlider.getSlideImage();
+		var objImageSize = g_functions.getElementSize(objImage);
+		
+		if(objImageSize.width == 0)
+			return(false);
+		
+		g_temp.textPanelLeft = objImageSize.left;
+		g_temp.textPanelTop = objImageSize.bottom;
+		
+		var textPanelWidth = objImageSize.width;
+		
+		if(g_objNumbers){
+			
+			var objNumbersSize = g_functions.getElementSize(g_objNumbers);
+			textPanelWidth -= objNumbersSize.width;
+			
+			//place numbers object
+			var numbersLeft = objImageSize.right - objNumbersSize.width;
+			g_functions.placeElement(g_objNumbers, numbersLeft, g_temp.textPanelTop);
+		}
+			
+		if(g_objTextPanel){
+			g_objTextPanel.refresh(true, true, textPanelWidth);
+			setCompactTextpanelTop(objImageSize);
+		}
+		
+		var isChanged = handleCompactHeight(objImageSize);
+		
+		if(isChanged == false){
+			
+			g_temp.positionFrom = "handleCompactTextpanelSizes";
+			
+			if(g_objTextPanel){
+				g_objTextPanel.positionPanel(g_temp.textPanelTop, g_temp.textPanelLeft);
+				if(showTextpanel === true){
+					showTextpanel();
+					showNumbers();
+				}
+			}
+			
+		}
+		
+	}
+	
+	/**
+	 * return that current slider image is in place
+	 */
+	function isSliderImageInPlace(){
+		
+		var isImageInPlace = (g_objSlider.isCurrentImageInPlace() == true);
+		if(g_objSlider.isCurrentSlideType("image") == false && g_objSlider.isSlideActionActive() == true)
+			isImageInPlace = false;
+		
+		return(isImageInPlace);
+	}
+	
+	
+	/**
+	 * position the arrows inside mode
+	 */
+	function positionArrowsInside(toShow, isAnimation){
+		
+		if(g_temp.isArrowsInside == false)
+			return(false);
+		
+		if(!g_objArrowLeft)
+			return(false);
+		
+		var isImageInPlace = isSliderImageInPlace();
+		
+		g_objArrowLeft.show();
+		g_objArrowRight.show();
+		
+		g_temp.positionFrom = "positionArrowsInside";
+		
+		if(g_temp.isArrowsOnHoverMode == true && isImageInPlace == true && isMouseInsideImage() == false)
+			hideArrows(true);
+		
+		if(isImageInPlace == false){
+			var leftArrowLeft = g_functions.getElementRelativePos(g_objArrowLeft, "left", g_options.lightbox_arrows_offset);
+			var leftArrowTop = g_functions.getElementRelativePos(g_objArrowLeft, "middle");
+						
+			var rightArrowLeft = g_functions.getElementRelativePos(g_objArrowRight, "right", g_options.lightbox_arrows_offset);
+			var rightArrowTop = leftArrowTop;
+
+		}else{
+			
+			var objImage = g_objSlider.getSlideImage();
+			var objImageSize = g_functions.getElementSize(objImage);
+			var objSliderSize = g_functions.getElementSize(g_objSlider.getElement());
+						
+			var leftArrowLeft = g_functions.getElementRelativePos(g_objArrowLeft, "left", 0, objImage) + objImageSize.left + g_options.lightbox_arrows_inside_offset;
+			var leftArrowTop = g_functions.getElementRelativePos(g_objArrowLeft, "middle", 0, objImage) + objImageSize.top;
+			var rightArrowLeft = g_functions.getElementRelativePos(g_objArrowLeft, "right", 0, objImage) + objImageSize.left - g_options.lightbox_arrows_inside_offset;
+			var rightArrowTop = leftArrowTop;
+						
+		}
+		
+		
+		//place the image with animation or not
+		if(isAnimation === true){
+
+			var objCssLeft = {
+					left: leftArrowLeft,
+					top: leftArrowTop
+			};
+			
+			var objCssRight = {
+					left: rightArrowLeft,
+					top: rightArrowTop
+			};
+			
+			g_objArrowLeft.stop().animate(objCssLeft,{
+				duration: g_temp.fadeDuration,
+			});
+			
+			g_objArrowRight.stop().animate(objCssRight,{
+				duration: g_temp.fadeDuration,
+			});
+			
+			
+		}else{
+			g_objArrowLeft.stop();
+			g_objArrowRight.stop();
+			
+			g_functions.placeElement(g_objArrowLeft, leftArrowLeft, leftArrowTop);
+			g_functions.placeElement(g_objArrowRight, rightArrowLeft, rightArrowTop);
+		}
+		
+		if(toShow == true)
+			showArrows(isAnimation);
+		
+	}
+	
+	
+	
+	/**
+	 * position close button for compact type
+	 */
+	function positionCloseButton(toShow, isAnimation){
+		
+		g_temp.positionFrom = null;
+		
+		var isImageInPlace = isSliderImageInPlace();
+		
+		if(isImageInPlace == false){	//put image to corner
+			
+			var closeButtonTop = 2;
+			var closeButtonLeft = g_functions.getElementRelativePos(g_objButtonClose, "right", 2, g_objWrapper);
+			
+		}else{
+			var objImage = g_objSlider.getSlideImage();
+			var objImageSize = g_functions.getElementSize(objImage);
+			var objSliderSize = g_functions.getElementSize(g_objSlider.getElement());
+			var objButtonSize = g_functions.getElementSize(g_objButtonClose);
+			
+			//some strange bug
+			if(objSliderSize.top == objSliderSize.height)	
+				objSliderSize.top = 0;
+			
+			var closeButtonLeft = objSliderSize.left + objImageSize.right - objButtonSize.width / 2 + g_options.lightbox_compact_closebutton_offsetx;
+			var closeButtonTop = objSliderSize.top + objImageSize.top - objButtonSize.height / 2 - g_options.lightbox_compact_closebutton_offsety;
+		}
+		
+		//place the image with animation or not
+		if(isAnimation === true){
+			var objCss = {
+					left: closeButtonLeft,
+					top: closeButtonTop
+			};
+			
+			g_objButtonClose.stop().animate(objCss,{
+				duration: g_temp.fadeDuration,
+			});
+			
+		}else{
+			g_objButtonClose.stop();
+			g_functions.placeElement(g_objButtonClose, closeButtonLeft, closeButtonTop);
+		}
+		
+		if(toShow === true)
+			showCloseButton(isAnimation);
+		
+	}
+	
+	/**
+	 * position text panel for wide
+	 * size - wrapper size
+	 */
+	function positionTextPanelWide(size){
+
+		var objOptions = {};
+		
+		var textWidth = g_options.lightbox_textpanel_width;
+		var minPaddingLeft = 47;
+		var minPaddingRight = 40;
+		var maxTextPanelWidth = size.width - minPaddingLeft - minPaddingRight;
+		
+		if(textWidth > maxTextPanelWidth){		//mobile mode
+			
+			objOptions.textpanel_padding_left = minPaddingLeft;
+			objOptions.textpanel_padding_right = minPaddingRight;
+			
+			objOptions.textpanel_title_text_align = "center";
+			objOptions.textpanel_desc_text_align = "center";			
+		}else{
+			objOptions.textpanel_padding_left = Math.floor((size.width - textWidth) / 2);
+			objOptions.textpanel_padding_right = objOptions.textpanel_padding_left;
+			objOptions.textpanel_title_text_align = "left";
+			objOptions.textpanel_desc_text_align = "left";
+			
+			if(g_options.lightbox_textpanel_title_text_align)
+					objOptions.textpanel_title_text_align = g_options.lightbox_textpanel_desc_text_align;
+			
+			if(g_options.lightbox_textpanel_desc_text_align)
+				objOptions.textpanel_desc_text_align = g_options.lightbox_textpanel_desc_text_align;
+			
+		}
+				
+		g_objTextPanel.setOptions(objOptions);
+		
+		g_objTextPanel.refresh(true, true);
+		
+		handlePanelHeight();
+		g_objTextPanel.positionPanel();
+	}
+	
+	
+	
+	
+	/**
+	 * position the elements
+	 */
+	function positionElements(){
+						
+		var size = g_functions.getElementSize(g_objWrapper);
+		
+		//position top panel:
+		if(g_objTopPanel)
+			g_functions.setElementSizeAndPosition(g_objTopPanel, 0, 0, size.width, g_temp.topPanelHeight);
+		
+		//position arrows
+		if(g_objArrowLeft && g_temp.isArrowsInside == false){
+			
+			if(g_options.lightbox_hide_arrows_onvideoplay == true){
+				g_objArrowLeft.show();
+				g_objArrowRight.show();
+			}
+			
+			g_functions.placeElement(g_objArrowLeft, "left", "middle", g_options.lightbox_arrows_offset);
+			g_functions.placeElement(g_objArrowRight, "right", "middle", g_options.lightbox_arrows_offset);
+		}		
+		
+		if(g_temp.isCompact == false)
+			g_functions.placeElement(g_objButtonClose, "right", "top", 2, 2);
+		
+		//place text panel
+		if(g_objTextPanel){
+			
+			g_temp.positionFrom = "positionElements";
+			
+			if(g_temp.isCompact == false)
+				positionTextPanelWide(size);
+			else{
+				showTextPanel();
+				showNumbers();
+			}
+			
+		}
+		
+		var sliderWidth = size.width;
+		var sliderHeight = size.height;	
+		var sliderTop = 0;
+		var sliderLeft = 0;
+		
+		if(g_objSlider){
+			
+			if(g_objTopPanel){
+				var topPanelHeight = g_objTopPanel.height();
+				var objOptions = {
+						slider_image_padding_top: topPanelHeight,
+						slider_video_padding_top: topPanelHeight
+				};
+				g_objSlider.setOptions(objOptions);
+			}
+			
+			g_objSlider.setSize(sliderWidth, sliderHeight);
+			g_objSlider.setPosition(sliderLeft, sliderTop);
+		}
+		
+	}
+	
+	
+	/**
+	 * hide the text panel
+	 */
+	function hideTextPanel(){
+		
+		if(g_objTextPanel)
+			g_objTextPanel.getElement().stop().fadeTo(g_temp.fadeDuration, 0);
+		
+	}
+	
+	
+	/**
+	 * hide the numbers text
+	 */
+	function hideNumbers(){
+		
+		if(g_objNumbers)
+			g_objNumbers.stop().fadeTo(g_temp.fadeDuration, 0);
+	}
+	
+	
+	/**
+	 * is mouse inside image
+	 */
+	function isMouseInsideImage(){
+		if(!g_temp.lastMouseX)
+			return(true);
+		var obj = {
+				pageX: g_temp.lastMouseX, 
+				pageY: g_temp.lastMouseY
+			};
+	
+		var isMouseInside = g_objSlider.isMouseInsideSlideImage(obj);
+		
+		return(isMouseInside);
+	}
+	
+	
+	/**
+	 * hide the arrows
+	 */
+	function hideArrows(noAnimation, isForce){
+		
+		if(!g_objArrowLeft)
+			return(false);
+				
+		//don't hide the arrows if mouse inside image
+		if(g_temp.isArrowsOnHoverMode == true && isForce === false){
+			if(isMouseInsideImage() == true);
+				return(true);
+		}
+		
+		if(noAnimation === true){
+			g_objArrowLeft.stop().fadeTo(0, 0);
+			g_objArrowRight.stop().fadeTo(0, 0);
+		}else{
+			g_objArrowLeft.stop().fadeTo(g_temp.fadeDuration, 0);
+			g_objArrowRight.stop().fadeTo(g_temp.fadeDuration, 0);
+		}
+				
+	}
+	
+	/**
+	 * get if the arrows are hidden
+	 */
+	function isArrowsHidden(){
+		
+		if(!g_objArrowLeft)
+			return(true);
+		if(g_objArrowLeft.is(":visible") == false)
+			return(true);
+		
+		var opacity = g_objArrowLeft.css("opacity");
+		if(opacity != 1)
+			return(true);
+		
+		return(false);
+	}
+	
+	/**
+	 * show the arrows
+	 */
+	function showArrows(noStop, fromHover){
+		
+		if(!g_objArrowLeft)
+			return(false);
+		
+		//don't show every time on arrowsonhover mode
+		if(g_temp.isArrowsOnHoverMode == true && fromHover !== true && isSliderImageInPlace() == true)
+			return(true);
+		
+		//don't show if swiping
+		if(g_objSlider.isSwiping() == true)
+			return(true);
+			
+		if(noStop !== true){
+			g_objArrowLeft.stop();
+			g_objArrowRight.stop();
+		}
+		
+		g_objArrowLeft.fadeTo(g_temp.fadeDuration, 1);
+		g_objArrowRight.fadeTo(g_temp.fadeDuration, 1);
+		
+	}
+
+	
+	
+	/**
+	 * hide close button
+	 */
+	function hideCompactElements(){
+		
+		if(g_objButtonClose)
+			g_objButtonClose.stop().fadeTo(g_temp.fadeDuration, 0);
+		
+		hideTextPanel();
+		
+		hideNumbers();
+		
+		g_temp.positionFrom = "hideCompactElements";
+		if(g_temp.isArrowsInside == true)
+			hideArrows();
+	}
+	
+	
+	/**
+	 * show close button
+	 */
+	function showCloseButton(noStop){
+		
+		if(noStop !== true)
+			g_objButtonClose.stop();
+		
+		g_objButtonClose.fadeTo(g_temp.fadeDuration, 1);
+	}
+	
+	
+	/**
+	 * update text panel text of the curren item
+	 */
+	function updateTextPanelText(currentItem){
+		
+		if(!g_objTextPanel)
+			return(false);
+		
+		if(!currentItem)
+			var currentItem = g_objSlider.getCurrentItem();
+		
+		g_objTextPanel.setTextPlain(currentItem.title, currentItem.description);
+	}
+
+	
+	/**
+	 * update numbers text
+	 */
+	function updateNumbersText(currentItem){
+		
+		if(!g_objNumbers)
+			return(false);
+		
+		if(!currentItem)
+			var currentItem = g_objSlider.getCurrentItem();
+		
+		var numItems = g_gallery.getNumItems();
+		var numCurrentItem = currentItem.index + 1;
+		g_objNumbers.html(numCurrentItem + " / " + numItems);
+	}
+	
+	
+	/**
+	 * show the text panel
+	 */
+	function showTextPanel(){
+		
+		if(!g_objTextPanel)
+			return(false);
+		
+		g_objTextPanel.getElement().show().stop().fadeTo(g_temp.fadeDuration, 1);
+		
+	}
+
+	
+	/**
+	 * Show the numbers object
+	 */
+	function showNumbers(){
+		
+		if(g_objNumbers)
+			g_objNumbers.stop().fadeTo(g_temp.fadeDuration, 1);
+	}
+	
+	
+	function __________EVENTS_________(){};
+	
+	
+	/**
+	 * on start dragging slider item event. hide the elements
+	 */
+	function onSliderDragStart(){
+		if(g_temp.isCompact == false)
+			return(true);
+		
+		hideCompactElements();
+	}
+
+	
+	/**
+	 * on zoom change
+	 * move the assets of compact to their places
+	 */
+	function onZoomChange(){
+		if(g_temp.isCompact == false)
+			return(true);
+		
+		g_temp.positionFrom = "onZoomChange";
+	
+		positionCloseButton(false, true);
+		positionArrowsInside(false, true);
+		
+		//handle compact text panel mode
+		if(g_temp.isCompact == true){
+			var isImageInPlace = (g_objSlider.isCurrentSlideType("image") && g_objSlider.isCurrentImageInPlace() == true);
+			if(isImageInPlace == false){
+				hideTextPanel();
+				hideNumbers();
+			}
+			else{
+				g_temp.positionFrom = "onZoomChange";
+				showTextPanel();
+				showNumbers();
+			}
+		}
+		
+	}
+	
+
+	/**
+	 * after return slider to it's place
+	 * show close button
+	 */
+	function onSliderAfterReturn(){
+		
+		if(g_temp.isCompact == false)
+			return(true);
+		
+		g_temp.positionFrom = "onSliderAfterReturn";
+		
+		positionCloseButton(true);
+		positionArrowsInside(true);
+		
+		var isChanged = handleCompactHeight();
+		if(isChanged == false)
+			handleCompactTextpanelSizes();
+		
+		showTextPanel();
+		showNumbers();
+	}
+	
+	
+	/**
+	 * after put image to the slide
+	 * position compact elements
+	 */
+	function onSliderAfterPutImage(data, objSlide){
+				
+		objSlide = jQuery(objSlide);
+				
+		if(g_temp.isCompact == false)
+			return(true);
+
+		if(g_objSlider.isSlideCurrent(objSlide) == false)
+			return(true);
+				
+		g_temp.positionFrom = "onSliderAfterPutImage";
+		
+		positionCloseButton(true);
+		
+		positionArrowsInside(true);
+		
+		handleCompactTextpanelSizes();
+	}
+	
+	
+	/**
+	 * on slider transition end, handle panel height
+	 */
+	function onSliderTransitionEnd(){
+		
+		var sliderOptions = g_objSlider.getOptions();
+		var imagePaddingTop = sliderOptions.slider_image_padding_top;
+		
+		//handle wide
+		if(g_objTopPanel){
+			var panelHeight = g_objTopPanel.height();
+			
+			if(panelHeight != imagePaddingTop)
+				refreshSliderItem(panelHeight);
+		}
+		
+		//handle compact
+		if(g_temp.isCompact == true){
+			
+			updateTextPanelText();
+			updateNumbersText();
+			
+			g_temp.positionFrom = "onSliderTransitionEnd";
+			
+			positionCloseButton(true);
+			positionArrowsInside(true);
+			
+			if(g_objSlider.isSlideActionActive() == false){
+				var isChanged = handleCompactHeight();
+				if(isChanged == false)
+					handleCompactTextpanelSizes();
+				
+				showTextPanel();
+				showNumbers();
+			}
+			
+		}
+		
+	}
+	
+		
+	
+	/**
+	 * on item change
+	 * update numbers text and text panel text/position
+	 */
+	function onItemChange(data, currentItem){
+		
+			
+		if(g_temp.isCompact == false){	//wide mode
+			
+			if(g_objNumbers)
+				updateNumbersText(currentItem);
+			
+			if(g_objTextPanel){
+				updateTextPanelText(currentItem);
+				
+				g_objTextPanel.positionElements(false);
+				handlePanelHeight();
+				g_objTextPanel.positionPanel();
+			}
+			
+		}else{
+			
+			if(g_objSlider.isAnimating() == false){
+				
+				if(g_objTextPanel)
+					updateTextPanelText(currentItem);
+				
+				if(g_objNumbers)
+					updateNumbersText(currentItem);
+			}
+		
+		}
+		
+	}
+	
+	
+	/**
+	 * on slider click
+	 */
+	function onSliderClick(data, event){
+		
+		var slideType = g_objSlider.getSlideType();
+		if(slideType != "image")
+			return(true);
+		
+		var isPreloading = g_objSlider.isPreloading();
+		if(isPreloading == true){
+			t.close("slider");
+			return(true);
+		}
+		
+		var isInside = g_objSlider.isMouseInsideSlideImage(event);
+		
+		if(isInside == false)
+			t.close("slider_inside");
+	}
+	
+	
+	/**
+	 * on lightbox resize
+	 */
+	function onResize(){
+		
+		positionElements();
+	}
+	
+	
+	/**
+	 * on slider action start. remove extras
+	 */
+	function onSliderActionStart(){
+		
+		if(g_temp.isCompact == false)
+			return(true);
+		
+		positionCloseButton(true);
+		positionArrowsInside(true);
+		
+		if(g_objTextPanel)
+			g_objTextPanel.getElement().hide();
+		
+		if(g_objNumbers)
+			g_objNumbers.hide();
+		
+	}
+
+	
+	//show extras
+	function onSliderActionEnd(){
+		
+		if(g_temp.isCompact == false)
+			return(true);
+		
+		positionCloseButton(true);
+		positionArrowsInside(true);
+		
+		if(g_objTextPanel)
+			g_objTextPanel.getElement().show();
+		
+		if(g_objNumbers)
+			g_objNumbers.show();
+		
+	}
+	
+	
+	/**
+	 * on start play - hide the side buttons
+	 */
+	function onPlayVideo(){
+		
+		if(g_objArrowLeft && g_options.lightbox_hide_arrows_onvideoplay == true){
+			g_objArrowLeft.hide();			
+			g_objArrowRight.hide();			
+		}
+		
+	}
+	
+	
+	/**
+	 * on stop video - show the side buttons
+	 */
+	function onStopVideo(){
+		
+		if(g_objArrowLeft && g_options.lightbox_hide_arrows_onvideoplay == true){
+			g_objArrowLeft.show();
+			g_objArrowRight.show();			
+		}
+		
+	}
+	
+	/**
+	 * on gallery keypres, do operations
+	 */
+	function onKeyPress(data, key){
+		
+		switch(key){
+			case 27:		//escape - close lightbox
+				if(g_temp.isOpened == true)
+					t.close("keypress");
+			break;
+		}
+		
+	}
+	
+	/**
+	 * on image mouse enter event
+	 */
+	function onImageMouseEnter(){
+		
+		if(g_temp.isArrowsOnHoverMode == true)
+			showArrows(false, true);
+		
+	}
+	
+	/**
+	 * on image mouse leave
+	 */
+	function onImageMouseLeave(event){
+		
+		g_temp.positionFrom = "hideCompactElements";
+		
+		if(g_temp.isArrowsOnHoverMode == true && isSliderImageInPlace() == true)
+			hideArrows(false, true);
+		
+	}
+	
+	
+	/**
+	 * on mouse move event
+	 * show arrows if inside image
+	 */
+	function onMouseMove(event){
+		 g_temp.lastMouseX = event.pageX;
+		 g_temp.lastMouseY = event.pageY;
+		
+		 var isHidden = isArrowsHidden()
+		 
+		 
+		 if(isHidden == true && isMouseInsideImage() && g_objSlider.isAnimating() == false){
+			 g_temp.positionFrom = "onMouseMove";
+			 if(g_objArrowLeft && g_objArrowLeft.is(":animated") == false)
+				 showArrows(false, true);
+		 }
+		 
+	}
+	
+	
+	/**
+	 * init events
+	 */
+	function initEvents(){
+		
+		//g_objOverlay.on("click touchstart", onOverlayClick);
+		
+		g_objOverlay.on("touchstart", function(event){
+			event.preventDefault();
+		});
+		
+		g_objOverlay.on("touchend", function(event){
+			t.close("overlay");
+		});
+		
+		
+		g_functions.addClassOnHover(g_objArrowRight, "ug-arrow-hover");
+		g_functions.addClassOnHover(g_objArrowLeft, "ug-arrow-hover");
+		
+		g_functions.addClassOnHover(g_objButtonClose);
+		
+		g_gallery.setNextButton(g_objArrowRight);
+		g_gallery.setPrevButton(g_objArrowLeft);
+		
+		g_objButtonClose.click(function(){
+			t.close("button");
+		});
+		
+		g_objGallery.on(g_gallery.events.ITEM_CHANGE, onItemChange);
+		
+		if(g_objSlider){
+			jQuery(g_objSlider).on(g_objSlider.events.TRANSITION_END, onSliderTransitionEnd);
+			
+			//on slider click event
+			jQuery(g_objSlider).on(g_objSlider.events.CLICK, onSliderClick);
+			
+			jQuery(g_objSlider).on(g_objSlider.events.ACTION_START, onSliderActionStart);
+			jQuery(g_objSlider).on(g_objSlider.events.ACTION_END, onSliderActionEnd);
+
+			//on slider video 
+			var objVideo = g_objSlider.getVideoObject();
+					
+			jQuery(objVideo).on(objVideo.events.PLAY_START, onPlayVideo);
+			jQuery(objVideo).on(objVideo.events.PLAY_STOP, onStopVideo);
+			
+			//handle close button hide / appear
+			jQuery(g_objSlider).on(g_objSlider.events.START_DRAG, onSliderDragStart);
+			jQuery(g_objSlider).on(g_objSlider.events.TRANSITION_START, onSliderDragStart);
+			
+			jQuery(g_objSlider).on(g_objSlider.events.AFTER_DRAG_CHANGE, onSliderAfterReturn);
+			jQuery(g_objSlider).on(g_objSlider.events.AFTER_RETURN, onSliderAfterReturn);
+			jQuery(g_objSlider).on(g_objSlider.events.AFTER_PUT_IMAGE, onSliderAfterPutImage);
+			
+			jQuery(g_objSlider).on(g_objSlider.events.ZOOM_CHANGE, onZoomChange);
+			
+			jQuery(g_objSlider).on(g_objSlider.events.IMAGE_MOUSEENTER, onImageMouseEnter);
+			jQuery(g_objSlider).on(g_objSlider.events.IMAGE_MOUSELEAVE, onImageMouseLeave);
+
+		}
+		
+		//on resize
+		 jQuery(window).resize(function(){
+			 
+			 if(g_temp.isOpened == false)
+				 return(true);
+			 
+			 g_functions.whenContiniousEventOver("lightbox_resize", onResize, 100);
+		 });
+		 
+		 g_objGallery.on(g_gallery.events.GALLERY_KEYPRESS, onKeyPress);
+		 
+		 //store last mouse x and y
+		 if(g_temp.isArrowsOnHoverMode == true){
+			 
+			 jQuery(document).bind('mousemove', onMouseMove);
+		 
+		 }
+			 
+	}
+
+	
+	/**
+	 * destroy the lightbox events
+	 */
+	this.destroy = function(){
+		
+		jQuery(document).unbind("mousemove");
+		
+		g_objOverlay.off("touchstart");
+		g_objOverlay.off("touchend");
+		g_objButtonClose.off("click");
+		g_objGallery.off(g_gallery.events.ITEM_CHANGE);
+		
+		if(g_objSlider){
+			jQuery(g_objSlider).off(g_objSlider.events.ACTION_START);
+			jQuery(g_objSlider).off(g_objSlider.events.ACTION_END);
+			jQuery(g_objSlider).off(g_objSlider.events.TRANSITION_END);
+			jQuery(g_objSlider).off(g_objSlider.events.CLICK);
+			jQuery(g_objSlider).off(g_objSlider.events.START_DRAG);
+			jQuery(g_objSlider).off(g_objSlider.events.TRANSITION_START);
+			jQuery(g_objSlider).off(g_objSlider.events.AFTER_DRAG_CHANGE);
+			jQuery(g_objSlider).off(g_objSlider.events.AFTER_RETURN);
+			
+			var objVideo = g_objSlider.getVideoObject();
+			jQuery(objVideo).off(objVideo.events.PLAY_START);
+			jQuery(objVideo).off(objVideo.events.PLAY_STOP);
+
+			jQuery(g_objSlider).on(g_objSlider.events.IMAGE_MOUSEENTER, onImageMouseEnter);
+			jQuery(g_objSlider).on(g_objSlider.events.IMAGE_MOUSELEAVE, onImageMouseLeave);
+			
+			g_objSlider.destroy();
+		}
+		
+		jQuery(window).unbind("resize");
+		g_objGallery.off(g_gallery.events.GALLERY_KEYPRESS, onKeyPress);
+
+	}
+	
+	
+	/**
+	 * actual hide all compacy type elements
+	 */
+	function actualHideCompactElements(){
+		
+		if(g_objButtonClose)
+			g_objButtonClose.hide();
+		
+		if(g_objArrowLeft && g_temp.isArrowsInside == true){
+			g_objArrowLeft.hide();
+			g_objArrowRight.hide();
+		}
+		
+		if(g_objNumbers)
+			g_objNumbers.hide();
+		
+		if(g_objTextPanel)
+			g_objTextPanel.hide();
+		
+	}
+
+	
+	/**
+	 * open the lightbox with some item index
+	 */
+	this.open = function(index){
+		
+		var objItem = g_gallery.getItem(index);
+		
+		g_temp.isOpened = true;
+		
+		if(g_objSlider){
+			g_objSlider.setItem(objItem, "fade");
+		}
+		
+		if(g_objTextPanel)
+			g_objTextPanel.setTextPlain(objItem.title, objItem.description);
+		
+		g_objOverlay.stop().fadeTo(0,0);
+		g_objWrapper.show();
+		g_objWrapper.fadeTo(0,1);
+		
+		g_objOverlay.stop().fadeTo(g_temp.fadeDuration, g_options.lightbox_overlay_opacity);
+		
+		positionElements();
+				
+		if(g_temp.isCompact == true){
+			
+			var isPreloading = g_objSlider.isPreloading();
+			if(isPreloading == true){
+				
+				actualHideCompactElements();
+				
+			}else{
+				
+				//hide only arrows if they are inside
+				if(g_temp.isArrowsInside == true){
+					g_objArrowLeft.hide();
+					g_objArrowRight.hide();
+				}
+				
+			}
+				
+		}
+				
+		if(g_objSlider)
+			g_objSlider.startSlideAction();
+		
+	}
+	
+	
+	/**
+	 * close the lightbox
+	 */
+	this.close = function(fromWhere){
+				
+		g_temp.isOpened = false;
+		
+		if(g_temp.isCompact == true)
+			hideCompactElements();
+		
+		if(g_objSlider)
+			g_objSlider.stopSlideAction();
+		
+		var slideType = g_objSlider.getSlideType();
+				
+		if(slideType != "image")
+			g_objWrapper.hide();
+		else{
+			g_objWrapper.fadeTo(g_temp.fadeDuration,0,function(){
+				g_objWrapper.hide();
+			});
+		}
+		
+	}
+	
+	
+	/**
+	 * external init function
+	 */
+	this.init = function(gallery, customOptions){
+		
+		initLightbox(gallery, customOptions);
+	}
+	
+	
+	/**
+	 * external put html function
+	 */
+	this.putHtml = function(){
+		
+		putLightboxHtml();
+		
+	}
+	
+	/**
+	 * run lightbox elements
+	 */
+	this.run = function(){
+		
+		setProperties();
+		
+		if(g_objSlider)
+			g_objSlider.run();
+		
+		initEvents();
+	}
+	
+	
+	
+}
+
+
+
 /** -------------- Panel Base Functions ---------------------*/
 
 function UGPanelsBase(){
@@ -4558,6 +7679,18 @@ function UGPanelsBase(){
 		
 	}
 	
+	/**
+	 * destroy the panel events
+	 */
+	this.destroy = function(){
+		
+		if(g_objHandle){
+			g_objHandle.destroy();
+			g_objGallery.off(g_gallery.events.SLIDER_ACTION_START);
+			g_objGallery.off(g_gallery.events.SLIDER_ACTION_END);
+		}
+		
+	}
 	
 	/**
 	 * place panel with some animation
@@ -4897,6 +8030,16 @@ function UGPanelHandle(){
 		
 	}
 	
+	/**
+	 * destroy the handle panel events
+	 */
+	this.destroy = function(){
+		g_functions.destroyButton(g_objHandleTip);
+		jQuery(g_panel).off(g_panel.events.OPEN_PANEL);
+		jQuery(g_panel).off(g_panel.events.CLOSE_PANEL);
+	}
+	
+	
 	
 	/**
 	 * check and fix align option, set write direction
@@ -4988,33 +8131,60 @@ function UGSlider(){
 	//the video arrows is independent arrows that is not sitting on the controls
 	var g_objSlider, g_objInner, g_objSlide1, g_objSlide2, g_objSlide3, g_objArrowLeft, g_objArrowRight;
 	var g_objTouchSlider, g_objZoomSlider, g_objZoomPanel, g_objButtonPlay = null, g_objButtonFullscreen = null, g_objBullets = null;
-	var g_objVideoPlayer = new UGVideoPlayer();
+	var g_objVideoPlayer = new UGVideoPlayer(), g_optionsPrefix;
 	var g_functions = new UGFunctions(), g_objProgress = null, g_objTextPanel = null;
 	
 	
 	this.events = {		
-		ITEM_CHANGED: "item_changed",		//on item changed
-		BEFORE_SWITCH_SLIDES: "before_switch",	//before slides switching
-		BEFORE_RETURN: "before_return",		//after return from pan or from zoom
-		ZOOM_START: "slider_zoom_start",	//on zoom start 
-		ZOOM_END: "slider_zoom_end",		//on zoom move 
-		ZOOMING: "slider_zooming",			//on zooming
-		ZOOM_CHANGE: "slider_zoom_change",	//on slide image image zoom change	
-		ACTION_START: "action_start",		//on slide action start
-		ACTION_END: "action_end"			//on slide action stop
+		ITEM_CHANGED: "item_changed",				//on item changed
+		BEFORE_SWITCH_SLIDES: "before_switch",		//before slides switching
+		BEFORE_RETURN: "before_return",				//before return from pan or from zoom
+		AFTER_RETURN: "after_return",				//after return from pan or from zoom
+		ZOOM_START: "slider_zoom_start",			//on zoom start 
+		ZOOM_END: "slider_zoom_end",				//on zoom move 
+		ZOOMING: "slider_zooming",					//on zooming
+		ZOOM_CHANGE: "slider_zoom_change",			//on slide image image zoom change	
+		START_DRAG: "start_drag",					//on slider drag start
+		AFTER_DRAG_CHANGE: "after_drag_change",		//after finish drag chagne transition
+		ACTION_START: "action_start",				//on slide action start
+		ACTION_END: "action_end",					//on slide action stop
+		CLICK: "click",								//on click event
+		TRANSITION_START:"slider_transition_start",	//before transition start event
+		TRANSITION_END:"slider_transition_end",		//on transition end event
+		AFTER_PUT_IMAGE: "after_put_image",			//after put slide image
+		IMAGE_MOUSEENTER: "slider_image_mouseenter", //on slide image mouseonter
+		IMAGE_MOUSELEAVE: "slider_image_mouseleave"	 //on slide image mouseleave
 	}
 	
 	var g_options = {
-		  
 		  slider_scale_mode: "fill",					//fit: scale down and up the image to always fit the slider
 		  												//down: scale down only, smaller images will be shown, don't enlarge images (scale up)
 		  												//fill: fill the entire slider space by scaling, cropping and centering the image
 		  slider_scale_mode_media: "fill",				//fit, down, full scale mode on media items
 		  slider_scale_mode_fullscreen: "down",			//fit, down, full scale mode on fullscreen.
+		  		  
 		  slider_item_padding_top: 0,					//padding top of the slider item
 		  slider_item_padding_bottom: 0,				//padding bottom of the slider item
 		  slider_item_padding_left: 0,					//padding left of the slider item
 		  slider_item_padding_right: 0,					//padding right of the slider item
+		  slider_background_color: "",					//slider background color, set if you want to change default
+		  
+		  slider_image_padding_top: 0,					//padding top of the image inside the item
+		  slider_image_padding_bottom: 0,				//padding bottom of the image inside the item
+		  slider_image_padding_left: 0,					//padding left of the image inside the item
+		  slider_image_padding_right: 0,				//padding right of the image inside the item
+
+		  slider_image_border: false,					//enable border around the image
+		  slider_image_border_width: 10,				//image border width
+		  slider_image_border_color: "#ffffff",			//image border color
+		  slider_image_border_radius: 0,				//image border radius
+		  slider_image_shadow: false,					//enable border shadow the image
+		  
+		  slider_video_padding_top: 0,					//padding top of the video player inside the item
+		  slider_video_padding_bottom: 0,				//padding bottom of the video player inside the item
+		  slider_video_padding_left: 0,					//padding left of the video player inside the item
+		  slider_video_padding_right: 0,				//padding right of the video player inside the item
+		  slider_video_enable_closebutton: true,		//enable video close button
 		  
 		  slider_transition: "slide",					//fade, slide - the transition of the slide change
 		  slider_transition_speed:300,				 	//transition duration of slide change
@@ -5059,13 +8229,15 @@ function UGSlider(){
 		  slider_play_button_align_vert:"top",     		 //top, middle, bottom - play button vertical align
 		  slider_play_button_offset_hor:40,	       		 //play button horizontal offset 
 		  slider_play_button_offset_vert:8,	   			 //play button vertical offset
-
+		  slider_play_button_mobilehide:false,		 	 //hide the play button on mobile
+		  
 		  slider_enable_fullscreen_button: true,		 //true,false - enable fullscreen button onslider element
 		  slider_fullscreen_button_skin: "",			 //skin of the slider fullscreen button, if empty inherit from gallery skin
 		  slider_fullscreen_button_align_hor:"left",     //left, center, right	- fullscreen button horizonatal align
 		  slider_fullscreen_button_align_vert:"top",     //top, middle, bottom - fullscreen button vertical align
 		  slider_fullscreen_button_offset_hor:11,	     //fullscreen button horizontal offset 
 		  slider_fullscreen_button_offset_vert:9,	   	 //fullscreen button vertical offset
+		  slider_fullscreen_button_mobilehide:false,	 //hide the button on mobile
 		  
 		  slider_enable_zoom_panel: true,				 //true,false - enable the zoom buttons, works together with zoom control.
 		  slider_zoompanel_skin: "",					 //skin of the slider zoom panel, if empty inherit from gallery skin		  
@@ -5073,6 +8245,7 @@ function UGSlider(){
 		  slider_zoompanel_align_vert:"top",     	 	 //top, middle, bottom - zoom panel vertical align
 		  slider_zoompanel_offset_hor:12,	       		 //zoom panel horizontal offset 
 		  slider_zoompanel_offset_vert:92,	   			 //zoom panel vertical offset
+		  slider_zoompanel_mobilehide:false,		     //hide the zoom panel on mobile
 		  
 		  slider_controls_always_on: false,				//true,false - controls are always on, false - show only on mouseover
 		  slider_controls_appear_ontap: true,			//true,false - appear controls on tap event on touch devices
@@ -5109,8 +8282,14 @@ function UGSlider(){
 	/**
 	 * init the slider
 	 */
-	function initSlider(objGallery, objOptions){
+	function initSlider(objGallery, objOptions, optionsPrefix){
 		g_gallery = objGallery;
+		
+		//change options by prefix
+		if(optionsPrefix){
+			g_optionsPrefix = optionsPrefix;
+			objOptions = g_functions.convertCustomPrefixOptions(objOptions, g_optionsPrefix, "slider");
+		}
 		
 		g_objGallery = jQuery(objGallery);
 		
@@ -5135,8 +8314,8 @@ function UGSlider(){
 		if(g_options.slider_enable_bullets == true){
 			g_objBullets = new UGBullets();
 			var bulletsOptions = {
-					skin: g_options.slider_bullets_skin,
-					space_between: g_options.slider_bullets_space_between
+					bullets_skin: g_options.slider_bullets_skin,
+					bullets_space_between: g_options.slider_bullets_space_between
 			}
 			g_objBullets.init(g_gallery, bulletsOptions);
 		}
@@ -5144,7 +8323,7 @@ function UGSlider(){
 		//init text panel
 		if(g_options.slider_enable_text_panel){
 			g_objTextPanel = new UGTextPanel();
-			g_objTextPanel.init(g_gallery, g_options);
+			g_objTextPanel.init(g_gallery, g_options, "slider");
 		}
 		
 		if(g_options.slider_enable_zoom_panel){
@@ -5168,7 +8347,11 @@ function UGSlider(){
 			return(false);
 		
 		g_temp.isRunOnce = true;
-				
+		
+		//set background color
+	   if(g_options.slider_background_color)		   		
+		   g_objSlider.css("background-color", g_options.slider_background_color);
+		
 		//init touch slider control
 		if(g_options.slider_control_swipe == true){
 			g_objTouchSlider = new UGTouchSliderControl();
@@ -5212,6 +8395,9 @@ function UGSlider(){
 		
 		if(g_options.slider_fullscreen_button_skin == "")
 			g_options.slider_fullscreen_button_skin = globalSkin;
+		
+		g_options.video_enable_closebutton = g_options.slider_video_enable_closebutton;
+		
 	}
 	
 	/**
@@ -5234,10 +8420,14 @@ function UGSlider(){
 		return(html);
 	}
 	
+	
 	/**
 	 * set the slider html
 	 */
-	function setHtmlSlider(){
+	function setHtmlSlider(objParent){
+		
+		if(objParent)
+			g_objWrapper = objParent;
 		
 		//get if the slide has controls
 		var loaderClass = getLoaderClass();
@@ -5338,8 +8528,9 @@ function UGSlider(){
 		//add text panel (hidden)
 		if(g_options.slider_enable_text_panel == true){
 			
+			
 			//add panel to controls:
-			if(g_options.slider_textpanel_always_on == false && hasControls == true && g_options.slider_controls_always_on == false)
+			if(g_options.slider_textpanel_always_on == false && g_options.slider_controls_always_on == false)
 				g_objTextPanel.appendHTML(g_objSlider);
 			else{	//add panel to slider
 				
@@ -5356,6 +8547,7 @@ function UGSlider(){
 				}
 				
 			}
+			
 		}
 			
 		//----------------
@@ -5380,7 +8572,8 @@ function UGSlider(){
 		var objPreloader = getSlidePreloader(objSlide);
 		g_functions.placeElementInParentCenter(objPreloader);
 		
-		var objVideoPlayButton = getSlideVideoPlayButton(objSlide);		
+		//position video play button
+		var objVideoPlayButton = getSlideVideoPlayButton(objSlide);
 		g_functions.placeElementInParentCenter(objVideoPlayButton);		
 	}
 	
@@ -5432,7 +8625,10 @@ function UGSlider(){
 		//place slide elements
 		positionSlideElements(g_objSlide1);
 		positionSlideElements(g_objSlide2);
-		positionSlideElements(g_objSlide3);		
+		positionSlideElements(g_objSlide3);
+		
+		checkMobileModify();
+		
 	}
 	
 	
@@ -5445,7 +8641,7 @@ function UGSlider(){
 			g_functions.placeElement(g_objButtonPlay, g_options.slider_play_button_align_hor, g_options.slider_play_button_align_vert, g_options.slider_play_button_offset_hor, g_options.slider_play_button_offset_vert);			
 		
 		//position fullscreen button
-		if(g_objButtonPlay)			
+		if(g_objButtonFullscreen)			
 			g_functions.placeElement(g_objButtonFullscreen, g_options.slider_fullscreen_button_align_hor, g_options.slider_fullscreen_button_align_vert, g_options.slider_fullscreen_button_offset_hor, g_options.slider_fullscreen_button_offset_vert);
 		
 		//position zoom panel
@@ -5520,15 +8716,24 @@ function UGSlider(){
 	/**
 	 * do the transition between the current and the next
 	 */
-	function doTransition(direction, objItem){
-				
-		switch(g_options.slider_transition){
+	function doTransition(direction, objItem, forceTransition){
+		
+		g_objThis.trigger(t.events.TRANSITION_START);
+		
+		var transition = g_options.slider_transition;
+		if(forceTransition)
+			transition = forceTransition;
+		
+		switch(transition){
 			default:
 			case "fade":
 				transitionFade(objItem);
 			break;
 			case "slide":				
 				transitionSlide(direction, objItem);
+			break;
+			case "lightbox_open":		//fade transition without animation
+				transitionFade(objItem, true);
 			break;
 		}
 		
@@ -5552,7 +8757,10 @@ function UGSlider(){
 			g_temp.itemWaiting = null;
 		
 		var slides = t.getSlidesReference();
-				
+		
+		//trace(slides.objNextSlide.find("img").attr("src"));
+		//trace(objItem);
+		
 		switch(direction){
 			case "right":	//change to prev item
 				setItemToSlide(slides.objPrevSlide, objItem);
@@ -5595,6 +8803,7 @@ function UGSlider(){
 					}else{
 						//if no item waiting, please neighbour items in places
 						t.placeNabourItems();
+						g_objThis.trigger(t.events.TRANSITION_END);
 					}
 				
 			}
@@ -5606,7 +8815,10 @@ function UGSlider(){
 	/**
 	 * do fade transition
 	 */
-	function transitionFade(objItem){
+	function transitionFade(objItem, noAnimation){
+		
+		if(!noAnimation)
+			var noAnimation = false;
 		
 		var slides = t.getSlidesReference();
 		 
@@ -5620,17 +8832,29 @@ function UGSlider(){
 		g_temp.numCurrent = g_temp.numNext;
 		g_temp.numNext = currentNum;
 		
-		slides.objNextSlide.stop(true);
-		slides.objNextSlide.fadeTo(0,0);	
+		g_objThis.trigger(t.events.ITEM_CHANGED);
 		
+		slides.objNextSlide.stop(true);		
 		slides.objCurrentSlide.stop(true);
 		
-		animateOpacity(slides.objCurrentSlide,0,function(){
+		if(noAnimation == true){
+			
+			slides.objCurrentSlide.fadeTo(0, 0);
+			slides.objNextSlide.fadeTo(0, 1);	
 			t.placeNabourItems();
-		});
 		
-		//animate to next show next
-		animateOpacity(slides.objNextSlide,1);
+		}else{
+			slides.objNextSlide.fadeTo(0,0);	
+			
+			animateOpacity(slides.objCurrentSlide,0,function(){
+				t.placeNabourItems();
+				g_objThis.trigger(t.events.TRANSITION_END);
+			});
+			
+			//animate to next show next
+			animateOpacity(slides.objNextSlide,1);			
+		}
+		
 	}
 	
 		
@@ -5649,7 +8873,6 @@ function UGSlider(){
 			return(false);
 		
 		setItemToSlide(objSlide, objItem);
-				
 	}
 	
 	
@@ -5663,13 +8886,34 @@ function UGSlider(){
 	
 	}
 	
-	
 	/**
 	 * hide the preloader
 	 */
 	function hidePreloader(objPreloader){
 		
 		objPreloader.stop(true).hide(100);
+	}
+	
+	
+	/**
+	 * set slider image css design according the settings
+	 */
+	function setImageDesign(objImage){
+		
+		var css = {};
+		if(g_options.slider_image_border == true){
+			css["border-style"] = "solid";
+			css["border-width"] = g_options.slider_image_border_width+"px";
+			css["border-color"] = g_options.slider_image_border_color;
+			css["border-radius"] = g_options.slider_image_border_radius;
+		}
+		
+		if(g_options.slider_image_shadow == true){
+			css["box-shadow"] = "3px 3px 10px 0px #353535";
+		}
+		
+		objImage.css(css);
+		
 	}
 	
 	
@@ -5691,18 +8935,30 @@ function UGSlider(){
 		
 		var scaleMode = t.getScaleMode(objSlide);
 		
+		objPadding = t.getObjImagePadding();
+		
 		if(currentImage == urlImage && isForce !== true){
+			
 			var objImage = objItemWrapper.children("img");
-			g_functions.scaleImageFitParent(objImage, objItem.imageWidth, objItem.imageHeight, scaleMode);
+			
+			if(objItem.imageWidth == 0 || objItem.imageHeight == 0){
+				g_gallery.checkFillImageSize(objImage, objItem);
+			}
+			
+			g_functions.scaleImageFitParent(objImage, objItem.imageWidth, objItem.imageHeight, scaleMode, objPadding);
+						
+			g_objThis.trigger(t.events.AFTER_PUT_IMAGE, objSlide);
+			
 		}
 		else{		//place the image inside parent first time
-			
-			objImage = g_functions.placeImageInsideParent(urlImage, objItemWrapper, objItem.imageWidth, objItem.imageHeight, scaleMode);
+						
+			objImage = g_functions.placeImageInsideParent(urlImage, objItemWrapper, objItem.imageWidth, objItem.imageHeight, scaleMode, objPadding);
 			
 			//set image loaded on load:
 			if(objItem.isBigImageLoaded == true){
 				objImage.fadeTo(0,1);
 				hidePreloader(objPreloader);
+				g_objThis.trigger(t.events.AFTER_PUT_IMAGE, objSlide);
 			}
 			else{		//if the image not loaded, load the image and show it after.
 				objImage.fadeTo(0,0);
@@ -5710,7 +8966,7 @@ function UGSlider(){
 				
 				objImage.data("itemIndex", objItem.index);
 				objImage.on("load",function(){
-										
+					
 					//place the image normally with coordinates
 					var objImage = jQuery(this);
 					var itemIndex = objImage.data("itemIndex");
@@ -5720,20 +8976,27 @@ function UGSlider(){
 					//get and hide preloader
 					var objSlide = objImage.parent().parent();
 					var objPreloader = getSlidePreloader(objSlide);
+					var objPadding = t.getObjImagePadding();
+					var scaleMode = t.getScaleMode(objSlide);
+					
 					hidePreloader(objPreloader);
 					
 					g_gallery.onItemBigImageLoaded(null, objImage);
 					
 					var objItem = g_gallery.getItem(itemIndex);
-					
-					g_functions.scaleImageFitParent(objImage, objItem.imageWidth, objItem.imageHeight, scaleMode);
+									
+					g_functions.scaleImageFitParent(objImage, objItem.imageWidth, objItem.imageHeight, scaleMode, objPadding);
 					
 					objImage.fadeTo(0,1);
 					
+					g_objThis.trigger(t.events.AFTER_PUT_IMAGE, objSlide);
 				});
 			}
 			
 		}
+		
+		if(objImage)
+			setImageDesign(objImage);
 		
 	}
 	
@@ -5759,7 +9022,7 @@ function UGSlider(){
 			}
 			
 			var currentIndex = objSlide.data("index");
-						
+			
 			objSlide.data("index",objItem.index);
 			objSlide.data("type", objItem.type);
 			
@@ -5873,55 +9136,58 @@ function UGSlider(){
 	}
 	
 
-	function __________SLIDE_VIDEO_______(){};
-	
 
-	/**
-	 * stop some slide action if active
-	 */
-	function stopSlideAction(objSlide){
-		
-		var slideType = t.getSlideType(objSlide);
-		
-		switch(slideType){
-			default:
-				g_objVideoPlayer.hide();
-			break;
-		}
-	}
-	
-	
-	/**
-	 * start some slide action if exists
-	 */
-	function startSlideAction(objSlide){
-		
-		var objItem = getSlideItem(objSlide);
-		
-		g_objVideoPlayer.show();
-				
-		switch(objItem.type){
-			case "youtube":
-				g_objVideoPlayer.playYoutube(objItem.videoid);
-			break;
-			case "vimeo":
-				g_objVideoPlayer.playVimeo(objItem.videoid);
-			break;
-			case "html5video":
-				g_objVideoPlayer.playHtml5Video(objItem.videoogv, objItem.videowebm, objItem.videomp4, objItem.urlImage);
-			break;
-			case "soundcloud":
-				g_objVideoPlayer.playSoundCloud(objItem.trackid);
-			break;			
-			case "wistia":
-				g_objVideoPlayer.playWistia(objItem.videoid);
-			break;			
-		}
-		
-	}
 	
 	
 	function __________CONTROLS_OBJECT_______(){};
+	
+	/**
+	 * modify the slider for mobile
+	 */
+	function modifyForMobile(){
+		
+		if(g_options.slider_fullscreen_button_mobilehide == true && g_objButtonFullscreen)
+			g_objButtonFullscreen.hide();
+		
+		if(g_options.slider_play_button_mobilehide == true && g_objButtonPlay)
+			g_objButtonPlay.hide();
+		
+		if(g_options.slider_zoompanel_mobilehide == true && g_objZoomPanel)
+			g_objZoomPanel.getElement().hide();
+		
+	}
+	
+	
+	/**
+	 * modify for no mobile
+	 */
+	function modifyForDesctop(){
+		
+		if(g_options.slider_fullscreen_button_mobilehide == true && g_objButtonFullscreen)
+			g_objButtonFullscreen.show();
+
+		if(g_options.slider_play_button_mobilehide == true && g_objButtonPlay)
+			g_objButtonPlay.show();
+		
+		if(g_options.slider_zoompanel_mobilehide == true && g_objZoomPanel)
+			g_objZoomPanel.getElement().show();
+		
+	}
+	
+	
+	/**
+	 * check and modify for mobile or desctop
+	 */
+	function checkMobileModify(){
+		
+		var isMobile = g_gallery.isMobileMode();
+		
+		if(isMobile)
+			modifyForMobile();
+		else
+			modifyForDesctop();
+				
+	}
 	
 	
 	/**
@@ -6050,6 +9316,8 @@ function UGSlider(){
 	 */
 	function onItemChange(){
 		
+		//trace("slider on change");
+		
 		var objItem = g_gallery.getSelectedItem();
 				
 		t.setItem(objItem);
@@ -6084,25 +9352,33 @@ function UGSlider(){
 		g_gallery.selectItem(bulletIndex);		
 	}
 	
+	//function isP
+	
 	/**
 	 * on touch end
 	 * toggle controls
 	 */
-	function onTouchEnd(event){
+	function onClick(event){
 		
 		//TODO: prevent double touch end
 		//debugLine("slider touchend",true,true);
-		
-		//work only on image types
-		if(t.isCurrentSlideType("image") == false)
-			return(false);
-		
+				
 		if(!g_objTouchSlider || g_objTouchSlider.isTapEventOccured(event) == true){
-			toggleControls();
+						
+			g_objThis.trigger(t.events.CLICK, event);
 			
-			//show text panel if hidden
-			if(g_objTextPanel && g_options.slider_textpanel_always_on == true && t.isCurrentSlideType("image") && t.isCurrentSlideImageFit())
-				showTextPanel();
+			if(g_options.slider_controls_always_on == false && 
+			   g_options.slider_controls_appear_ontap == true && t.isCurrentSlideType("image") == false){
+				
+				toggleControls();
+				
+				//show text panel if hidden
+				if(g_objTextPanel && g_options.slider_textpanel_always_on == true && t.isCurrentSlideType("image") && t.isCurrentSlideImageFit())
+					showTextPanel();
+				
+			}
+						
+			
 		}
 		
 	}
@@ -6152,7 +9428,7 @@ function UGSlider(){
 	 */
 	function objVideoPlayClick(objButton){
 		var objSlide = objButton.parent();
-		startSlideAction(objSlide);
+		t.startSlideAction(objSlide);
 	}
 
 	/**
@@ -6205,6 +9481,20 @@ function UGSlider(){
 	
 	
 	/**
+	 * after image loaded. position video play button
+	 */
+	function onSlideImageLoaded(data, objSlide){
+		
+		objSlide = jQuery(objSlide);
+		var objImage = t.getSlideImage(objSlide);
+		var objButtonVideoPlay = getSlideVideoPlayButton(objSlide);
+		var objSize = g_functions.getElementSize(objImage);
+		
+		g_functions.placeElement(objButtonVideoPlay, "center", "middle", objSize.left, objSize.top, objImage);
+	}
+	
+	
+	/**
 	 * init event of current slide
 	 */
 	function initSlideEvents(objSlide){
@@ -6215,7 +9505,6 @@ function UGSlider(){
 		
 		g_functions.setButtonOnClick(objVideoPlayButton, objVideoPlayClick);
 		
-		//objVideoPlayButton.click();
 	}
 	
 	
@@ -6226,6 +9515,7 @@ function UGSlider(){
 		
 		//on item image update, update the image inside the slider if relevant
 		g_objGallery.on(g_gallery.events.ITEM_IMAGE_UPDATED, onItemImageUpdate);
+		
 		
 		//on item change, change the item in the slider.
 		g_objGallery.on(g_gallery.events.ITEM_CHANGE, onItemChange);
@@ -6250,23 +9540,13 @@ function UGSlider(){
 			//assign hover evens only if no touch device
 			g_objSlider.hover(onMouseEnter, onMouseLeave);
 			
-			//touch events appear on tap event
-			if(g_options.slider_controls_appear_ontap == true)
-				g_objSlider.bind("touchend", onTouchEnd);
 		}
+		
+		//touch events appear on tap event
+		//if(g_options.slider_controls_appear_ontap == true)
+		
+		g_objSlider.on("touchend click", onClick);
 
-		
-		//on slider click event
-/*
-		if(g_objTouchSlider){
-			jQuery(g_objTouchSlider).on(g_objTouchSlider.events.CLICK, onClick);
-		}else{
-			g_objSlider.bind("click touchend", function(event){0
-				onClick();
-			});			
-		}
-*/	
-		
 		//show / hide text panel, if it's saparate from controls
 		if(g_objTextPanel && g_temp.isTextPanelSaparateHover == true){
 			g_objSlider.hover(showTextPanel, hideTextPanel);
@@ -6305,6 +9585,57 @@ function UGSlider(){
 		initSlideEvents(g_objSlide1);
 		initSlideEvents(g_objSlide2);
 		initSlideEvents(g_objSlide3);
+		
+		//on image loaded
+		g_objThis.on(t.events.AFTER_PUT_IMAGE, onSlideImageLoaded);
+		
+		//image mouseenter / mouseleave event
+		
+		//set mouseover events on the images
+		g_objSlider.delegate(".ug-item-wrapper img","mouseenter",function(event){
+			g_objThis.trigger(t.events.IMAGE_MOUSEENTER);
+		});
+
+		g_objSlider.delegate(".ug-item-wrapper img","mouseleave",function(event){
+			var isMouseOver = t.isMouseInsideSlideImage(event);
+			
+			if(isMouseOver == false)
+				g_objThis.trigger(t.events.IMAGE_MOUSELEAVE);
+		});
+		
+	}
+	
+	
+	/**
+	 * destroy slider events
+	 */
+	this.destroy = function(){
+		
+		g_objThis.off(t.events.AFTER_PUT_IMAGE);
+				
+		g_objGallery.off(g_gallery.events.ITEM_IMAGE_UPDATED);
+		g_objGallery.off(g_gallery.events.ITEM_CHANGE);
+		
+		if(g_objBullets)
+			jQuery(g_objBullets).on(g_objBullets.events.BULLET_CLICK);
+		
+		g_objSlider.off("mouseenter");
+		g_objSlider.off("mouseleave");
+		
+		g_objSlider.off("touchend");
+		g_objSlider.off("click");
+		
+		if(g_objZoomSlider)
+			g_objThis.off(t.events.ZOOM_CHANGE);
+		
+		g_objThis.off(t.events.BEFORE_SWITCH_SLIDES);
+		jQuery(g_objVideoPlayer).off(g_objVideoPlayer.events.SHOW);		
+		jQuery(g_objVideoPlayer).off(g_objVideoPlayer.events.HIDE);
+		
+		g_objVideoPlayer.destroy();
+		
+		g_objSlider.undelegate(".ug-item-wrapper img","mouseenter");
+		g_objSlider.undelegate(".ug-item-wrapper img","mouseleave");
 	}
 	
 	
@@ -6327,7 +9658,7 @@ function UGSlider(){
 			case 8: loaderClass = "ug-loader8";break;
 			case 9: loaderClass = "ug-loader9";break;
 		}
-		
+				
 		if(g_options.slider_loader_color == "black")
 			loaderClass += " ug-loader-black";
 		
@@ -6360,18 +9691,6 @@ function UGSlider(){
 	
 	
 	/**
-	 * check if the slide is current
-	 */
-	function isSlideCurrent(objSlide){
-		var numSlide = objSlide.data("slidenum");
-		if(g_temp.numCurrent == numSlide)
-			return(true);
-		
-		return(false);
-	}
-	
-	
-	/**
 	 * 
 	 * get slide direction of current item
 	 */
@@ -6395,6 +9714,10 @@ function UGSlider(){
 	 * get slide preloader
 	 */
 	function getSlidePreloader(objSlide){
+		
+		if(!objSlide)
+			var objSlide = t.getCurrentSlide();
+		
 		var objPreloader = objSlide.children(".ug-slider-preloader");
 		return(objPreloader);
 	}
@@ -6408,36 +9731,14 @@ function UGSlider(){
 	}
 	
 	
-	/**
-	 * tells if the slides are animating
-	 */
-	function isSlidesAnimating(){
-		
-		if(g_objSlide1.is(":animated"))
-			return(true);
-		
-		if(g_objSlide2.is(":animated"))
-			return(true);
-		
-		if(g_objSlide3.is(":animated"))
-			return(true);
-		
-		return(false);
-	}
-	
-	/**
-	 * get slide image
-	 */
-	function getSlideImage(objSlide){
-		var objImage = objSlide.find(".ug-item-wrapper img");
-		return(objImage);
-	}
 	
 	/**
 	 * get slide item
 	 */
 	function getSlideItem(objSlide){
-		
+		if(!objSlide)
+			var objSlide = t.getCurrentSlide();
+			
 		var index = objSlide.data("index");
 		if(index == undefined)
 			return(null);
@@ -6459,22 +9760,35 @@ function UGSlider(){
 	
 	this.________EXTERNAL_GENERAL___________ = function(){};
 	
+	
 	/**
 	 * init function for avia controls
 	 * options: width / height
 	 */
-	this.init = function(objGallery, objOptions){
+	this.init = function(objGallery, objOptions, optionsPrefix){
 		
-		initSlider(objGallery, objOptions);
+		initSlider(objGallery, objOptions, optionsPrefix);
+	}
+
+	/**
+	 * get slide image
+	 */
+	this.getSlideImage = function(objSlide){
 		
+		if(!objSlide)
+			var objSlide = t.getCurrentSlide();
+		
+		var objImage = objSlide.find(".ug-item-wrapper img");
+		return(objImage);
 	}
 	
 	
 	/**
 	 * set slider html
 	 */
-	this.setHtml = function(){
-		setHtmlSlider();
+	this.setHtml = function(objParent){
+		
+		setHtmlSlider(objParent);
 	}
 	
 	
@@ -6514,6 +9828,17 @@ function UGSlider(){
 		return(isAnimated);
 	}
 	
+	/**
+	 * check if the slide is current
+	 */
+	this.isSlideCurrent = function(objSlide){
+		var numSlide = objSlide.data("slidenum");
+		if(g_temp.numCurrent == numSlide)
+			return(true);
+		
+		return(false);
+	}
+	
 	
 	/**
 	 * 
@@ -6527,6 +9852,21 @@ function UGSlider(){
 		return(true);
 	}
 	
+	
+	/**
+	 * get image padding object for scaling the image
+	 */
+	this.getObjImagePadding = function(){
+		
+		var objPadding = {
+				padding_top: g_options.slider_image_padding_top,
+				padding_bottom: g_options.slider_image_padding_bottom,
+				padding_left: g_options.slider_image_padding_left,
+				padding_right: g_options.slider_image_padding_right
+		};
+		
+		return(objPadding);
+	}
 			
 	
 	/**
@@ -6553,7 +9893,7 @@ function UGSlider(){
 		
 		return(slides.objCurrentSlide);
 	}
-
+	
 	
 	/**
 	 * get index of current item
@@ -6569,7 +9909,21 @@ function UGSlider(){
 		return(currentIndex);
 	}
 	
+	
+	/**
+	 * get current slide item
+	 */
+	this.getCurrentItem = function(){
+		var currentIndex = t.getCurrentItemIndex();
+		if(currentIndex == -1)
+			return(null);
 		
+		var objItem = g_gallery.getItem(currentIndex);
+		
+		return(objItem);
+	}
+		
+	
 	/**
 	 * get type of some slide
 	 */
@@ -6581,6 +9935,27 @@ function UGSlider(){
 		var type = objSlide.data("type");
 		return(type);		
 	}
+
+	
+	/**
+	 * is mouse inside slide image
+	 * get mouse position from event
+	 */
+	this.isMouseInsideSlideImage = function(event){
+		
+		var objImage = t.getSlideImage();
+		
+		var point = g_functions.getMousePosition(event);
+		if(point.pageX === undefined)
+			point = g_objTouchSlider.getLastMousePos();
+		
+		var pointImg = g_functions.getMouseElementPoint(point, objImage);
+		var objSize = g_functions.getElementSize(objImage);
+		isMouseInside = g_functions.isPointInsideElement(pointImg, objSize);
+		
+		return(isMouseInside);
+	}
+	
 	
 	/**
 	 * check if current slide type is certain type
@@ -6596,8 +9971,8 @@ function UGSlider(){
 	/**
 	 * change the slider to some item content
 	 */
-	this.setItem = function(objItem){
-				
+	this.setItem = function(objItem, forseTransition){
+		
 		var slides = t.getSlidesReference();
 		
 		//validate if the item is not selected already
@@ -6629,7 +10004,7 @@ function UGSlider(){
 				if(currentIndex > nextIndex)
 					direction = "right";
 						
-			doTransition(direction, objItem);
+			doTransition(direction, objItem, forseTransition);
 		}
 					
 	}
@@ -6642,9 +10017,14 @@ function UGSlider(){
 				
 		var slides = t.getSlidesReference();
 		var currentIndex = slides.objCurrentSlide.data("index");
-		
+				
 		var itemPrev = g_gallery.getPrevItem(currentIndex);
 		var itemNext = g_gallery.getNextItem(currentIndex);
+		
+		//trace(itemPrev);
+		//trace(itemNext);
+		
+		//trace("place " + currentIndex, "next: "+);
 		
 		setItemToSlide(slides.objNextSlide, itemNext);
 		setItemToSlide(slides.objPrevSlide, itemPrev);
@@ -6688,6 +10068,61 @@ function UGSlider(){
 	
 	
 	this.________EXTERNAL_API___________ = function(){};
+	
+	
+	/**
+	 * stop some slide action if active
+	 */
+	this.stopSlideAction = function(objSlide){
+		
+		if(!objSlide)
+			objSlide = t.getCurrentSlide();
+		
+		var slideType = t.getSlideType(objSlide);
+		
+		switch(slideType){
+			default:
+				g_objVideoPlayer.hide();
+			break;
+		}
+	}
+	
+	
+	/**
+	 * start some slide action if exists
+	 */
+	this.startSlideAction = function(objSlide){
+		
+		if(!objSlide)
+			objSlide = t.getCurrentSlide();
+		
+		var objItem = getSlideItem(objSlide);
+		
+		if(objItem.type == "image")
+			return(true)
+				
+		g_objVideoPlayer.show();
+		
+		switch(objItem.type){
+			case "youtube":
+				g_objVideoPlayer.playYoutube(objItem.videoid);
+			break;
+			case "vimeo":
+				g_objVideoPlayer.playVimeo(objItem.videoid);
+			break;
+			case "html5video":
+				g_objVideoPlayer.playHtml5Video(objItem.videoogv, objItem.videowebm, objItem.videomp4, objItem.urlImage);
+			break;
+			case "soundcloud":
+				g_objVideoPlayer.playSoundCloud(objItem.trackid);
+			break;			
+			case "wistia":
+				g_objVideoPlayer.playWistia(objItem.videoid);
+			break;			
+		}
+		
+	}
+	
 	
 	/**
 	 * get the scale mode according the state (normal, fullscreen).
@@ -6739,6 +10174,7 @@ function UGSlider(){
 	}
 	
 	
+	
 	/**
 	 * get slider options
 	 */
@@ -6757,6 +10193,14 @@ function UGSlider(){
 	}
 	
 	/**
+	 * get video object
+	 */
+	this.getVideoObject = function(){
+		return(g_objVideoPlayer);
+	}
+	
+	
+	/**
 	 * return true if current slider image fit the slider
 	 * @returns
 	 */
@@ -6767,7 +10211,7 @@ function UGSlider(){
 		
 		validateSlideType("image", objSlide);
 		
-		var objImage = getSlideImage(objSlide);
+		var objImage = t.getSlideImage(objSlide);
 		
 		//if image don't yet added to dom, return false
 		if(objImage.length == 0)
@@ -6780,6 +10224,30 @@ function UGSlider(){
 	
 	
 	/**
+	 * check if current image in place
+	 */
+	this.isCurrentImageInPlace = function(){
+		var objImage = t.getSlideImage();
+		if(objImage.length == 0)
+			return(false);
+
+		var scaleMode = t.getScaleMode();
+		var objPadding = t.getObjImagePadding();
+		var objItem = getSlideItem();
+		
+		var objParent = objImage.parent();
+		
+		var objFitSize = g_functions.getImageInsideParentData(objParent, objItem.imageWidth, objItem.imageHeight, scaleMode, objPadding);
+		var objSize = g_functions.getElementSize(objImage);
+		
+		if(objFitSize.imageWidth == objSize.width)
+			return(true);
+		
+		return(false);
+	}
+	
+	
+	/**
 	 * if slide is bussy in some action
 	 */
 	this.isSlideActionActive = function(){
@@ -6787,11 +10255,40 @@ function UGSlider(){
 		return g_objVideoPlayer.isVisible();
 	}
 	
+	/**
+	 * return if swipe action active
+	 */
+	this.isSwiping = function(){
+		if(!g_objTouchSlider)
+			return(false);
+		
+		var isActive = g_objTouchSlider.isTouchActive();
+		
+		return(isActive);
+	}
+	
+	
+	/**
+	 * if slider preloading image (if preloader visible)
+	 */
+	this.isPreloading = function(){
+		
+		var objPreloader = getSlidePreloader();
+		if(objPreloader.is(":visible"))
+			return(true);
+		
+		return(false);
+	}
 	
 	/**
 	 * set the options
 	 */
 	this.setOptions = function(objOptions){
+
+		//change options by prefix
+		if(g_optionsPrefix)
+			objOptions = g_functions.convertCustomPrefixOptions(objOptions, g_optionsPrefix, "slider");
+		
 		g_options = jQuery.extend(g_options, objOptions);
 		
 	}
@@ -6829,7 +10326,7 @@ function UGSlider(){
 		 
 		 var itemWidth = width - g_options.slider_item_padding_left - g_options.slider_item_padding_right;
 		 var itemHeight = height - g_options.slider_item_padding_top - g_options.slider_item_padding_bottom;
-		 		 
+		 	
 		 //set item wrapper
 		 var objCssItemWrapper = {};
 		 objCssItemWrapper["width"] = itemWidth + "px";
@@ -6844,8 +10341,12 @@ function UGSlider(){
 			 g_objTextPanel.setSizeByParent();
 		 }
 		 
+		 var videoWidth = width - g_options.slider_video_padding_left - g_options.slider_video_padding_right;
+		 var videoHeight = height - g_options.slider_video_padding_top - g_options.slider_video_padding_bottom;
+		 
 		 //set video player size
-		 g_objVideoPlayer.setSize(width, height);
+		 g_objVideoPlayer.setSize(videoWidth, videoHeight);
+		 g_objVideoPlayer.setPosition(g_options.slider_video_padding_left, g_options.slider_video_padding_top);
 		 
 		 positionElements();
 		 
@@ -6855,6 +10356,21 @@ function UGSlider(){
 		 resizeSlideItem(g_objSlide3);
 		 
 		 positionSlides();
+	}
+	
+	/**
+	 * refresh slide items after options change
+	 */
+	this.refreshSlideItems = function(){
+		 
+		if(t.isAnimating() == true)
+			return(true);
+		
+		 resizeSlideItem(g_objSlide1);
+		 resizeSlideItem(g_objSlide2);
+		 resizeSlideItem(g_objSlide3);
+		 positionSlides();
+		 
 	}
 	
 	
@@ -6920,27 +10436,40 @@ function UGTextPanel(){
 	var t = this;
 	var g_objPanel, g_objParent, g_objTitle, g_objDesc;
 	var g_objBG, g_objTextWrapper, g_gallery;
-	var g_functions = new UGFunctions();
+	var g_functions = new UGFunctions(), g_optionsPrefix = "";
 	
 	var g_options = {
-			slider_textpanel_align:"bottom",					//(top , bottom), textpanel align according the parent
-			slider_textpanel_margin:0,							//margin from the textpanel position according the slider_textpanel_align
-			slider_textpanel_text_valign:"middle",				//middle, top, bottom - text vertical align
-			slider_textpanel_padding_top:10,					//textpanel padding top 
-			slider_textpanel_padding_bottom:10,					//textpanel padding bottom
-			slider_textpanel_height: null,						//textpanel height. if null it will be set dynamically
-			slider_textpanel_padding_title_description: 5,		//the space between the title and the description
-			slider_textpanel_padding_right: 11,					//cut some space for text from right
-			slider_textpanel_padding_left: 11,					//cut some space for text from left
-			slider_textpanel_fade_duration: 200,				//the fade duration of textpanel appear
-			slider_textpanel_enable_title: true,				//enable the title text
-			slider_textpanel_enable_description: true,			//enable the description text
-			slider_textpanel_enable_bg: true,					//enable the textpanel background
-			slider_textpanel_bg_color:"#000000",				//textpanel background color
-			slider_textpanel_bg_opacity: 0.4,					//textpanel background opacity
-			slider_textpanel_bg_css:{},							//textpanel background css
-			slider_textpanel_css_title:{},						//textpanel additional css of the title
-			slider_textpanel_css_description:{}					//textpanel additional css of the description
+			textpanel_align:"bottom",					//(top , bottom), textpanel align according the parent
+			textpanel_margin:0,							//margin from the textpanel position according the textpanel_align
+			textpanel_text_valign:"middle",				//middle, top, bottom - text vertical align
+			textpanel_padding_top:10,					//textpanel padding top 
+			textpanel_padding_bottom:10,				//textpanel padding bottom
+			textpanel_height: null,						//textpanel height. if null it will be set dynamically
+			textpanel_padding_title_description: 5,		//the space between the title and the description
+			textpanel_padding_right: 11,				//cut some space for text from right
+			textpanel_padding_left: 11,					//cut some space for text from left
+			textpanel_fade_duration: 200,				//the fade duration of textpanel appear
+			textpanel_enable_title: true,				//enable the title text
+			textpanel_enable_description: true,			//enable the description text
+			textpanel_enable_bg: true,					//enable the textpanel background
+			textpanel_bg_color:"#000000",				//textpanel background color
+			textpanel_bg_opacity: 0.4,					//textpanel background opacity
+			
+			textpanel_title_color:null,					//textpanel title color. if null - take from css
+			textpanel_title_font_family:null,			//textpanel title font family. if null - take from css
+			textpanel_title_text_align:null,			//textpanel title text align. if null - take from css
+			textpanel_title_font_size:null,				//textpanel title font size. if null - take from css
+			textpanel_title_bold:null,					//textpanel title bold. if null - take from css
+			textpanel_css_title:{},						//textpanel additional css of the title
+
+			textpanel_desc_color:null,					//textpanel description font family. if null - take from css
+			textpanel_desc_font_family:null,			//textpanel description font family. if null - take from css
+			textpanel_desc_text_align:null,				//textpanel description text align. if null - take from css
+			textpanel_desc_font_size:null,				//textpanel description font size. if null - take from css
+			textpanel_desc_bold:null,					//textpanel description bold. if null - take from css
+			textpanel_css_description:{},				//textpanel additional css of the description
+			
+			textpanel_bg_css:{},						//textpanel background css
 	};
 	
 	var g_temp = {
@@ -6952,9 +10481,9 @@ function UGTextPanel(){
 	 * position elements from top
 	 */
 	function positionElementsTop(animateHeight, startY){
-		
+	
 		if(!startY)
-			var startY = g_options.slider_textpanel_padding_top;
+			var startY = g_options.textpanel_padding_top;
 		
 		//place title
 		var maxy = startY;
@@ -6965,8 +10494,10 @@ function UGTextPanel(){
 			g_functions.placeElement(g_objTitle, 0, titleY);
 			
 			var objTitleSize = g_functions.getElementSize(g_objTitle);		
+						
 			var maxy = objTitleSize.bottom;			
 		}
+		
 			
 		//place description
 		var textDesc = "";
@@ -6976,19 +10507,21 @@ function UGTextPanel(){
 		if(textDesc != ""){
 			
 			var descY = maxy;
-			
+						
 			if(g_objTitle)
-				descY += g_options.slider_textpanel_padding_title_description;
+				descY += g_options.textpanel_padding_title_description;
 			
 			g_functions.placeElement(g_objDesc, 0, descY);
 			var objDescSize = g_functions.getElementSize(g_objDesc);		
 			maxy = objDescSize.bottom;
 		}
 		
+		
 		//change panel height
-		if(!g_options.slider_textpanel_height){
-					
-			var panelHeight = maxy + g_options.slider_textpanel_padding_bottom;		
+		if(!g_options.textpanel_height){
+											
+			var panelHeight = maxy + g_options.textpanel_padding_bottom;		
+			
 			setHeight(panelHeight, animateHeight);
 		}
 		
@@ -7010,13 +10543,14 @@ function UGTextPanel(){
 			
 			if(textDesc != ""){
 				if(g_objTitle)
-					totalHeight += g_options.slider_textpanel_padding_title_description;
+					totalHeight += g_options.textpanel_padding_title_description;
 				
 				totalHeight += g_objDesc.outerHeight();
 			}
 		
 		}
-			
+		
+		
 		return(totalHeight);
 	}
 	
@@ -7039,7 +10573,7 @@ function UGTextPanel(){
 	function positionElementBottom(){
 		
 		var totalTextHeight = getTotalTextHeight();
-		var startY = g_objTextWrapper.height() - totalTextHeight - g_options.slider_textpanel_padding_bottom;
+		var startY = g_objTextWrapper.height() - totalTextHeight - g_options.textpanel_padding_bottom;
 		
 		positionElementsTop(false, startY);
 	}
@@ -7051,12 +10585,12 @@ function UGTextPanel(){
 	this.positionElements = function(animateHeight){
 		
 		//if height not set, position only top
-		if(!g_options.slider_textpanel_height || g_options.slider_textpanel_text_valign == "top"){
+		if(!g_options.textpanel_height || g_options.textpanel_text_valign == "top"){
 			positionElementsTop(animateHeight);
 			return(false);
 		}
-		
-		switch(g_options.slider_textpanel_text_valign){
+				
+		switch(g_options.textpanel_text_valign){
 			default:
 			case "top":
 				positionElementsTop(false);		//no animation in this case
@@ -7092,34 +10626,46 @@ function UGTextPanel(){
 			}
 			
 			var objCss = {height: height+"px"};
-			g_objPanel.animate(objCss, g_options.slider_textpanel_fade_duration);
+			g_objPanel.add(g_objTextWrapper).animate(objCss, g_options.textpanel_fade_duration);
 			
 		}else{
 			
 			if(g_objBG)
-				g_objBG.height(height);				
+				g_objBG.height(height);		
 			
-			g_objPanel.height(height);
+			g_objPanel.add(g_objTextWrapper).height(height);
 		}
 		
 	}
 	
 	
+	
+	
 	/**
 	 * init the panel
 	 */
-	this.init = function(objGallery, customOptions){
+	this.init = function(objGallery, customOptions, optionsPrefix){
+				
 		g_gallery = objGallery;
+		
+		//change options by prefix
+		if(optionsPrefix){
+			g_optionsPrefix = optionsPrefix;
+			customOptions = g_functions.convertCustomPrefixOptions(customOptions,g_optionsPrefix,"textpanel");			
+			
+		}
 		
 		if(customOptions)
 			g_options = jQuery.extend(g_options, customOptions);
 		
+		
 		//validation:
-		if(g_options.slider_textpanel_enable_title == false && g_options.slider_textpanel_enable_description == false)
+		if(g_options.textpanel_enable_title == false && g_options.textpanel_enable_description == false)
 			throw new Error("Textpanel Error: The title or description must be enabled");
 		
-		if(g_options.slider_textpanel_height && g_options.slider_textpanel_height < 0)
-			g_options.slider_textpanel_height = null;
+		if(g_options.textpanel_height && g_options.textpanel_height < 0)
+			g_options.textpanel_height = null;
+
 	}
 	
 	
@@ -7128,18 +10674,18 @@ function UGTextPanel(){
 	 */
 	this.appendHTML = function(objParent){
 		g_objParent = objParent;
-		
+			
 		var html = "<div class='ug-textpanel'>";
 		
-		if(g_options.slider_textpanel_enable_bg == true)
+		if(g_options.textpanel_enable_bg == true)
 			html += "<div class='ug-textpanel-bg'></div>";
 		
 		html += "<div class='ug-textpanel-textwrapper'>";
 		
-		if(g_options.slider_textpanel_enable_title == true)
+		if(g_options.textpanel_enable_title == true)
 			html += "<div class='ug-textpanel-title'></div>";
 		
-		if(g_options.slider_textpanel_enable_description == true)
+		if(g_options.textpanel_enable_description == true)
 			html += "<div class='ug-textpanel-description'></div>";
 		
 		html += "</div></div>";
@@ -7147,31 +10693,98 @@ function UGTextPanel(){
 		objParent.append(html);
 		
 		g_objPanel = objParent.children(".ug-textpanel");
+		g_objTextWrapper = g_objPanel.children(".ug-textpanel-textwrapper");
 		
-		if(g_options.slider_textpanel_enable_bg == true){
+		setCss();
+		
+	}
+	
+	
+	/**
+	 * set panel css according the options
+	 */
+	function setCss(){
+				
+		//set background css		
+		if(g_options.textpanel_enable_bg == true){
 			g_objBG = g_objPanel.children(".ug-textpanel-bg");
-			g_objBG.fadeTo(0,g_options.slider_textpanel_bg_opacity);
+			g_objBG.fadeTo(0,g_options.textpanel_bg_opacity);
 			
-			var objCssBG = {"background-color":g_options.slider_textpanel_bg_color};
-			objCssBG = jQuery.extend(objCssBG, g_options.slider_textpanel_bg_css);
+			var objCssBG = {"background-color":g_options.textpanel_bg_color};
+			objCssBG = jQuery.extend(objCssBG, g_options.textpanel_bg_css);
 			
 			g_objBG.css(objCssBG);
 		}
 		
-		g_objTextWrapper = g_objPanel.children(".ug-textpanel-textwrapper");
 		
-		if(g_options.slider_textpanel_enable_title == true){
+		//set title css from options
+		if(g_options.textpanel_enable_title == true){
 			g_objTitle = g_objTextWrapper.children(".ug-textpanel-title");
-			g_objTitle.css(g_options.slider_textpanel_css_title);
+			var objCssTitle = {};
+			
+			if(g_options.textpanel_title_color !== null)
+				objCssTitle["color"] = g_options.textpanel_title_color;
+			
+			if(g_options.textpanel_title_font_family !== null)
+				objCssTitle["font-family"] = g_options.textpanel_title_font_family;
+			
+			if(g_options.textpanel_title_text_align !== null)
+				objCssTitle["text-align"] = g_options.textpanel_title_text_align;
+			
+			if(g_options.textpanel_title_font_size !== null)
+				objCssTitle["font-size"] = g_options.textpanel_title_font_size+"px";
+			
+			if(g_options.textpanel_title_bold !== null){
+				
+				if(g_options.textpanel_title_bold === true)
+					objCssTitle["font-weight"] = "bold";
+				else
+					objCssTitle["font-weight"] = "normal";
+			
+			}
+			
+			//set additional css
+			if(g_options.textpanel_css_title)
+				objCssTitle = jQuery.extend(objCssTitle, g_options.textpanel_css_title);
+			
+			g_objTitle.css(objCssTitle);
 		}
 		
-		if(g_options.slider_textpanel_enable_description == true){
+		//set description css
+		if(g_options.textpanel_enable_description == true){
 			g_objDesc = g_objTextWrapper.children(".ug-textpanel-description");
-			g_objDesc.css(g_options.slider_textpanel_css_description);
+			
+			var objCssDesc = {};
+			
+			if(g_options.textpanel_desc_color !== null)
+				objCssDesc["color"] = g_options.textpanel_desc_color;
+			
+			if(g_options.textpanel_desc_font_family !== null)
+				objCssDesc["font-family"] = g_options.textpanel_desc_font_family;
+			
+			if(g_options.textpanel_desc_text_align !== null)
+				objCssDesc["text-align"] = g_options.textpanel_desc_text_align;
+			
+			if(g_options.textpanel_desc_font_size !== null)
+				objCssDesc["font-size"] = g_options.textpanel_desc_font_size+"px";
+			
+			if(g_options.textpanel_desc_bold !== null){
+				
+				if(g_options.textpanel_desc_bold === true)
+					objCssDesc["font-weight"] = "bold";
+				else
+					objCssDesc["font-weight"] = "normal";
+			
+			}
+			
+			//set additional css
+			if(g_options.textpanel_css_title)
+				objCssDesc = jQuery.extend(objCssDesc, g_options.textpanel_css_description);
+				
+			g_objDesc.css(objCssDesc);
 		}
 		
 	}
-	
 	
 	/**
 	 * on item change, set the text
@@ -7193,6 +10806,13 @@ function UGTextPanel(){
 	
 	
 	/**
+	 * destroy the events
+	 */
+	this.destroy = function(){
+		jQuery(g_gallery).off(g_gallery.events.ITEM_CHANGE);
+	}
+	
+	/**
 	 * run the text panel
 	 */
 	this.run = function(){
@@ -7202,21 +10822,19 @@ function UGTextPanel(){
 		initEvents();
 	}
 	
-	
 	/**
-	 * set size by parent. the height is set to default meanwhile
+	 * set panel size
 	 */
-	this.setSizeByParent = function(){
-		
-		var objSize = g_functions.getElementSize(g_objParent);
-		var panelWidth = objSize.width;
+	this.setPanelSize = function(panelWidth){
+	
 		var panelHeight = 80;		//some default number
 		
-		if(g_options.slider_textpanel_height)	
-			panelHeight = g_options.slider_textpanel_height;
+		if(g_options.textpanel_height)	
+			panelHeight = g_options.textpanel_height;
 		
 		g_objPanel.width(panelWidth);
 		g_objPanel.height(panelHeight);
+		
 		
 		//set background size
 		if(g_objBG){
@@ -7225,8 +10843,8 @@ function UGTextPanel(){
 		}
 		
 		//set textwrapper size and position
-		var textWrapperWidth = panelWidth - g_options.slider_textpanel_padding_left - g_options.slider_textpanel_padding_right;
-		var textWrapperLeft = g_options.slider_textpanel_padding_left;
+		var textWrapperWidth = panelWidth - g_options.textpanel_padding_left - g_options.textpanel_padding_right;
+		var textWrapperLeft = g_options.textpanel_padding_left;
 		
 		g_functions.setElementSizeAndPosition(g_objTextWrapper, textWrapperLeft, 0, textWrapperWidth, panelHeight);
 		
@@ -7240,6 +10858,28 @@ function UGTextPanel(){
 		
 		if(g_temp.isFirstTime == false)
 			t.positionElements(false);
+	}
+	
+	
+	/**
+	 * set size by parent. the height is set to default meanwhile
+	 */
+	this.setSizeByParent = function(){
+				
+		var objSize = g_functions.getElementSize(g_objParent);
+		t.setPanelSize(objSize.width);
+	}
+	
+	/**
+	 * set plain sext without other manipulations
+	 */
+	this.setTextPlain = function(title, description){
+
+		if(g_objTitle)
+			g_objTitle.html(title);
+		
+		if(g_objDesc)
+			g_objDesc.html(description);
 		
 	}
 	
@@ -7251,11 +10891,7 @@ function UGTextPanel(){
 		
 		if(g_temp.isFirstTime == true){
 			
-			if(g_objTitle)
-				g_objTitle.html(title);
-			
-			if(g_objDesc)
-				g_objDesc.html(description);
+			t.setTextPlain(title, description);
 			
 			g_temp.isFirstTime = false;
 			
@@ -7263,17 +10899,13 @@ function UGTextPanel(){
 		
 		}else{		//width animation
 			
-			g_objTextWrapper.stop().fadeTo(g_options.slider_textpanel_fade_duration,0,function(){
+			g_objTextWrapper.stop().fadeTo(g_options.textpanel_fade_duration,0,function(){
 				
-				if(g_objTitle)
-					g_objTitle.html(title);
-				
-				if(g_objDesc)
-					g_objDesc.html(description);
+				t.setTextPlain(title, description);
 				
 				t.positionElements(true);
 				
-				jQuery(this).fadeTo(g_options.slider_textpanel_fade_duration,1);
+				jQuery(this).fadeTo(g_options.textpanel_fade_duration,1);
 			});
 			
 		}
@@ -7286,19 +10918,32 @@ function UGTextPanel(){
 	/**
 	 * position the panel
 	 */
-	this.positionPanel = function(){
+	this.positionPanel = function(customTop, customLeft){
 		
 		var objCss = {};
 		
-		switch(g_options.slider_textpanel_align){
-			case "top":
-				objCss.top = g_options.slider_textpanel_margin + "px";
-			break;
-			case "bottom":
-				objCss.bottom = g_options.slider_textpanel_margin + "px";
-			break;
+		if(customTop !== undefined && customTop !== null){
+			objCss.top = customTop;
+		}else{
+			
+			switch(g_options.textpanel_align){
+				case "top":
+					objCss.top = g_options.textpanel_margin + "px";
+				break;
+				case "bottom":
+					objCss.top = "auto";
+					objCss.bottom = g_options.textpanel_margin + "px";
+				break;
+				case "middle":
+					objCss.top = g_functions.getElementRelativePos(g_objPanel, "middle", g_options.textpanel_margin);
+				break;
+			}
+			
 		}
 		
+		if(customLeft !== undefined && customLeft !== null)
+			objCss.left = customLeft;
+			
 		g_objPanel.css(objCss);
 	}
 	
@@ -7308,9 +10953,13 @@ function UGTextPanel(){
 	 */
 	this.setOptions = function(objOptions){
 		
-		g_options = jQuery.extend(g_options, objOptions);
+		if(g_optionsPrefix)
+			objOptions = g_functions.convertCustomPrefixOptions(objOptions, g_optionsPrefix, "textpanel");
 		
+		g_options = jQuery.extend(g_options, objOptions);
+				
 	}
+	
 	
 	/**
 	 * get html element
@@ -7318,6 +10967,37 @@ function UGTextPanel(){
 	this.getElement = function(){
 		
 		return(g_objPanel);
+	}
+	
+	/**
+	 * get element size
+	 */
+	this.getSize = function(){
+		
+		var objSize = g_functions.getElementSize(g_objPanel);
+		return(objSize);
+	}
+	
+	
+	/**
+	 * refresh panel size, position and contents
+	 */
+	this.refresh = function(toShow, noPosition, panelWidth){
+		
+		setCss();
+		
+		if(!panelWidth)
+			t.setSizeByParent();
+		else
+			t.setPanelSize(panelWidth);
+		
+		t.positionElements(false);
+		
+		if(noPosition !== true)
+			t.positionPanel();				
+		
+		if(toShow === true)
+			t.show();		
 	}
 	
 	
@@ -7536,8 +11216,9 @@ function UGBullets(){
 	};
 	
 	var g_options = {
-		skin: "",					//slider_zoompanel_skin: ""		//skin of the zoom panel, if empty inherit from gallery skin
-		space_between:-1			//set the space between bullets. If -1 then will be set default space from the skins
+		bullets_skin: "",					//bullets_skin: ""		//skin of the bullets, if empty inherit from gallery skin
+		bullets_addclass: "",					//bullets object class addition
+		bullets_space_between:-1			//set the space between bullets. If -1 then will be set default space from the skins
 	}
 	
 	
@@ -7551,13 +11232,42 @@ function UGBullets(){
 	/**
 	 * init the bullets
 	 */
-	this.init = function(gallery, customOptions){
+	this.init = function(gallery, customOptions, numBullets){
 		g_gallery = gallery;
-		g_numBullets = g_gallery.getNumItems();
+		
+		if(numBullets)
+			g_numBullets = numBullets;
+		else			
+			g_numBullets = g_gallery.getNumItems();
+		
 		g_temp.isInited = true;
 		g_options = jQuery.extend(g_options, customOptions);
+		
+		if(g_options.bullets_skin == "")
+			g_options.bullets_skin = g_options.gallery_skin;
+		
 	}
 	
+	/**
+	 * add bullets to the html
+	 */
+	function setHtmlBullets(){
+		var html = "";
+		
+		var addHtml = "";
+		if(g_options.bullets_space_between != -1)
+			addHtml = " style='margin-left:" + g_options.bullets_space_between + "px'";
+		
+		for(var i=0; i< g_numBullets; i++){
+			if(i == 0)
+				html += "<div class='ug-bullet'></div>";
+			else
+				html += "<div class='ug-bullet'"+addHtml+"></div>";
+		}
+		
+		g_objBullets.html(html);
+	}
+
 	
 	/**
 	 * append the bullets html to some parent
@@ -7566,25 +11276,34 @@ function UGBullets(){
 		g_objParent = objParent;
 		
 		validateInited();
-		
-		var html = "<div class='ug-slider-control ug-bullets ug-skin-"+g_options.skin+"'>";
-		
-		var addHtml = "";
-		if(g_options.space_between != -1)
-			addHtml = " style='margin-left:" + g_options.space_between + "px'";
-						
-		for(var i=0; i< g_numBullets; i++){
-			html += "<div class='ug-bullet'"+addHtml+"></div>";
-		}
+		var addClass = "";
+		if(g_options.bullets_addclass != "")
+			addClass = " " + g_options.bullets_addclass;
 			
+		var html = "<div class='ug-slider-control ug-bullets ug-skin-"+g_options.bullets_skin + addClass+"'>";
+		
 		html += "</div>";
 		
 		g_objBullets = jQuery(html);
 		
 		objParent.append(g_objBullets);
 		
+		setHtmlBullets();
+		
 		initEvents();
 	}	
+	
+	
+	/**
+	 * update number of bullets
+	 */
+	this.updateNumBullets = function(numBullets){
+		
+		g_numBullets = numBullets;
+		setHtmlBullets();
+		initEvents();
+	}
+	
 	
 	/**
 	 * 
@@ -7597,7 +11316,7 @@ function UGBullets(){
 			return(true);
 		
 		var index = objBullet.index();
-					
+			
 		jQuery(t).trigger(t.events.BULLET_CLICK, index);
 	}
 	
@@ -8488,7 +12207,24 @@ function UGStripPanel() {
 
 		g_panelBase.initEvents();
 	}
-
+	
+	/**
+	 * destroy the strip panel events
+	 */
+	this.destroy = function(){
+		
+		if(g_objButtonNext){
+			g_functions.destroyButton(g_objButtonNext);
+			g_functions.destroyButton(g_objButtonPrev);
+			jQuery(g_objStrip).off(g_objStrip.events.STRIP_MOVE);
+			jQuery(g_gallery).off(g_gallery.events.ITEM_CHANGE);
+			jQuery(g_gallery).off(g_gallery.events.SIZE_CHANGE);
+		}
+		
+		g_panelBase.destroy();
+		g_objStrip.destroy();
+	}
+	
 	
 	/**
 	 * get panel orientation
@@ -8641,12 +12377,18 @@ function UGStripPanel() {
 
 function UGThumbsGeneral(){
 	
-	var t = this;
+	var t = this, g_objThis = jQuery(t);
 	
 	var g_gallery = new UniteGalleryMain(), g_objGallery, g_objects, g_objWrapper; 
 	var g_arrItems, g_objStrip, g_objParent;
 	var g_functions = new UGFunctions();
 
+	this.events = {		
+		SETOVERSTYLE: "thumbmouseover",
+		SETNORMALSTYLE: "thumbmouseout",
+		PLACEIMAGE: "thumbplaceimage",
+		IMAGELOADERROR: "thumbimageloaderror",
+	};
 	
 	var g_options = {
 			thumb_width:88,								//thumb width
@@ -8670,23 +12412,32 @@ function UGThumbsGeneral(){
 			thumb_image_overlay_effect: false,			//true,false - images overlay effect on normal state only
 			thumb_image_overlay_type: "bw",				//bw , blur, sepia - the type of image effect overlay, black and white, sepia and blur.
 			
+			thumb_text_overlay: false,					//turn on text overlay
+			
 			thumb_transition_duration: 200,				//thumb effect transition duration
 			thumb_transition_easing: "easeOutQuad",		//thumb effect transition easing
 			
-			thumb_show_loader:true,						//show thumb loader while loading the thumb
-			thumb_loader_type:"dark"					//dark, light - thumb loader type
+			thumb_show_loader: true,					//show thumb loader while loading the thumb
+			thumb_loader_type: "dark",					//dark, light - thumb loader type
+			
+			thumb_wrapper_as_link: false,				//set thumb as link
+			thumb_link_newpage: false					//set the link to open newpage
 		}
 	
 		var g_temp = {
 			touchEnabled: false,
 			num_thumbs_checking:0,
 			customThumbs:false,
-			funcSetCustomThumbHtml:null
+			funcSetCustomThumbHtml:null,
+			isEffectBorder: false,
+			isEffectOverlay: false,
+			isEffectImage: false
 		};
 		
 		var g_serviceParams = {			//service variables	
 			timeout_thumb_check:100,
-			thumb_max_check_times:600	//60 seconds
+			thumb_max_check_times:600,	//60 seconds
+			eventSizeChange: "thumb_size_change"
 		};
 		
 		
@@ -8703,6 +12454,11 @@ function UGThumbsGeneral(){
 			
 			g_options = jQuery.extend(g_options, customOptions);
 			
+			//set effects vars:
+			g_temp.isEffectBorder = g_options.thumb_border_effect;
+			g_temp.isEffectOverlay = g_options.thumb_color_overlay_effect;
+			g_temp.isEffectImage = g_options.thumb_image_overlay_effect;
+						
 		}
 		
 		
@@ -8710,28 +12466,44 @@ function UGThumbsGeneral(){
 		 * append the thumbs html to some parent
 		 */
 		this.setHtmlThumbs = function(objParent){
-						
+					
 			g_objParent = objParent;
 			
 			var numItems = g_gallery.getNumItems();
 
 			//set image effect class
-			if(g_options.thumb_image_overlay_effect == true){
+			if(g_temp.isEffectImage == true){
 				var imageEffectClass = getImageEffectsClass();
 			}
-					
+			
 			 //append thumbs to strip
 			 for(var i=0;i<numItems;i++){
-				 var objThumbWrapper = jQuery("<div class='ug-thumb-wrapper'></div>");
+				 
 				 var objItem = g_arrItems[i];
 				 
-				 if(g_temp.customThumbs == true){
+				 var classAddition = "";
+				 if(g_temp.customThumbs == false)
+					 classAddition = " ug-thumb-generated";
+				 
+				 var htmlThumb = "<div class='ug-thumb-wrapper"+classAddition+"'></div>";
+				 if(g_options.thumb_wrapper_as_link == true){
+					 var urlLink = objItem.link;
+					 if(objItem.link == "")
+						 urlLink = "javascript:void(0)";
+					
+					 var linkTarget = "";
+						if(g_options.thumb_link_newpage == true && objItem.link)
+							linkTarget = " target='_blank'";
 					 
-					 g_temp.funcSetCustomThumbHtml(objThumbWrapper, objItem);
-					 
-				 }else{
-					 var objImage =  objItem.objThumbImage;
-	 				 
+					 var htmlThumb = "<a href='" + urlLink + "'"+linkTarget+" class='ug-thumb-wrapper"+classAddition+"'></a>";
+				 }
+				 
+				 var objThumbWrapper = jQuery(htmlThumb);
+				 
+				 var objImage = objItem.objThumbImage;
+				 
+				 if(g_temp.customThumbs == false){
+ 				 
 					 if(g_options.thumb_show_loader == true && objImage){
 						 
 						 var loaderClass = "ug-thumb-loader-dark";
@@ -8741,34 +12513,43 @@ function UGThumbsGeneral(){
 						 objThumbWrapper.append("<div class='ug-thumb-loader " + loaderClass + "'></div>");
 						 objThumbWrapper.append("<div class='ug-thumb-error' style='display:none'></div>");
 					 }
-					 
-					 objThumbWrapper.append("<div class='ug-thumb-border-overlay'></div>");
-					 objThumbWrapper.append("<div class='ug-thumb-overlay'></div>");
-					 
+					 					 
 					 if(objImage){
 						 objImage.addClass("ug-thumb-image");
 						 
 						 //if image overlay effects active, clone the image, and set the effects class on it
 						 if(g_options.thumb_image_overlay_effect == true){
-							var objImageBW = objImage.clone().appendTo(objThumbWrapper);
+							var objImageOverlay = objImage.clone().appendTo(objThumbWrapper);
 							
-							objImageBW.addClass(imageEffectClass).removeClass("ug-thumb-image");
-							objImageBW.fadeTo(0,0);
+							objImageOverlay.addClass("ug-thumb-image-overlay " + imageEffectClass).removeClass("ug-thumb-image");
+							objImageOverlay.fadeTo(0,0);
+							objItem.objImageOverlay = objImageOverlay;
 						 }
 								 
 						 objThumbWrapper.append(objImage);
-					 }else{
-						 
-						 objThumbWrapper.append("<div class='ug-thumb-text1'>" + objItem.title + "</div>");
 					 }
 					 
 				 }//end if not custom thumb
 				 
+				 if(g_temp.isEffectBorder)
+					 objThumbWrapper.append("<div class='ug-thumb-border-overlay'></div>");
 				 
+				 if(g_temp.isEffectOverlay)
+					 objThumbWrapper.append("<div class='ug-thumb-overlay'></div>");
+				 				 
 				 g_objParent.append(objThumbWrapper);
+				 
+
+				 //only custom thumbs function
+				 if(g_temp.customThumbs){
+					 
+					 g_temp.funcSetCustomThumbHtml(objThumbWrapper, objItem);
+					 
+				 }
 				 
 				 //add thumb wrapper object to items array
 				 g_arrItems[i].objThumbWrapper = objThumbWrapper;
+				 
 			 }
 		}
 		
@@ -8792,16 +12573,30 @@ function UGThumbsGeneral(){
 			 //set normal style to all the thumbs
 			 g_objParent.children(".ug-thumb-wrapper").each(function(){
 				 var objThumb = jQuery(this);
-				 setThumbNormalStyle(objThumb, true);
+				 t.setThumbNormalStyle(objThumb, true);
 			 });
+			
 			 
-			 
-			 //set thumbs loader and error params
+			//set thumbs loader and error params
 			if(g_temp.customThumbs == false){
 				 var objThumbsLoaderCss = {};
 				 objThumbsLoaderCss["width"] = g_options.thumb_width+"px";
 				 objThumbsLoaderCss["height"] = g_options.thumb_height+"px";			 
 				 g_objParent.find(".ug-thumb-loader, .ug-thumb-error, .ug-thumb-border-overlay, .ug-thumb-overlay").css(objThumbsLoaderCss);
+			}
+			
+			//set color. if empty set from css
+			if(g_temp.isEffectOverlay){
+				
+				if(g_options.thumb_overlay_color){
+										
+					var objCss = {};
+					var colorRGB = g_functions.convertHexToRGB(g_options.thumb_overlay_color, g_options.thumb_overlay_opacity);
+					
+					objCss["background-color"] = colorRGB;										
+					g_objParent.find(".ug-thumb-wrapper .ug-thumb-overlay").css(objCss);
+				}
+				
 			}
 			
 		}
@@ -8812,7 +12607,7 @@ function UGThumbsGeneral(){
 		 */
 		function getImageEffectsClass(){
 			
-			var imageEffectClass = "ug-thumb-image-overlay";
+			var imageEffectClass = "";
 			var arrEffects = g_options.thumb_image_overlay_type.split(",");
 			
 			for(var index in arrEffects){
@@ -8824,7 +12619,7 @@ function UGThumbsGeneral(){
 					break;
 					case "blur":
 						imageEffectClass += " ug-blur-effect";
-					break;
+					break; 
 					case "sepia":
 						imageEffectClass += " ug-sepia-effect";
 					break;
@@ -8894,7 +12689,6 @@ function UGThumbsGeneral(){
 				animateThumb(objBorderOverlay, objCss);
 			}
 		
-			
 		}
 		
 		
@@ -8904,19 +12698,15 @@ function UGThumbsGeneral(){
 		function setThumbColorOverlayEffect(objThumb, isActive, noAnimation){
 			
 			var objOverlay = objThumb.children(".ug-thumb-overlay");
-			
-			var objCss = {};
-			objCss["background-color"] = g_options.thumb_overlay_color;
-			objOverlay.css(objCss);
-			
+						
 			var animationDuration = g_options.thumb_transition_duration;
 			if(noAnimation && noAnimation === true)
 				animationDuration = 0;
-			
+						
 			if(isActive){
-				objOverlay.stop(true).fadeTo(animationDuration,g_options.thumb_overlay_opacity);
+				objOverlay.stop(true).fadeTo(animationDuration, 1);
 			}else{
-				objOverlay.stop(true).fadeTo(animationDuration,0);
+				objOverlay.stop(true).fadeTo(animationDuration, 0);
 			}
 			
 		}
@@ -8933,7 +12723,7 @@ function UGThumbsGeneral(){
 			var animationDuration = g_options.thumb_transition_duration;
 			if(noAnimation && noAnimation === true)
 				animationDuration = 0;
-			
+						
 			if(isActive){
 				objImageOverlay.stop(true).fadeTo(animationDuration,1);
 			}else{
@@ -8948,53 +12738,54 @@ function UGThumbsGeneral(){
 		/**
 		 * on thumb mouse out - return the thumb style to original
 		 */
-		function setThumbNormalStyle(objThumb, noAnimation){
+		this.setThumbNormalStyle = function(objThumb, noAnimation){
 			
 			if(g_temp.customThumbs == true){
 				objThumb.removeClass("ug-thumb-over");
-				return(true);
-			}			
+			}
 			
-			if(g_options.thumb_border_effect == true)
-				setThumbBorderEffect(objThumb, g_options.thumb_border_width, g_options.thumb_border_color, noAnimation);
+			if(g_temp.isEffectBorder)
+			  setThumbBorderEffect(objThumb, g_options.thumb_border_width, g_options.thumb_border_color, noAnimation);
 			
-			if(g_options.thumb_color_overlay_effect == true){
+			if(g_temp.isEffectOverlay){
 				var isSet = (g_options.thumb_overlay_reverse == true)?false:true;
 				setThumbColorOverlayEffect(objThumb, isSet, noAnimation);
 			}
-			
-			if(g_options.thumb_image_overlay_effect == true){
+						
+			if(g_temp.isEffectImage){
 				setThumbImageOverlayEffect(objThumb, true, noAnimation);
 			}
 			
+			g_objThis.trigger(t.events.SETNORMALSTYLE, objThumb);
 		}
 		
 		
 		/**
 		 * on thumb mouse over - turn thumb style to over position
 		 */
-		function setThumbOverStyle(objThumb){
+		this.setThumbOverStyle = function(objThumb){
 			
 			if(g_temp.customThumbs == true){
 				objThumb.addClass("ug-thumb-over");
-				return(true);
 			}
 			
 			//border effect
-			if(g_options.thumb_border_effect == true)
+			if(g_temp.isEffectBorder)
 				setThumbBorderEffect(objThumb, g_options.thumb_over_border_width, g_options.thumb_over_border_color);
 			
 			//color overlay effect 
-			if(g_options.thumb_color_overlay_effect == true){
+			if(g_temp.isEffectOverlay){
 				var isSet = (g_options.thumb_overlay_reverse == true)?true:false;
 				setThumbColorOverlayEffect(objThumb, isSet);
 			}
 			
 			//image overlay effect
-			if(g_options.thumb_image_overlay_effect == true){
+			if(g_temp.isEffectImage == true){
 				setThumbImageOverlayEffect(objThumb, false);
 			}
 			
+			//trigger event for parent classes
+			g_objThis.trigger(t.events.SETOVERSTYLE, objThumb);
 		}
 		
 		
@@ -9002,22 +12793,19 @@ function UGThumbsGeneral(){
 		 * set thumb selected style
 		 */
 		function setThumbSelectedStyle(objThumb, noAnimation){
-			
-			if(g_temp.customThumbs == true)
-				return(true);
-			
-			if(g_options.thumb_border_effect == true)			
+						
+			if(g_temp.isEffectBorder)			
 				setThumbBorderEffect(objThumb, g_options.thumb_selected_border_width, g_options.thumb_selected_border_color, noAnimation);
 			
-			if(g_options.thumb_color_overlay_effect == true){
+			if(g_temp.isEffectOverlay){
 				var isSet = (g_options.thumb_overlay_reverse == true)?true:false;
 				setThumbColorOverlayEffect(objThumb, isSet, noAnimation);
 			}
 			
 			//image overlay effect
-			if(g_options.thumb_image_overlay_effect == true){
+			if(g_temp.isEffectImage)
 				setThumbImageOverlayEffect(objThumb, false, noAnimation);
-			}
+			
 		}
 		
 		/**
@@ -9035,7 +12823,11 @@ function UGThumbsGeneral(){
 		 * get item by thumb object
 		 */
 		this.getItemByThumb = function(objThumb){
-			var index = objThumb.index();
+			var index = objThumb.data("index");
+			
+			if(index === undefined)
+				index = objThumb.index();
+			
 			var arrItem = g_arrItems[index];
 			return(arrItem);
 		}
@@ -9067,7 +12859,7 @@ function UGThumbsGeneral(){
 			if(isThumbSelected(objThumb) == true)
 				setThumbSelectedStyle(objThumb, true);
 			else
-				setThumbNormalStyle(objThumb, true);
+				t.setThumbNormalStyle(objThumb, true);
 		}
 		
 		
@@ -9089,45 +12881,99 @@ function UGThumbsGeneral(){
 		}
 		
 		
+		/**
+		 * on thumb size change - triggered by parent on custom thumbs type
+		 */
+		function onThumbSizeChange(temp, objThumb){
+						
+			objThumb = jQuery(objThumb);
+			var objItem = t.getItemByThumb(objThumb);
+			
+			//if(objThumb.index() != 0) return(true);
+			
+			var objSize = g_functions.getElementSize(objThumb);
+			
+			var objSizeCss = {
+					width: objSize.width+"px",
+					height: objSize.height+"px"
+			};
+			
+			
+			//set inner objects properties
+			if(g_temp.isEffectBorder == true)
+				objThumb.children(".ug-thumb-border-overlay").css(objSizeCss);
+			
+			if(g_temp.isEffectOverlay == true)
+				objThumb.children(".ug-thumb-overlay").css(objSizeCss);
+			
+			t.setThumbNormalStyle(objThumb, true);
+		}
+		
+		
+		/**
+		 * on thumb mouse over
+		 */
+		function onMouseOver(objThumb){
+			
+			//if touch enabled unbind event
+			if(g_temp.touchEnabled == true){
+				objThumbs.off("mouseenter").off("mouseleave");
+				return(true);
+			}
+			
+			if(isThumbSelected(objThumb) == false)
+				t.setThumbOverStyle(objThumb);
+			
+		}
+		
+		
+		/**
+		 * on thumb mouse out
+		 */
+		function onMouseOut(objThumb){
+			
+			if(g_temp.touchEnabled == true)
+				return(true);
+							
+			if(isThumbSelected(objThumb) == false)
+				t.setThumbNormalStyle(objThumb);
+		}
+		
 		
 		/**
 		 * init events
 		 */
 		this.initEvents = function(){
 			
-			
 			var objThumbs = g_objParent.find(".ug-thumb-wrapper");
 			
 			objThumbs.on("touchstart",function(){
 				g_temp.touchEnabled = true;
-				objThumbs.off("mouseenter").off("mouseleave");				
+				objThumbs.off("mouseenter").off("mouseleave");
 			});
 			
+			g_objWrapper.on(g_serviceParams.eventSizeChange, onThumbSizeChange);
+			
+			
 			objThumbs.hover(function(event){		//on mouse enter
-				
-				//if touch enabled unbind event
-				if(g_temp.touchEnabled == true){
-					objThumbs.off("mouseenter").off("mouseleave");
-					return(true);
-				}
-				
 				var objThumb = jQuery(this);
-				
-				if(isThumbSelected(objThumb) == false)
-					setThumbOverStyle(objThumb);
-					
+				onMouseOver(objThumb);
 			}, function(event){		//on mouse leave
-								
-				 if(g_temp.touchEnabled == true)
-					return(true);
-								
 				var objThumb = jQuery(this);
-				
-				if(isThumbSelected(objThumb) == false){
-					setThumbNormalStyle(objThumb);
-				}
-				
+				onMouseOut(objThumb);
 			});
+				
+		}
+		
+		/**
+		 * destroy the thumb element
+		 */
+		this.destroy = function(){
+			var objThumbs = g_objParent.find(".ug-thumb-wrapper");
+			objThumbs.off("touchstart");
+			g_objWrapper.off(g_serviceParams.eventSizeChange);
+			objThumbs.off("mouseenter");
+			objThumbs.off("mouseleave");
 			
 		}
 		
@@ -9140,7 +12986,7 @@ function UGThumbsGeneral(){
 			//remove the selected class
 			objThumbWrapper.removeClass("ug-thumb-selected");
 			
-			setThumbNormalStyle(objThumbWrapper);
+			t.setThumbNormalStyle(objThumbWrapper);
 		}
 		
 		
@@ -9149,31 +12995,18 @@ function UGThumbsGeneral(){
 		 */
 		this.loadThumbsImages = function(){
 			
-			jQuery(g_arrItems).each(function(){
+			var objImages = g_objParent.find(".ug-thumb-image");
+			g_functions.checkImagesLoaded(objImages, null, function(objImage,isError){
 				
-				var objImage = this.objThumbImage;
-				
-				if(!objImage)
-					return(false);
-				
-				var htmlImage = objImage.get(0);
-				
-				//set image load event (not that reliable)
-				objImage.on("load",function(){
-					placeThumbImage(this, true);
-				});
-				
-				//set load error event
-				objImage.on( "error", function(){
-					var objItem = objImage.parent();
-					setItemThumbLoadedError(objItem);
-				});			
-				
-				objImage.show();
+				if(isError == false)
+					placeThumbImage(objImage, true);
+				else{
+					var objItem = jQuery(objImage).parent();
+					setItemThumbLoadedError(objItem);										
+				}
+					
 			});
-			
-			//set timeout to check if the images are loaded
-			setTimeout(checkThumbsLoaded, g_serviceParams.timeout_thumb_check);
+
 		}
 		
 		
@@ -9186,67 +13019,67 @@ function UGThumbsGeneral(){
 		function placeThumbImage(image, isForce){
 			if(!isForce)
 				var isForce = false;
-			
+						
 			var objImage = jQuery(image);
 			var objThumb = objImage.parent();
 			
-			var thumbIndex = objThumb.index();
-			var objItem = g_arrItems[thumbIndex];
+			if(objThumb.parent().length == 0)		//don't treat detached thumbs
+				return(false);
+						
+			objItem = t.getItemByThumb(objThumb);
 			
 			if(objItem.isLoaded == true && isForce === false)
 				return(false);
-			
-			var wasLoaded = objItem.isLoaded;
-			
+						
 			objItem.isLoaded = true;
 			objItem.isThumbImageLoaded = true;
 			
+			if(g_temp.customThumbs == true){
+				g_objThis.trigger(t.events.PLACEIMAGE, [objThumb, objImage]);
+				return(true);
+			}
+			
 			g_functions.scaleImageCoverParent(objImage, objThumb);
 			
-			if(wasLoaded == false){
-				//hide loader
-				objThumb.children(".ug-thumb-loader").hide();
-				
-				//show image
-				objImage.show();
-				
-				//if overlay effect exists
-				if(g_options.thumb_image_overlay_effect == false){
-				
-					objImage.fadeTo(0,1);
-				}
-				else{
-					
-					//place bw image also if exists
-					if(g_options.thumb_image_overlay_effect == true){
-						copyPositionToThumbOverlayImage(objImage);
-					}
-					
-					//hide the original image (avoid blinking at start)
-					objImage.fadeTo(0,0);
-					
-					var objThumb = objImage.parent();
-					
-					//redraw the style, because this function can overwrite it
-					redrawThumbStyle(objThumb);
-				}
-				
-				
+			//hide loader
+			objThumb.children(".ug-thumb-loader").hide();
+			
+			//show image
+			objImage.show();
+			
+			//if overlay effect exists
+			if(g_options.thumb_image_overlay_effect == false){
+				objImage.fadeTo(0,1);
 			}
-					
-			return(true);
+			else{
+				
+				//place bw image also if exists
+				if(g_options.thumb_image_overlay_effect == true){
+					copyPositionToThumbOverlayImage(objImage);
+				}
+				
+				//hide the original image (avoid blinking at start)
+				objImage.fadeTo(0,0);
+				
+				var objThumb = objImage.parent();
+				
+				//redraw the style, because this function can overwrite it
+				redrawThumbStyle(objThumb);
+			}
+				
 		}
+		
 		/**
 		 * copy image position to bw image (if exists)
 		 */
 		function copyPositionToThumbOverlayImage(objImage){
-			
-			var objImageBW = objImage.siblings("img.ug-thumb-image-overlay");
+						
+			var objImageBW = objImage.siblings(".ug-thumb-image-overlay");
 			if(objImageBW.length == 0)
 				return(false);
 			
 			var objSize = g_functions.getElementSize(objImage);
-			
+				
 			var objCss = {
 					"width":objSize.width+"px",
 					"height":objSize.height+"px",
@@ -9257,7 +13090,9 @@ function UGThumbsGeneral(){
 			objImageBW.css(objCss);
 			
 			//show the image
-			objImageBW.fadeTo(0,1);
+			if(g_temp.customThumbs == false)
+				objImageBW.fadeTo(0,1);
+			
 		}
 		
 		
@@ -9266,72 +13101,23 @@ function UGThumbsGeneral(){
 		 */
 		function setItemThumbLoadedError(objThumb){
 			
-			objThumb.children(".ug-thumb-loader").hide();
-			objThumb.children(".ug-thumb-error").show();
-			
 			var objItem = t.getItemByThumb(objThumb);
 			
 			objItem.isLoaded = true;
 			objItem.isThumbImageLoaded = false;		
+			
+			if(g_temp.customThumbs == true){
+				
+				g_objThis.trigger(t.events.IMAGELOADERROR, objThumb);
+				return(true);
+			
+			}
+			
+			objThumb.children(".ug-thumb-loader").hide();
+			objThumb.children(".ug-thumb-error").show();		
 		}
 		
 		
-		/**
-		 * check if images are loaded, if not, place the image.
-		 * recure the function over again if not all the images are loaded
-		 */
-		function checkThumbsLoaded(){
-			
-			var isAllLoaded = true;
-			var arrNotLoadedItems = [];
-			
-			g_temp.num_thumbs_checking++;
-			var isTimeToStopChecking = (g_temp.num_thumbs_checking > g_serviceParams.thumb_max_check_times);
-			
-			for(var i=0;i<g_arrItems.length;i++){
-				var objItem = g_arrItems[i];
-				 if(objItem.isLoaded == true)
-					 continue;
-				
-				 var objThumbImage = objItem.objThumbImage;
-				 if(!objThumbImage)
-					 continue;
-				 
-				 isAllLoaded = false;
-				
-				var imageWidth = objThumbImage.width();
-				var originalWidth = g_functions.getImageOriginalSize(objThumbImage).width;
-							
-				if(imageWidth != 0 && originalWidth == undefined || originalWidth > 0){				
-					placeThumbImage(objThumbImage);
-								
-				}else{
-					
-					if(isTimeToStopChecking == true)
-						arrNotLoadedItems.push(objItem.objThumbWrapper);
-					
-				}
-			}
-			
-			if(isAllLoaded == false){
-				
-				//timeout run out			
-				//set error loading for all not loaded thumbs			
-				if(isTimeToStopChecking == true){
-									
-					jQuery(arrNotLoadedItems).each(function(){
-						var objItem = this;
-						setItemThumbLoadedError(objItem);
-						
-					});
-									
-				}
-				else{
-					setTimeout(checkThumbsLoaded, g_serviceParams.timeout_thumb_check);
-				}					
-			}
-			
-		}
 		
 		
 		/**
@@ -9346,14 +13132,24 @@ function UGThumbsGeneral(){
 		
 		/**
 		 * set custom thumbs
+		 * allowedEffects - border, overlay, image
 		 */
-		this.setCustomThumbs = function(funcSetHtml){
+		this.setCustomThumbs = function(funcSetHtml, arrAlowedEffects){
 			g_temp.customThumbs = true;
-			
+						
 			if(typeof funcSetHtml != "function")
 				throw new Error("The argument should be function");
 				
 			g_temp.funcSetCustomThumbHtml = funcSetHtml;
+			
+			//enable effects:
+			if(jQuery.inArray("overlay", arrAlowedEffects) == -1)
+				g_temp.isEffectOverlay = false;				
+			
+			if(jQuery.inArray("border", arrAlowedEffects) == -1)
+				g_temp.isEffectBorder = false;
+			
+			g_temp.isEffectImage = false;		//for custom effects the image is always off
 			
 		}
 		
@@ -9374,6 +13170,13 @@ function UGThumbsGeneral(){
 			var numThumbs = g_arrItems.length;
 			return(numThumbs);
 		}
+		
+		/**
+		 * get all thumbs jquery object
+		 */
+		this.getThumbs = function(){
+			return(g_objParent.children(".ug-thumb-wrapper"));
+		}
 }
 /**
  * thumbs class
@@ -9384,10 +13187,9 @@ function UGThumbsGrid(){
 	var t = this, g_objThis = jQuery(this);
 	var g_gallery = new UniteGalleryMain(), g_objGallery, g_objects, g_objWrapper;
 	var g_functions = new UGFunctions(), g_arrItems, g_objGrid, g_objInner;
-	var g_thumbs = new UGThumbsGeneral();
+	var g_thumbs = new UGThumbsGeneral(), g_tilesDesign = new UGTileDesign();
 	
 	var g_options = {
-		parent_container: null,						// the parent container that the object will be added to
 		grid_panes_direction: "left",				//where panes will move -> left, bottom
 		grid_num_cols: 2,							//number of grid columns
 		grid_num_rows: 2,							//number of grid rows (for horizontal type)
@@ -9395,7 +13197,9 @@ function UGThumbsGrid(){
 		grid_space_between_rows: 10,				//space between rows
 		grid_transition_duration: 300,				//transition of the panes change duration 
 		grid_transition_easing: "easeInOutQuad",	//transition of the panes change easing function
-		grid_carousel: false						//next pane goes to first when last
+		grid_carousel: false,						//next pane goes to first when last
+		grid_padding: 0,							//set padding to the grid
+		grid_vertical_scroll_ondrag: false			//scroll the gallery on vertical drag
 	};
 	
 	this.events = {
@@ -9403,6 +13207,7 @@ function UGThumbsGrid(){
 	};
 	
 	var g_temp = {
+			eventSizeChange: "thumb_size_change",
 			isHorizontal: false,
 			isMaxHeight:false,		//set if the height that set is max height. In that case need a height correction
 			isMaxWidth:false,		//set if the height that set is max height. In that case need a height correction
@@ -9417,12 +13222,10 @@ function UGThumbsGrid(){
 			numThumbsInPane:0,
 			isNavigationVertical:false,
 			touchActive: false,
-			startInnerPos: 0,
-			lastTime:0,
-			startTime:0,
-			startMousePos:0,
-			lastMousePos:0,
-			isFirstTimeRun:true		//if run once
+			startScrollPos:0,
+			isFirstTimeRun:true,
+			isTilesMode: false,
+			storedEventID: "thumbsgrid"
 		};
 	
 	
@@ -9431,13 +13234,16 @@ function UGThumbsGrid(){
 	/**
 	 * init the gallery
 	 */
-	function init(gallery, customOptions){
-		
+	function init(gallery, customOptions, isTilesMode){
+				
 		g_objects = gallery.getObjects();
 		g_gallery = gallery;
 		g_objGallery = jQuery(gallery);
 		g_objWrapper = g_objects.g_objWrapper;
 		g_arrItems = g_objects.g_arrItems;
+				
+		if(isTilesMode === true)
+			g_temp.isTilesMode = true;
 		
 		g_temp.numThumbs = g_arrItems.length;
 		
@@ -9445,27 +13251,42 @@ function UGThumbsGrid(){
 		
 		//set vertical or horizon
 		g_temp.isNavigationVertical = (g_options.grid_panes_direction == "top" || g_options.grid_panes_direction == "bottom")
-				
-		g_thumbs.init(gallery);		
-		setHtml();
+		
+		if(g_temp.isTilesMode == true){
+			
+			g_tilesDesign.setFixedMode();
+			g_tilesDesign.setApproveClickFunction(isApproveTileClick);
+			g_tilesDesign.init(gallery, g_options);
+			
+			g_thumbs = g_tilesDesign.getObjThumbs();
+		}else{
+			g_thumbs.init(gallery);
+		}
+		
 	}
 	
 	
 	/**
 	 * set the grid panel html
 	 */
-	function setHtml(){
+	function setHtml(parentContainer){
 		
 		var objParent = g_objWrapper;
-		if(g_options.parent_container != null)
-			objParent = g_options.parent_container;
+		
+		if(parentContainer)
+			objParent = parentContainer;
 		
 		objParent.append("<div class='ug-thumbs-grid'><div class='ug-thumbs-grid-inner'></div></div>");		 
 		g_objGrid = objParent.children(".ug-thumbs-grid");
 		g_objInner = g_objGrid.children(".ug-thumbs-grid-inner");		
-				
+		
 		//put the thumbs to inner strip
-		g_thumbs.setHtmlThumbs(g_objInner);
+		
+		if(g_temp.isTilesMode == true)
+			g_tilesDesign.setHtml(g_objInner);
+		else
+			g_thumbs.setHtmlThumbs(g_objInner);
+		
 	}
 	
 	
@@ -9495,19 +13316,41 @@ function UGThumbsGrid(){
 		validateBeforeRun();
 		
 		if(g_temp.isFirstTimeRun == true){
-			g_thumbs.setHtmlProperties();		
-			initSizeParams();
-			g_thumbs.loadThumbsImages();
+						
+			if(g_temp.isTilesMode == true){
+				
+				initSizeParams();							
+				g_tilesDesign.run();
+				
+			}else{
+				g_thumbs.setHtmlProperties();
+				initSizeParams();			
+				g_thumbs.loadThumbsImages();
+			}
+			
 			initEvents();
 		}
-		
+				
 		positionThumbs();
 		
+		if(g_temp.isFirstTimeRun == true && g_temp.isTilesMode){
+			
+			var objTiles = g_thumbs.getThumbs();
+			
+			//fire size change event
+			objTiles.each(function(index, tile){
+				
+				g_objWrapper.trigger(g_temp.eventSizeChange, jQuery(tile));
+			});
+			
+			objTiles.fadeTo(0,1);
+		}
+			
 		if(selectedItem != null)
 			scrollToThumb(selectedItem.index);
-			
+		
 		//trigger pane change event on the start
-		g_objThis.trigger(t.events.PANE_CHANGE);
+		g_objThis.trigger(t.events.PANE_CHANGE, g_temp.currentPane);
 		
 		g_temp.isFirstTimeRun = false;
 	}
@@ -9525,7 +13368,7 @@ function UGThumbsGrid(){
 
 		//set grid size
 		var gridWidth = g_temp.gridWidth;
-		var gridHeight = g_options.grid_num_rows * thumbsRealHeight + (g_options.grid_num_rows-1) * g_options.grid_space_between_rows;
+		var gridHeight = g_options.grid_num_rows * thumbsRealHeight + (g_options.grid_num_rows-1) * g_options.grid_space_between_rows + g_options.grid_padding*2;
 		
 		g_temp.gridHeight = gridHeight;
 		
@@ -9551,7 +13394,7 @@ function UGThumbsGrid(){
 		var thumbsRealWidth = firstThumb.outerWidth();
 		
 		//set grid size
-		var gridWidth = g_options.grid_num_cols * thumbsRealWidth + (g_options.grid_num_cols-1) * g_options.grid_space_between_cols;
+		var gridWidth = g_options.grid_num_cols * thumbsRealWidth + (g_options.grid_num_cols-1) * g_options.grid_space_between_cols + g_options.grid_padding*2;
 		var gridHeight = g_temp.gridHeight;
 		
 		g_temp.gridWidth = gridWidth;
@@ -9794,15 +13637,13 @@ function UGThumbsGrid(){
 	 * position the thumbs horizontal type
 	 */	
 	function positionThumb_hortype(){
-		
-		//trace(g_options);
-		//trace(g_temp);
-		
+				
 		var arrThumbs = g_objInner.children(".ug-thumb-wrapper");
 		
-		var posx = 0;
-		var posy = 0;
-		var baseX = 0;
+		var baseX = g_options.grid_padding;
+		var baseY = g_options.grid_padding;
+		var posy = baseY;
+		var posx = baseX;
 		var maxx = 0, maxy = 0, paneMaxY = 0;
 		var rowsCounter = 0;
 		
@@ -9812,7 +13653,7 @@ function UGThumbsGrid(){
 		g_temp.numThumbsInPane = 0;
 		
 		//set first pane position
-		g_temp.arrPanes.push(baseX);	
+		g_temp.arrPanes.push(baseX-g_options.grid_padding);	
 		
 		var numThumbs = arrThumbs.length;
 				
@@ -9833,16 +13674,16 @@ function UGThumbsGrid(){
 					rowsCounter = 0;
 					baseX = posx;
 					paneMaxY = 0;
-					posy = 0;
+					posy = baseY;
 					
 					//change grid width to max width
 					if(g_temp.numPanes == 1){
-						g_temp.gridWidth = maxx;
+						g_temp.gridWidth = maxx+g_options.grid_padding;
 						g_objGrid.width(g_temp.gridWidth);
 					}
 					
 					g_temp.numPanes++;
-					g_temp.arrPanes.push(baseX);
+					g_temp.arrPanes.push(baseX-g_options.grid_padding);
 					
 				}else{			//start new line in existing pane
 					posx = baseX;
@@ -9881,7 +13722,6 @@ function UGThumbsGrid(){
 			
 		}//end for
 		
-		
 		//set inner strip width and height
 		g_temp.innerWidth = maxx;
 		g_temp.innerHeight = paneMaxY;
@@ -9891,13 +13731,13 @@ function UGThumbsGrid(){
 		
 		//set grid height
 		if(g_temp.numPanes == 1){
-			g_temp.gridWidth = maxx;
-			g_temp.gridHeight = maxy;
-			g_objGrid.width(maxx);
-			g_objGrid.height(maxy);
+			g_temp.gridWidth = maxx + g_options.grid_padding;
+			g_temp.gridHeight = maxy + g_options.grid_padding;
+			
+			g_objGrid.width(g_temp.gridWidth);
+			g_objGrid.height(g_temp.gridHeight);
 		}
-		
-		
+			
 	}
 	
 	
@@ -10118,11 +13958,15 @@ function UGThumbsGrid(){
 	 */
 	function isSignificantPassed(){
 		
-		var currentTime = jQuery.now();
-		var passedTime = currentTime - g_temp.startTime;
+		if(g_temp.numPanes == 1)
+			return(false);
+		
+		var objData = g_functions.getStoredEventData(g_temp.storedEventID);
+		
+		var passedTime = objData.diffTime;
 		
 		var currentInnerPos = getInnerPos();
-		var passedDistanceAbs = Math.abs(currentInnerPos - g_temp.startInnerPos);
+		var passedDistanceAbs = Math.abs(currentInnerPos - objData.startInnerPos);
 		
 		if(passedDistanceAbs > 30)
 			return(true);
@@ -10134,29 +13978,42 @@ function UGThumbsGrid(){
 	}
 	
 	
+	
 	/**
 	 * check if the movement that was held is valid for pane change
 	 */
 	function isMovementValidForChange(){
 		
+		var objData = g_functions.getStoredEventData(g_temp.storedEventID);
+		
 		//check position, if more then half, move
 		var currentInnerPos = getInnerPos();
-		diffPos = Math.abs(g_temp.startInnerPos - currentInnerPos);
-		
+		diffPos = Math.abs(objData.startInnerPos - currentInnerPos);
+				
 		var paneSize = getPaneSize();
 		var breakSize = Math.round(paneSize * 3 / 8);
-				
+		
 		if(diffPos >= breakSize)
 			return(true);
-				
-		//check time. Short time always move
-		var endTime = jQuery.now();
-		var diffTime = endTime - g_temp.startTime;
 		
-		if(diffTime < 300 && diffPos > 25)
+		if(objData.diffTime < 300 && diffPos > 25)
 			return(true);
-				
+						
 		return(false);
+	}
+	
+	
+	/**
+	 * return if passed some significant movement
+	 */
+	function isApproveTileClick(){
+		
+		if(g_temp.numPanes == 1)
+			return(true);
+			
+		var isApprove = g_functions.isApproveStoredEventClick(g_temp.storedEventID, g_temp.isNavigationVertical);
+		
+		return(isApprove);
 	}
 	
 	
@@ -10169,7 +14026,6 @@ function UGThumbsGrid(){
 	function onThumbClick(event){
 		
 		//event.preventDefault();
-				
 		if(isSignificantPassed() == true)
 			return(true);
 		
@@ -10185,21 +14041,45 @@ function UGThumbsGrid(){
 	 * on touch start
 	 */
 	function onTouchStart(event){
-		
+				
 		if(g_temp.numPanes == 1)
 			return(true);
 		
 		if(g_temp.touchActive == true)
 			return(true);
 		
-		event.preventDefault();
+		if(g_temp.isTilesMode == false)
+			event.preventDefault();
 		
 		g_temp.touchActive = true;
 		
-		g_temp.startTime = jQuery.now();		
-		g_temp.startMousePos = getMousePos(event);
-		g_temp.startInnerPos = getInnerPos();
+		var addData = {
+				startInnerPos: getInnerPos()
+		};
 		
+		g_functions.storeEventData(event, g_temp.storedEventID, addData);
+		
+	}
+	
+	/**
+	 * handle scroll top, return if scroll mode or not
+	 */
+	function handleScrollTop(objData){
+		
+		if(g_temp.isNavigationVertical == true)
+			return(false);
+		
+		if(Math.abs(objData.diffMouseY) < Math.abs(objData.diffMouseX))
+			return(false);
+		
+		var currentScrollTop = jQuery(document).scrollTop();
+		
+		var toScroll = objData.diffMouseY - currentScrollTop;
+		var scrollPos = objData.scrollTop - toScroll;
+		if(scrollPos > 0)
+			jQuery(document).scrollTop(scrollPos);
+		
+		return(true);
 	}
 	
 	
@@ -10213,12 +14093,20 @@ function UGThumbsGrid(){
 		
 		event.preventDefault();
 		
-		var mousePos = getMousePos(event);
-		var diff = mousePos - g_temp.startMousePos;
-		var innerPos = g_temp.startInnerPos + diff;
+		g_functions.updateStoredEventData(event, g_temp.storedEventID);
+		
+		var objData = g_functions.getStoredEventData(g_temp.storedEventID, g_temp.isNavigationVertical);
+		
+		if(g_options.grid_vertical_scroll_ondrag == true){
+			var isScroll = handleScrollTop(objData);
+			if(isScroll)
+				return(true);
+		}
+		
+		var diff = objData.diffMousePos;
+		var innerPos = objData.startInnerPos + diff;
 		var direction = (diff > 0) ? "prev":"next";
 		var lastPaneSize = g_temp.arrPanes[g_temp.numPanes-1];
-		
 		
 		//slow down when off limits
 		if(g_options.grid_carousel == false && innerPos > 0 && direction == "prev"){
@@ -10228,11 +14116,11 @@ function UGThumbsGrid(){
 		//debugLine({lastSize:lastPaneSize,innerPos: innerPos});
 		
 		if(g_options.grid_carousel == false && innerPos < -lastPaneSize && direction == "next"){
-			innerPos = g_temp.startInnerPos + diff / 3;
+			innerPos = objData.startInnerPos + diff / 3;
 		}
 		
 		setInnerPos(innerPos);
-		
+			
 	}
 	
 	
@@ -10245,9 +14133,11 @@ function UGThumbsGrid(){
 		if(g_temp.touchActive == false)
 			return(true);
 		
+		g_functions.updateStoredEventData(event, g_temp.storedEventID);
+		var objData = g_functions.getStoredEventData(g_temp.storedEventID, g_temp.isNavigationVertical);
+		
 		//event.preventDefault();
 		g_temp.touchActive = false;
-		
 		
 		if(isMovementValidForChange() == false){
 			animateToCurrentPane();
@@ -10256,7 +14146,7 @@ function UGThumbsGrid(){
 		
 		//move pane or return back
 		var innerPos = getInnerPos();
-		var diff = innerPos - g_temp.startInnerPos;
+		var diff = innerPos - objData.startInnerPos;
 		var direction = (diff > 0) ? "prev":"next";
 		
 		if(direction == "next"){
@@ -10279,26 +14169,35 @@ function UGThumbsGrid(){
 	
 	
 	/**
+	 * on item change
+	 */
+	function onItemChange(){
+			
+		var objItem = g_gallery.getSelectedItem();
+		g_thumbs.setThumbSelected(objItem.objThumbWrapper);
+		
+		scrollToThumb(objItem.index);
+		
+	}
+	
+	
+	/**
 	 * init panel events
 	 */
 	function initEvents(){
 		
-		g_thumbs.initEvents();
-		
-		var objThumbs = g_objGrid.find(".ug-thumb-wrapper");
-				
-		objThumbs.on("click touchend",onThumbClick);
-		
-		//on item change, make the thumb selected
-		g_objGallery.on(g_gallery.events.ITEM_CHANGE, function(){
+		if(g_temp.isTilesMode == false){
 			
-			var objItem = g_gallery.getSelectedItem();
-			g_thumbs.setThumbSelected(objItem.objThumbWrapper);
+			g_thumbs.initEvents();		
+			var objThumbs = g_objGrid.find(".ug-thumb-wrapper");
+			objThumbs.on("click touchend",onThumbClick);
 			
-			scrollToThumb(objItem.index);
+			g_objGallery.on(g_gallery.events.ITEM_CHANGE, onItemChange);
+			
+		}else{
+			g_tilesDesign.initEvents();
+		}
 		
-		});
-				
 		//touch drag events
 		
 		//slider mouse down - drag start
@@ -10310,6 +14209,35 @@ function UGThumbsGrid(){
 		//on body mouse up - drag end
 		jQuery(window).add("body").bind("mouseup touchend", onTouchEnd);
 		
+	}
+	
+	
+	/**
+	 * destroy the events
+	 */
+	this.destroy = function(){
+		
+		if(g_temp.isTilesMode == false){
+			
+			var objThumbs = g_objGrid.find(".ug-thumb-wrapper");
+			objThumbs.off("click");
+			objThumbs.off("touchend");
+			g_objGallery.on(g_gallery.events.ITEM_CHANGE);
+			g_thumbs.destroy();		
+						
+		}else{
+			g_tilesDesign.destroy();
+		}
+		
+		g_objGrid.unbind("mousedown");
+		g_objGrid.unbind("touchstart");
+		jQuery("body").unbind("mousemove");
+		jQuery("body").unbind("touchmove");
+		
+		jQuery(window).add("body").unbind("touchend");
+		jQuery(window).add("body").unbind("mouseup");
+		
+		g_objThis.off(t.events.PANE_CHANGE);
 		
 	}
 	
@@ -10346,10 +14274,16 @@ function UGThumbsGrid(){
 	 * get estimation of number of panes by the height of the grid.
 	 */
 	this.getNumPanesEstimationByHeight = function(gridHeight){
-				
-		var thumbsOptions = g_thumbs.getOptions();
 		
-		var thumbHeight = thumbsOptions.thumb_height;
+		if(g_temp.isTilesMode == true){
+			
+			var thumbHeight = g_options.tile_height;
+			
+		}else{
+			var thumbsOptions = g_thumbs.getOptions();		
+			var thumbHeight = thumbsOptions.thumb_height;
+		}
+		
 		var numThumbs = g_thumbs.getNumThumbs();
 		var numRows = Math.ceil(numThumbs / g_options.grid_num_cols);
 		
@@ -10364,18 +14298,44 @@ function UGThumbsGrid(){
 	 * get estimation of number of panes by the width of the grid.
 	 */
 	this.getNumPanesEstimationByWidth = function(gridWidth){
-				
-		var thumbsOptions = g_thumbs.getOptions();
 		
-		var thumbWidth = thumbsOptions.thumb_width;
+		if(g_temp.isTilesMode){
+			var thumbWidth = g_options.tile_width;			
+		}else{
+			var thumbsOptions = g_thumbs.getOptions();		
+			var thumbWidth = thumbsOptions.thumb_width;
+		}
+		
 		var numThumbs = g_thumbs.getNumThumbs();
 		var numCols = Math.ceil(numThumbs / g_options.grid_num_rows);
 		
 		var totalWidth = numCols * thumbWidth + (numCols-1) * g_options.grid_space_between_cols;
-			
+		
 		var numPanes = Math.ceil(totalWidth / gridWidth);
 				
 		return(numPanes);
+	}
+	
+	
+	/**
+	 * get height estimation by width, works only in tiles mode
+	 */
+	this.getHeightEstimationByWidth = function(width){
+		
+		if(g_temp.isTilesMode == false)
+			throw new Error("This function works only with tiles mode");
+		
+		var numThumbs = g_thumbs.getNumThumbs();
+		var numCols = g_functions.getNumItemsInSpace(width, g_options.tile_width, g_options.grid_space_between_cols);
+		var numRows = Math.ceil(numThumbs / numCols);
+		
+		if(numRows > g_options.grid_num_rows)
+			numRows = g_options.grid_num_rows;
+		
+		var gridHeight = g_functions.getSpaceByNumItems(numRows, g_options.tile_height, g_options.grid_space_between_rows);
+		gridHeight += g_options.grid_padding * 2;
+		
+		return(gridHeight);
 	}
 	
 	/**
@@ -10442,6 +14402,15 @@ function UGThumbsGrid(){
 	
 	
 	/**
+	 * get current pane
+	 */
+	this.getPane = function(){
+		
+		return(g_temp.currentPane);
+	}
+	
+	
+	/**
 	 * set grid width (horizontal type)
 	 */
 	this.setWidth = function(gridWidth){
@@ -10498,7 +14467,7 @@ function UGThumbsGrid(){
 		animateInnerTo(innerPos);
 		
 		//trigger pane change event
-		g_objThis.trigger(t.events.PANE_CHANGE);
+		g_objThis.trigger(t.events.PANE_CHANGE, index);
 	}
 	
 	
@@ -10541,7 +14510,7 @@ function UGThumbsGrid(){
 	/**
 	 * set next pane button
 	 */
-	this.setNextPaneButton = function(objButton){
+	this.attachNextPaneButton = function(objButton){
 		
 		g_functions.setButtonOnClick(objButton, t.nextPane);
 
@@ -10567,7 +14536,7 @@ function UGThumbsGrid(){
 	/**
 	 * set prev pane button
 	 */
-	this.setPrevPaneButton = function(objButton){
+	this.attachPrevPaneButton = function(objButton){
 				
 		g_functions.setButtonOnClick(objButton, t.prevPane);
 		
@@ -10590,17 +14559,42 @@ function UGThumbsGrid(){
 	}
 	
 	
-	
-	
 	/**
-	 * init function for avia controls
+	 * attach bullets object
 	 */
-	this.init = function(gallery, customOptions){
+	this.attachBullets = function(objBullets){
 		
-		init(gallery, customOptions);
+		objBullets.setActive(g_temp.currentPane);
+		
+		jQuery(objBullets).on(objBullets.events.BULLET_CLICK, function(data, numBullet){
+			t.gotoPane(numBullet, "theme");
+			objBullets.setActive(numBullet);				
+		});
+		
+		jQuery(t).on(t.events.PANE_CHANGE, function(data, numPane){
+			objBullets.setActive(numPane);
+		});
+		
 	}
 	
 	
+	/**
+	 * get tile design object
+	 */
+	this.getObjTileDesign = function(){
+		return g_tilesDesign;
+	}
+	
+	
+	/**
+	 * init function 
+	 */
+	this.init = function(gallery, customOptions, isTilesMode){
+		
+		init(gallery, customOptions, isTilesMode);
+	}
+	
+		
 	
 	/**
 	 * set html and properties
@@ -10609,6 +14603,14 @@ function UGThumbsGrid(){
 		run();
 	}
 
+	
+	/**
+	 * set html 
+	 */
+	this.setHtml = function(parentContainer){
+		
+		setHtml(parentContainer);
+	}
 	
 }
 
@@ -11058,7 +15060,7 @@ function UGThumbsStrip(){
 		var objThumbs = g_objStrip.find(".ug-thumb-wrapper");
 				
 		objThumbs.on("click touchend", function(event){
-						
+			
 			var clickedThumb = jQuery(this);
 			onThumbClick(clickedThumb);
 		});
@@ -11072,8 +15074,25 @@ function UGThumbsStrip(){
 		
 	}
 	
-	
-	
+	/**
+	 * destroy the strip panel events
+	 */
+	this.destroy = function(){
+		
+		var objThumbs = g_objStrip.find(".ug-thumb-wrapper");
+		
+		objThumbs.off("click");
+		objThumbs.off("touchend");
+		g_objGallery.off(g_gallery.events.ITEM_CHANGE);
+		
+		if(g_touchThumbsControl)
+			g_touchThumbsControl.destroy();
+		
+		if(g_aviaControl)
+			g_aviaControl.destroy();
+		
+		g_thumbs.destroy();
+	}
 	
 	
 	function ____________GETTERS___________(){};
@@ -11543,6 +15562,1528 @@ function UGThumbsStrip(){
 	
 }
 
+/**
+ * tiles design class
+ */
+function UGTileDesign(){
+	
+	var t = this, g_objThis = jQuery(this);	
+	var g_gallery = new UniteGalleryMain(), g_objGallery;
+	var g_functions = new UGFunctions(), g_objParentWrapper, g_objWrapper;
+	var g_thumbs = new UGThumbsGeneral(), g_items;
+
+
+	this.events = {
+			TILE_CLICK: "tile_click"
+	};
+	
+	var g_options = {
+						
+			tile_width: 250,						//in case of fixed size: tile width
+			tile_height: 200,						//in case of fixed size: tile height
+			
+			tile_enable_border:false,				//enable border of the tile
+			tile_border_width:3,					//tile border width
+			tile_border_color:"#F0F0F0",			//tile border color
+			tile_border_radius:0,					//tile border radius (applied to border only, not to outline)
+			
+			tile_enable_outline: false,				//enable outline of the tile (works only together with the border)
+			tile_outline_color: "#8B8B8B",			//tile outline color
+			
+			tile_enable_shadow:false,				//enable shadow of the tile
+			tile_shadow_h:1,						//position of horizontal shadow
+			tile_shadow_v:1,						//position of vertical shadow
+			tile_shadow_blur:3,						//shadow blur
+			tile_shadow_spread:2,					//shadow spread
+			tile_shadow_color:"#8B8B8B",			//shadow color
+			
+			tile_enable_action:	true,				//enable tile action on click like lightbox
+			tile_as_link: false,					//act the tile as link, no lightbox will appear
+			tile_link_newpage: true,				//open the tile link in new page
+
+			tile_enable_overlay: true,				//enable tile color overlay (on mouseover)
+			tile_overlay_opacity: 0.4,				//tile overlay opacity
+			tile_overlay_color: "#000000",			//tile overlay color
+			
+			tile_enable_icons: true,				//enable icons in mouseover mode
+			tile_show_link_icon: false,				//show link icon (if the tile has a link). In case of tile_as_link this option not enabled
+			tile_space_between_icons: 26,			//initial space between icons, (on small tiles it may change)
+			
+			tile_enable_image_effect:false,			//enable tile image effect
+			tile_image_effect_type: "bw",			//bw, blur, sepia - tile effect type
+			tile_image_effect_reverse: false,		//reverce the image, set only on mouseover state
+			
+			tile_enable_textpanel: false,			//enable textpanel
+			tile_textpanel_source: "title",			//title,desc,desc_title. source of the textpanel. desc_title - if description empty, put title
+			tile_textpanel_always_on: false,		//textpanel always visible
+			tile_textpanel_appear_type: "slide"		//slide, fade - appear type of the textpanel on mouseover
+	};
+	
+	var g_defaults = {
+			thumb_color_overlay_effect: true,
+			thumb_overlay_reverse: true,
+			thumb_image_overlay_effect: false,
+			thumb_text_overlay:true,
+			tile_textpanel_enable_description: false,
+			tile_textpanel_bg_opacity: 0.6,
+			tile_textpanel_padding_top:8,
+			tile_textpanel_padding_bottom: 8
+	};
+	
+	var g_temp = {
+		isFixedMode:false,
+		eventSizeChange: "thumb_size_change",
+		funcParentApproveClick: null
+	};
+	
+	
+	
+	/**
+	 * init the tile object
+	 */
+	function init(gallery, customOptions){
+		
+		g_gallery = gallery;
+		
+		g_objGallery = jQuery(gallery);		
+		
+		var objects = g_gallery.getObjects();
+		g_objWrapper = objects.g_objWrapper;
+		
+		g_items = g_gallery.getArrItems();
+				
+		g_options = jQuery.extend(g_options, g_defaults);
+		
+		g_options = jQuery.extend(g_options, customOptions);
+				
+		modifyOptions();
+				
+		g_thumbs.init(gallery, g_options);	
+		
+		var objCustomOptions = {};	
+				
+		g_thumbs.setCustomThumbs(setHtmlThumb,["overlay"], objCustomOptions);
+		
+		//get thumb default options too:
+		var thumbOptions = g_thumbs.getOptions();
+		g_options = jQuery.extend(g_options, thumbOptions);
+	}
+	
+	
+	/**
+	 * set thumb and textpanel options according tile options
+	 */
+	function modifyOptions(){
+		
+		//set overlay related options
+		if(g_options.tile_enable_overlay == true){
+			
+			g_options.thumb_overlay_opacity = g_options.tile_overlay_opacity;
+			g_options.thumb_overlay_color = g_options.tile_overlay_color;
+			
+		}else if(g_options.tile_enable_icons == false){		//if nothing on overlay - turn it off
+			g_options.thumb_color_overlay_effect = false;		
+		}else{											//if icons enabled - make it transparent
+			g_options.thumb_overlay_opacity = 0;
+		}
+		
+		//set item as link
+		if(g_options.tile_as_link){
+			g_options.thumb_wrapper_as_link = true;
+			g_options.thumb_link_newpage = g_options.tile_link_newpage;
+		}
+		
+		//outline cannot appear without border
+		if(g_options.tile_enable_outline == true && g_options.tile_enable_border == false)
+			g_options.tile_enable_outline = false;
+		
+	}
+	
+	
+	
+	/**
+	 * set thumb html
+	 */
+	function setHtmlThumb(objThumbWrapper, objItem){
+				
+		var html = "<img src='"+objItem.urlThumb+"' alt='"+objItem.title+"' class='ug-thumb-image'>";
+		objThumbWrapper.append(html);
+		objThumbWrapper.addClass("ug-tile");
+		
+		var objThumbImage = objThumbWrapper.children(".ug-thumb-image");
+		
+		if(g_temp.isFixedMode == true){
+			objThumbWrapper.fadeTo(0,0);		//turn on in thumbsGeneral
+			g_functions.setElementSize(objThumbWrapper, g_options.tile_width, g_options.tile_height);
+			objThumbWrapper.addClass("ug-tile-fixed");
+		}
+		
+		//---- set thumb styles ---- 
+		
+		//set border:
+		var objCss = {};
+		
+		if(g_options.tile_enable_border == true){
+			objCss["border-width"] = g_options.tile_border_width+"px";
+			objCss["border-style"] = "solid";
+			objCss["border-color"] = g_options.tile_border_color;
+			
+			if(g_options.tile_border_radius)
+				objCss["border-radius"] = g_options.tile_border_radius+"px";
+		}
+		
+		//set outline:
+		if(g_options.tile_enable_outline == true){
+			objCss["outline"] = "1px solid " + g_options.tile_outline_color;
+		}
+		
+		//set shadow
+		if(g_options.tile_enable_shadow == true){
+			var htmlShadow = g_options.tile_shadow_h+"px ";
+			htmlShadow += g_options.tile_shadow_v+"px ";
+			htmlShadow += g_options.tile_shadow_blur+"px ";
+			htmlShadow += g_options.tile_shadow_spread+"px ";
+			htmlShadow += g_options.tile_shadow_color;
+			
+			objCss["box-shadow"] = htmlShadow;
+		}
+		
+		objThumbWrapper.css(objCss);
+		
+		
+		//----- add icons
+		
+		var htmlAdd = "";
+		
+		if(g_options.tile_enable_icons){
+			
+			//add zoom icon
+			if(g_options.tile_as_link == false && g_options.tile_enable_action == true){
+				var iconPlayClass = "ug-button-play ug-icon-zoom";
+				if(objItem.type != "image")
+					iconPlayClass = "ug-button-play ug-icon-play";
+				
+				htmlAdd += "<div class='ug-tile-icon " + iconPlayClass + "'></div>";
+			}
+			
+			//add link icon
+			if(objItem.link && g_options.tile_show_link_icon == true || g_options.tile_as_link == true){
+				
+				if(g_options.tile_as_link == false){
+					var linkTarget = "";
+					if(g_options.tile_link_newpage == true)
+						linkTarget = " target='_blank'";
+					
+					htmlAdd += "<a href='"+objItem.link+"'"+linkTarget+" class='ug-tile-icon ug-icon-link'></a>";					
+				}else{
+					htmlAdd += "<div class='ug-tile-icon ug-icon-link'></div>";					
+				}
+				
+			}
+						
+		var objOverlay = objThumbWrapper.children(".ug-thumb-overlay");
+		
+		objOverlay.append(htmlAdd);		
+		
+		var objButtonZoom = objOverlay.children("." + iconPlayClass);
+		
+		if(objButtonZoom.length == 0)
+			objButtonZoom = null;
+		else
+			objButtonZoom.hide();
+		
+		var objButtonLink = objOverlay.children(".ug-icon-link");
+		
+		if(objButtonLink.length == 0)
+			objButtonLink = null;
+		else
+			objButtonLink.hide();
+		
+		//if only zoom icon, make the tile clickable for lightbox open
+		if(!objButtonLink && g_options.tile_enable_action == true)
+			objThumbWrapper.addClass("ug-tile-clickable");
+		
+		}  //if icons enabled
+		else{		//if the icons don't enabled, set the tile clickable
+			
+			if(g_options.tile_enable_action == true)
+				objThumbWrapper.addClass("ug-tile-clickable");
+		
+		}
+		
+		//add image overlay
+		if(g_options.tile_enable_image_effect == true){
+			var imageOverlayHtml = "<div class='ug-tile-image-overlay' style='display:none'>";
+			var imageEffectClass = " ug-"+g_options.tile_image_effect_type+"-effect";
+			
+			imageOverlayHtml += "<img src='"+objItem.urlThumb+"' alt='"+objItem.title+"' class='"+imageEffectClass+"'>";
+			imageOverlayHtml += "</div>";
+			
+			objThumbWrapper.append(imageOverlayHtml);
+			
+		}
+		
+		
+		//add text panel
+		if(g_options.tile_enable_textpanel == true){
+			
+			var objTextPanel = new UGTextPanel();			 
+			objTextPanel.init(g_gallery, g_options, "tile");
+			
+			objTextPanel.appendHTML(objThumbWrapper);				
+			
+			var panelText = objItem.title;
+			switch(g_options.tile_textpanel_source){
+				case "desc":
+				case "description":
+					panelText = objItem.description;
+				break;
+				case "desc_title":
+					if(objItem.description != "")
+						panelText = objItem.description;
+				break;
+			}
+			
+			
+			objTextPanel.setTextPlain(panelText, "");
+			
+			if(g_options.tile_textpanel_always_on == false)
+				objTextPanel.getElement().fadeTo(0,0);
+						
+			objThumbWrapper.data("objTextPanel", objTextPanel);
+		}
+		
+	}
+	
+	
+	/**
+	 * get item from tile
+	 */
+	this.getItemByTile = function(objTile){
+		return g_thumbs.getItemByThumb(objTile);
+	}
+	
+	
+	/**
+	 * load tile image, place the image on load
+	 */
+	this.loadTileImage = function(objTile){
+		
+		var objImage = getTileImage(objTile);
+			
+		g_functions.checkImagesLoaded(objImage, null, function(objImage,isError){
+			onPlaceImage(null, objTile, jQuery(objImage));
+		});
+		
+	}
+	
+	function _________________GETTERS________________(){};
+	
+	/**
+	 * get tile image
+	 */
+	function getTileImage(objTile){
+		var objImage = objTile.children("img.ug-thumb-image");
+		return(objImage);
+	}
+	
+	
+	/**
+	 * get image overlay
+	 */
+	function getTileOverlayImage(objTile){
+		var objOverlayImage = objTile.children(".ug-tile-image-overlay");
+		return(objOverlayImage);
+	}
+	
+	/**
+	 * get tile color overlay
+	 */
+	function getTileOverlay(objTile){
+		var objOverlay = objTile.children(".ug-thumb-overlay");
+		return(objOverlay);		
+	}
+	
+	
+	/**
+	 * get image effect
+	 */
+	function getTileImageEffect(objTile){		
+		var objImageEffect = objTile.find(".ug-tile-image-overlay img");			
+		return(objImageEffect);
+	}
+
+	
+	/**
+	 * get text panel
+	 */
+	function getTextPanel(objTile){
+		var objTextPanel = objTile.data("objTextPanel");
+		
+		return(objTextPanel);
+	}
+	
+	/**
+	 * get text panel element from the tile
+	 */
+	function getTextPanelElement(objTile){
+		var objTextPanel = objTile.find(".ug-textpanel");
+		
+		return(objTextPanel);
+	}
+	
+	
+	/**
+	 * get button link
+	 */
+	function getButtonLink(objTile){
+		var objButton = objTile.find(".ug-icon-link");
+		if(objButton.length == 0)
+			return(null);
+		
+		return objButton;
+	}
+	
+	/**
+	 * get button zoom
+	 */
+	function getButtonZoom(objTile){
+		var objButton = objTile.find(".ug-button-play");
+		
+		if(objButton.length == 0)
+			return(null);
+		
+		return objButton;
+	}
+	
+	
+	/**
+	 * tells if the tile is over style
+	 */
+	function isOverStyle(objTile){
+		
+		if(objTile.hasClass("ug-thumb-over"))
+			return(true);
+		
+		return(false);
+	}
+	
+	
+	/**
+	 * check if the tile is clickable
+	 */
+	function isTileClickable(objTile){
+		
+		return objTile.hasClass("ug-tile-clickable");
+	}
+	
+	
+	function _________________SETTERS________________(){};
+	
+	
+	/**
+	 * position the elements
+	 */
+	function positionElements(objTile){
+				
+		var objItem = t.getItemByTile(objTile);
+		var objButtonZoom = getButtonZoom(objTile);
+		var objButtonLink = getButtonLink(objTile);
+		var sizeTile = g_functions.getElementSize(objTile);
+		
+		var objImageOverlay = getTileOverlayImage(objTile)
+		var objThumbImage = getTileImage(objTile);
+		var objImageEffect = getTileImageEffect(objTile);
+		
+		//set image overlay size
+		if(g_options.tile_enable_image_effect == true){
+				
+			g_functions.setElementSize(objImageOverlay, sizeTile.width, sizeTile.height);
+			g_functions.cloneElementSizeAndPos(objThumbImage, objImageEffect);
+		}
+		
+		
+		//scale images
+		if(g_temp.isFixedMode){
+						
+			if(g_options.tile_enable_image_effect == false){
+				
+				g_functions.scaleImageCoverParent(objThumbImage, objTile);					
+				
+			}else{	//width the effect
+				
+				g_functions.scaleImageCoverParent(objImageEffect, objImageOverlay);									
+				
+				g_functions.cloneElementSizeAndPos(objImageEffect, objThumbImage);
+				setTimeout(function(){
+					g_functions.cloneElementSizeAndPos(objImageEffect, objThumbImage);
+				},500);
+				
+			}
+			
+		}
+		
+		var objTextPanel = getTextPanel(objTile);
+		
+		
+		//set text panel:
+		if(g_options.tile_enable_textpanel == true){
+			objTextPanel.refresh();
+		}
+		
+
+		//set vertical gap for icons
+		if(objButtonZoom || objButtonLink){
+						
+			var gapVert = 0;
+			if(g_options.tile_enable_textpanel == true){
+				var texPanelSize = g_functions.getElementSize(objTextPanel.getElement());
+				if(texPanelSize.height > 0)
+					gapVert = Math.floor((texPanelSize.height / 2) * -1);  
+			}
+			
+		}
+		
+		if(objButtonZoom && objButtonLink){
+			var sizeZoom = g_functions.getElementSize(objButtonZoom);
+			var sizeLink = g_functions.getElementSize(objButtonLink);
+			var spaceBetween = g_options.tile_space_between_icons;
+			
+			var buttonsWidth = sizeZoom.width + spaceBetween + sizeLink.width;
+			var buttonsX = Math.floor((sizeTile.width - buttonsWidth) / 2); 
+			
+			//trace("X: "+buttonsX+" "+"space: " + spaceBetween);
+			
+			//if space more then padding, calc even space.
+			if(buttonsX < spaceBetween){
+				spaceBetween = Math.floor((sizeTile.width - sizeZoom.width - sizeLink.width) / 3);
+				buttonsWidth = sizeZoom.width + spaceBetween + sizeLink.width;
+				buttonsX = Math.floor((sizeTile.width - buttonsWidth) / 2);
+			}
+			
+			g_functions.placeElement(objButtonZoom, buttonsX, "middle", 0 ,gapVert);
+			g_functions.placeElement(objButtonLink, buttonsX + sizeZoom.width + spaceBetween, "middle", 0, gapVert);
+						
+		}else{
+			
+			if(objButtonZoom)
+				g_functions.placeElement(objButtonZoom, "center", "middle", 0, gapVert);
+			
+			if(objButtonLink)
+				g_functions.placeElement(objButtonLink, "center", "middle", 0, gapVert);
+				
+		}
+		
+		if(objButtonZoom)
+			objButtonZoom.show();
+		
+		if(objButtonLink)
+			objButtonLink.show();
+		
+	}
+	
+	
+	/**
+	 * set tiles htmls
+	 */
+	this.setHtml = function(objParent){
+		g_objParentWrapper = objParent;
+		g_thumbs.setHtmlThumbs(objParent);
+	}
+	
+	
+	/**
+	 * set the overlay effect
+	 */
+	function setImageOverlayEffect(objTile, isActive){
+		var objItem = t.getItemByTile(objTile);
+		var objOverlayImage = getTileOverlayImage(objTile);
+		
+		var animationDuration = g_options.thumb_transition_duration;
+		
+		if(g_options.tile_image_effect_reverse == false){
+			
+			var objThumbImage = getTileImage(objTile);
+			
+			if(isActive){
+				objThumbImage.fadeTo(1,1);			
+				objOverlayImage.stop(true).fadeTo(animationDuration, 0);
+			}
+			else
+				objOverlayImage.stop(true).fadeTo(animationDuration, 1);
+			
+		}else{
+			
+			if(isActive){
+				objOverlayImage.stop(true).fadeTo(animationDuration, 1);
+			}
+			else{
+				objOverlayImage.stop(true).fadeTo(animationDuration, 0);
+			}
+		}
+
+	}
+	
+	
+	/**
+	 * set textpanel effect
+	 */
+	function setTextpanelEffect(objTile, isActive){
+						
+		var animationDuration = g_options.thumb_transition_duration;
+		
+		var objTextPanel = getTextPanelElement(objTile);
+		if(!objTextPanel)
+			return(true);
+		
+		if(g_options.tile_textpanel_appear_type == "slide"){
+			
+			var panelSize = g_functions.getElementSize(objTextPanel);
+			if(panelSize.width == 0)
+				return(false);
+			
+			var startPos = -panelSize.height;
+			var endPos = 0;
+						
+			if(isActive == true){
+								
+				objTextPanel.fadeTo(0,1);
+				
+				if(objTextPanel.is(":animated") == false)
+					objTextPanel.css("bottom",startPos+"px");
+					
+				objTextPanel.stop(true).animate({"bottom":endPos+"px"}, animationDuration);
+				
+			}else{
+				
+				objTextPanel.stop(true).animate({"bottom":startPos+"px"}, animationDuration);
+				
+			}
+			
+			
+		}else{		//fade effect
+			
+			if(isActive == true){
+				objTextPanel.stop(true).fadeTo(animationDuration, 1);
+			}else{
+				objTextPanel.stop(true).fadeTo(animationDuration, 0);
+			}
+			
+		}
+		
+	}
+	
+	
+	/**
+	 * set tile over style
+	 */
+	function setOverStyle(data, objTile){
+		
+		objTile = jQuery(objTile);
+				
+		if(g_options.tile_enable_image_effect)
+			setImageOverlayEffect(objTile, true);
+		
+		var objImageOverlay = objTile.children(".ug-tile-image-overlay");			
+		objImageOverlay.show();
+
+		if(g_options.tile_enable_textpanel == true && g_options.tile_textpanel_always_on == false)
+			setTextpanelEffect(objTile, true);
+		
+	}
+	
+	
+	/**
+	 * set normal style
+	 */
+	function setNormalStyle(data, objTile){
+				
+		objTile = jQuery(objTile);
+				
+		if(g_options.tile_enable_image_effect)
+			setImageOverlayEffect(objTile, false);
+				
+		if(g_options.tile_enable_textpanel == true && g_options.tile_textpanel_always_on == false)
+			setTextpanelEffect(objTile, false);
+		
+	}
+	
+	
+	/**
+	 * set all tiles normal style
+	 */
+	function setAllTilesNormalStyle(objTileExcept){
+		
+		var objTiles = g_thumbs.getThumbs().not(objTileExcept);
+		objTiles.each(function(index, objTile){
+			g_thumbs.setThumbNormalStyle(jQuery(objTile));
+		});
+		
+	}
+	
+	
+	
+	/**
+	 * on tile size change, place elements
+	 */
+	function onSizeChange(data, objTile, forcePosition){
+		
+		objTile = jQuery(objTile);
+				
+		if(g_temp.isFixedMode == true && objTile.data("image_placed") !== true && forcePosition !== true)
+			return(true);
+		
+		positionElements(objTile);			
+	}
+	
+	
+	/**
+	 * on place image event after images loaded
+	 */
+	function onPlaceImage(data, objTile, objImage){
+				
+		positionElements(objTile);
+		objImage.fadeTo(0,1);
+		
+		objTile.data("image_placed", true);
+	}
+	
+	
+	/**
+	 * on tile click on mobile devices on normal state
+	 * set the tile over state
+	 */
+	function onMobileClick(objTile){
+
+		if(isTileClickable(objTile) == true){
+			g_objThis.trigger(t.events.TILE_CLICK, objTile);
+			return(true);
+		}
+		
+		if(isOverStyle(objTile) == false){
+			setAllTilesNormalStyle(objTile);			
+			g_thumbs.setThumbOverStyle(objTile);
+		}
+		
+	}
+	
+	
+	/**
+	 * on tile click event
+	 */
+	function onTileClick(event){
+				
+		var objTile = jQuery(this);
+		
+		var tagname = objTile.prop("tagName").toLowerCase();
+		var isApproved = true;
+		if(g_temp.funcParentApproveClick && g_temp.funcParentApproveClick() == false)
+			isApproved = false;
+				
+		if(tagname == "a"){
+			
+			if(isApproved == false)
+				event.preventDefault();
+							
+		}else{		//in case of div
+			
+			if(isOverStyle(objTile) == false){	//mobile click version
+				
+				if(isApproved == true)
+					onMobileClick(objTile);
+								
+			}else{
+				if(isTileClickable(objTile) == false)
+					return(true);
+				
+				if(isApproved == true)
+					g_objThis.trigger(t.events.TILE_CLICK, objTile);
+			}
+			
+			
+		}
+		
+	}
+	
+	
+	/**
+	 * click on zoom button (as tile click)
+	 */
+	function onZoomButtonClick(event){
+				
+		event.stopPropagation();
+		
+		var objTile = jQuery(this).parents(".ug-tile");
+		
+		var isApproved = true;
+		
+		if(g_temp.funcParentApproveClick && g_temp.funcParentApproveClick() == false)
+			isApproved = false;
+		
+		if(isOverStyle(objTile) == false){
+			onMobileClick(objTile);
+			return(true);
+		}
+			
+		if(isApproved == true){
+			g_objThis.trigger(t.events.TILE_CLICK, objTile);
+			return(false);
+		}
+		
+	}
+	
+	
+	/**
+	 * on link icon click
+	 */
+	function onLinkButtonClick(event){
+		var objTile = jQuery(this).parents(".ug-tile");
+				
+		if(g_temp.funcParentApproveClick && g_temp.funcParentApproveClick() == false)
+			event.preventDefault();
+		
+		//allow click only from over style
+		if(isOverStyle(objTile) == false && g_options.tile_as_link == false){
+			event.preventDefault();
+			onMobileClick(objTile);
+		}
+		
+	}
+	
+	
+	
+	/**
+	 * init events
+	 */
+	this.initEvents = function(){
+		
+		g_thumbs.initEvents();
+		
+		//connect the over and normal style of the regular thumbs
+		jQuery(g_thumbs).on(g_thumbs.events.SETOVERSTYLE, setOverStyle);
+		jQuery(g_thumbs).on(g_thumbs.events.SETNORMALSTYLE, setNormalStyle);
+		jQuery(g_thumbs).on(g_thumbs.events.PLACEIMAGE, onPlaceImage);
+		
+		g_objWrapper.on(g_temp.eventSizeChange, onSizeChange);
+		
+		g_objParentWrapper.delegate(".ug-tile .ug-button-play", "click", onZoomButtonClick);
+		
+		g_objParentWrapper.delegate(".ug-tile", "click", onTileClick);
+		
+		g_objParentWrapper.delegate(".ug-tile .ug-icon-link", "click", onLinkButtonClick);
+	}
+	
+	/**
+	 * destroy the element events
+	 */
+	this.destroy = function(){
+				
+		jQuery(g_thumbs).off(g_thumbs.events.SETOVERSTYLE);
+		jQuery(g_thumbs).off(g_thumbs.events.SETNORMALSTYLE);
+		jQuery(g_thumbs).off(g_thumbs.events.PLACEIMAGE);
+		g_objWrapper.off(g_temp.eventSizeChange);
+		
+		
+		if(g_options.tile_enable_textpanel == true){
+			var objThumbs = g_thumbs.getThumbs();
+			jQuery.each(objThumbs, function(index, thumb){
+				var textPanel = getTextPanel(jQuery(thumb));
+				textPanel.destroy();
+			});
+		}
+		
+		g_thumbs.destroy();
+					
+	}
+	
+	
+	/**
+	 * external init
+	 */
+	this.init = function(gallery, g_thumbs, customOptions){
+		
+		init(gallery, g_thumbs, customOptions);
+	}
+	
+	/**
+	 * set fixed mode
+	 */
+	this.setFixedMode = function(){
+		
+		g_temp.isFixedMode = true;
+	
+	}
+	
+	/**
+	 * set parent approve click function
+	 */
+	this.setApproveClickFunction = function(funcApprove){
+		g_temp.funcParentApproveClick = funcApprove;
+	}
+	
+	/**
+	 * run the tile design
+	 */
+	this.run = function(){
+		
+		//return(false);
+		
+		var objThumbs = g_thumbs.getThumbs();
+		
+		//hide original image if image effect active
+		if(g_options.tile_enable_image_effect == true && g_options.tile_image_effect_reverse == false)
+			objThumbs.children(".ug-thumb-image").fadeTo(0,0);
+		
+		g_thumbs.setHtmlProperties();
+		
+		if(g_temp.isFixedMode == true){
+			objThumbs.children(".ug-thumb-image").fadeTo(0,0);			
+			g_thumbs.loadThumbsImages();
+		}
+	}
+	
+	/**
+	 * get thumbs general option
+	 */
+	this.getObjThumbs = function(){
+		return g_thumbs;
+	}
+	
+	/**
+	 * get options
+	 */
+	this.getOptions = function(){
+		return g_options;
+	}
+	
+}
+/**
+ * tiles class
+ */
+function UGTiles(){
+
+	var t = this, g_objThis = jQuery(this);
+	var g_gallery = new UniteGalleryMain(), g_objGallery, g_objWrapper, g_objParent;	
+	var g_functions = new UGFunctions(), g_arrItems, g_objTileDesign = new UGTileDesign();
+	var g_thumbs = new UGThumbsGeneral(), g_vars = {};
+	
+	var g_options = {
+		 tiles_type: "columns",				//columns / justified - tiles layout type
+		 tiles_col_width: 250,				//column width
+		 tiles_space_between_cols: 3,		//space between images
+		 tiles_justified_row_height: 150,	//base row height of the justified type
+		 tiles_justified_space_between: 3,	//space between the tiles justified type
+
+		 tiles_set_initial_height: true,	//set some estimated height before images show
+		 tiles_enable_transition: true		//enable transition when screen width change
+	};
+	
+	this.events = {
+			THUMB_SIZE_CHANGE: "thumb_size_change",
+			TILES_FIRST_PLACED: "tiles_first_placed"		//only in case of justified
+	};
+	
+	var g_temp = {
+			isFirstTimeRun:true,  //if run once
+			handle:null		//interval handle
+	};
+	
+	
+	function __________GENERAL_________(){};
+	
+	/**
+	 * init the gallery
+	 */
+	function init(gallery, customOptions){
+		
+		g_objects = gallery.getObjects();
+		g_gallery = gallery;
+		g_objGallery = jQuery(gallery);
+		g_objWrapper = g_objects.g_objWrapper;
+		g_arrItems = g_objects.g_arrItems;
+		
+		g_options = jQuery.extend(g_options, customOptions);
+				
+		g_objTileDesign.init(gallery, g_options);
+		
+		g_thumbs = g_objTileDesign.getObjThumbs();
+	}
+	
+	
+	/**
+	 * set the grid panel html
+	 */
+	function setHtml(objParent){
+		
+		if(!objParent)
+			var objParent = g_objWrapper;
+		
+		g_objParent = objParent;
+		
+		var tilesType = g_options.tiles_type;
+		objParent.addClass("ug-tiletype-"+tilesType);
+		
+		g_objTileDesign.setHtml(objParent);
+		
+		objParent.children(".ug-thumb-wrapper").hide();
+	}
+	
+	/**
+	 * set class that enables transition
+	 */
+	function setTransition(){
+		
+		//add css tansition
+		if(g_options.tiles_enable_transition == true)
+			g_objParent.addClass("ug-tiles-transit");
+		
+	}
+	
+	
+	/**
+	 * get parent width
+	 */
+	function getParentWidth(){
+		return g_functions.getElementSize(g_objParent).width;
+	}
+	
+	function __________COLUMN_TYPE_RELATED_________(){};
+	
+	
+	/**
+	 * fill common tiles vars
+	 */
+	function fillTilesVars(){
+		
+		g_vars.colWidth = g_options.tiles_col_width;
+		g_vars.colGap = g_options.tiles_space_between_cols;		
+		
+		g_vars.galleryWidth = getParentWidth();
+		
+		g_vars.numCols = g_functions.getNumItemsInSpace(g_vars.galleryWidth, g_vars.colWidth, g_vars.colGap);
+		g_vars.totalWidth = g_vars.numCols*(g_vars.colWidth + g_vars.colGap) - g_vars.colGap;
+		g_vars.addX = Math.round( (g_vars.galleryWidth - g_vars.totalWidth) / 2 );	//add x to center point
+		g_vars.maxColHeight = 0;
+		
+		
+		//get posx array (constact to all columns)
+		g_vars.arrPosx = [];		
+		for(col = 0; col < g_vars.numCols; col++){
+			var colX = g_functions.getColX(col, g_vars.colWidth, g_vars.colGap);
+		//	trace(colX);
+			g_vars.arrPosx[col] = colX + g_vars.addX;
+		}
+		
+		//trace(g_vars.arrPosx);
+		
+		//empty heights array
+		g_vars.colHeights = [0];		
+	}
+	
+	
+	/**
+	 * place the tiles
+	 */
+	function placeTiles(toShow){
+		
+		if(!toShow)
+			toShow = false;
+		
+		fillTilesVars();
+		
+		var objThumbs = g_thumbs.getThumbs();
+			
+		//place elements
+		for(index = 0; index < objThumbs.length; index++){
+			var objTile = jQuery(objThumbs[index]);
+			placeTile(objTile, toShow, false);
+		}
+		
+		//set gallery height, according the transition
+		var galleryHeight = g_objParent.height();
+		
+		if(g_options.tiles_enable_transition == true && galleryHeight > g_vars.maxColHeight)
+			setTimeout(function(){
+				g_objParent.height(g_vars.maxColHeight);
+			},700);
+		else
+			g_objParent.height(g_vars.maxColHeight);
+		
+	}
+	
+	
+	/**
+	 * get column with minimal height
+	 */
+	function getTilesMinCol(){
+		var numCol = 0;
+		
+		var minHeight = 999999999;
+		
+		for(col = 0; col < g_vars.numCols; col++){
+			
+			if(g_vars.colHeights[col] == undefined || g_vars.colHeights[col] == 0)
+				return col;
+			
+			if(g_vars.colHeights[col] < minHeight){
+				numCol = col;
+				minHeight = g_vars.colHeights[col];
+			}
+		
+		}
+		
+		return(numCol);
+	}
+	
+	
+	/**
+	 * place tile as it loads
+	 */
+	function placeTile(objTile, toShow, setGalleryHeight){
+				
+		var index = objTile.index();
+		
+		var numCol = getTilesMinCol();
+		
+		//set posy
+		var posy = 0;
+		if(g_vars.colHeights[numCol] !== undefined)
+			posy = g_vars.colHeights[numCol];
+		
+		var objSize = g_functions.getElementSize(objTile);
+		var itemHeight = objSize.height;
+		
+		var posx = g_vars.arrPosx[numCol];
+		
+		g_functions.placeElement(objTile, posx, posy);
+		
+		g_vars.colHeights[numCol] = posy + itemHeight + g_vars.colGap;
+		
+		//set max height
+		if(g_vars.maxColHeight < g_vars.colHeights[numCol])
+			g_vars.maxColHeight = g_vars.colHeights[numCol];
+		
+		if(toShow == true)
+			objTile.show();
+				
+		if(setGalleryHeight == true){
+			g_objParent.height(g_vars.maxColHeight);			
+		}
+		
+	}
+	
+		
+	/**
+	 * on single image load
+	 */
+	function onSingleImageLoad(objImage, isError){
+		
+		if(isError == true)
+			return(false);
+				
+		objImage = jQuery(objImage);
+		var objTile = jQuery(objImage).parent();
+		
+		placeTile(objTile, true, true);
+		objTile.fadeTo(0,1);
+		
+		g_objWrapper.trigger(t.events.THUMB_SIZE_CHANGE, objTile);
+		
+	}
+	
+	
+	/**
+	 * run columns type
+	 */
+	function runColumnsType(){
+		
+		//set column width
+		var objThumbs = g_thumbs.getThumbs();
+		objThumbs.css("width",g_options.tiles_col_width + "px");
+		objThumbs.fadeTo(0,0);
+		
+		fillTilesVars();
+		
+		var diffWidth = Math.abs(g_vars.galleryWidth - g_vars.totalWidth);
+		
+		//set initial height of the parent by estimation
+		if(g_options.tiles_set_initial_height == true && g_functions.isScrollbarExists() == false && diffWidth < 25){
+			var numThumbs = objThumbs.length;
+			var numRows = Math.ceil(objThumbs.length / g_vars.numCols);
+			var estimateHeight = numRows * g_options.tiles_col_width * 0.75;
+			g_objParent.height(estimateHeight);
+			fillTilesVars();
+		}
+					
+		var initNumCols = g_vars.numCols;
+		var initWidth = g_vars.galleryWidth;
+		var objImages = jQuery(g_objParent).find("img.ug-thumb-image");
+		
+		var isFirstPlace = false;
+		
+		//on place the tile as it loads. After all tiles loaded,check position again.
+		g_functions.checkImagesLoaded(objImages, function(){
+						
+			fillTilesVars();
+			
+			if(initNumCols != g_vars.numCols || initWidth != g_vars.galleryWidth)
+				placeTiles(false);
+			
+			setTransition();
+			
+		} ,function(objImage, isError){
+			
+			if(isFirstPlace == false)
+				g_objThis.trigger(t.events.TILES_FIRST_PLACED);
+			
+			isFirstPlace = true;
+			
+			onSingleImageLoad(objImage, isError);
+		
+		});
+	}
+	
+	
+	function __________JUSTIFIED_TYPE_RELATED_________(){};
+
+	/**
+	 * ------------ JUSTIFIED TYPE RELATED FUNCTIONS ----------------
+	 */
+	
+	function getJustifiedData(){
+		
+		var galleryWidth = getParentWidth();
+		
+		var objTiles = g_thumbs.getThumbs();
+		var rowHeightOpt = g_options.tiles_justified_row_height;
+		var arrWidths = [];
+		var totalWidth = 0;
+		var gap = g_options.tiles_justified_space_between;
+		
+		//get arr widths and total width
+		jQuery.each(objTiles, function(index, objTile){
+			objTile = jQuery(objTile);
+			var objSize = g_functions.getElementSize(objTile);
+						
+			var tileWidth = objSize.width;
+			var tileHeight = objSize.height;
+			
+			//cache size to take always original
+			if(objTile.data("originalWidth") !== undefined){
+				tileWidth = objTile.data("originalWidth");
+				tileHeight = objTile.data("originalHeight");
+			}else{
+				objTile.data("originalWidth", tileWidth);
+				objTile.data("originalHeight", tileHeight);				
+			}
+			            
+			
+			if (tileHeight !== rowHeightOpt) 
+				tileWidth = Math.floor(tileWidth / tileHeight * rowHeightOpt);
+			
+			arrWidths[index] = tileWidth;
+			
+			totalWidth += tileWidth;
+		});
+
+		
+		var numRows = Math.ceil(totalWidth / galleryWidth);
+		var finalRowWidth = totalWidth / numRows;
+
+		
+		//fill rows array, break tiles to rows
+		var arrRows = [], eachRowWidth = 0;
+		var rowsWidths = [], rowsTiles = [], row = [];
+		var progressWidth = 0, numRow = 0;
+		
+		jQuery.each(objTiles, function(index, objTile){
+			var tileWidth = arrWidths[index];
+						
+			if( (progressWidth + tileWidth / 2) > (numRow+1) * finalRowWidth){
+				
+				rowsWidths[arrRows.length] = eachRowWidth;				
+				arrRows.push(row);
+				row = [];
+				eachRowWidth = 0;
+				numRow++;
+			}
+			
+			progressWidth += tileWidth;
+			eachRowWidth += tileWidth;
+			
+			row.push(objTile);
+		});
+		
+		rowsWidths[arrRows.length] = eachRowWidth;
+		arrRows.push(row);
+				
+		
+		//set heights and position images:	
+		var arrRowWidths = [];
+		var arrRowHeights = [];
+		var totalHeight = 0;
+		
+		jQuery.each(arrRows, function(index, row){
+			
+			var numTiles = row.length;
+			var rowWidth = rowsWidths[index];
+			
+			var gapWidth = (row.length-1) * gap;
+
+			var ratio = (galleryWidth - gapWidth) / rowWidth;
+			var rowHeight = Math.round(rowHeightOpt * ratio);
+			
+			//count total height
+			totalHeight += rowHeight;
+			if(index > 0)
+				totalHeight += gap;
+			
+			arrRowHeights.push(rowHeight);
+			
+			//ratio between 2 heights for fixing image width:
+            var ratioHeights = rowHeight / rowHeightOpt;
+			
+            //set tiles sizes:
+            var arrRowTileWidths = [];
+            var actualRowWidth = gapWidth;
+            
+            jQuery.each(row, function(indexInRow, tile){
+            	var objTile = jQuery(tile);
+            	var tileIndex = objTile.index();
+            	var tileWidth = arrWidths[tileIndex];
+            	var newWidth = Math.round(tileWidth * ratioHeights);
+            	
+            	arrRowTileWidths[indexInRow] = newWidth;
+            	actualRowWidth += newWidth;            	
+            });
+        	
+            //fix images widths by adding or reducing 1 pixel
+            var diff = actualRowWidth - galleryWidth;
+            
+            var newTotal = 0;
+            jQuery.each(arrRowTileWidths, function(indexInRow, width){
+            	
+            	if(diff == 0)            		
+            		return(false);
+            	
+            	if(diff < 0){
+            		arrRowTileWidths[indexInRow] = width + 1;
+            		diff++;
+            	}else{
+            		arrRowTileWidths[indexInRow] = width - 1;
+            		diff--;
+            	}
+            	
+            	//if at last item diff stays, add all diff
+            	if(indexInRow == (arrRowTileWidths.length-1) && diff != 0)
+            		arrRowTileWidths[indexInRow] -= diff;
+            });
+            
+            arrRowWidths[index] = arrRowTileWidths;
+		});
+		
+		
+		var objData = {
+				arrRows: arrRows,
+				arrRowWidths: arrRowWidths,
+				arrRowHeights: arrRowHeights,
+				gap: gap,
+				totalHeight: totalHeight
+		};
+		
+		return(objData);
+	}
+
+	
+	/**
+	 * put justified images
+	 */
+	function placeJustified(toShow){
+		
+		if(!toShow)
+			var toShow = false;
+		
+		var parentWidth = getParentWidth();
+
+		var objData = getJustifiedData();
+		
+		//if the width changed after height change (because of scrollbar), recalculate		
+		g_objParent.height(objData.totalHeight);
+	
+		var parentWidthAfter = getParentWidth();
+		if(parentWidthAfter != parentWidth)
+			objData = getJustifiedData();
+		
+		var posy = 0;
+		var totalWidth = 0;		//just count total widht for check / print
+		jQuery.each(objData.arrRows, function(index, row){
+        	
+			var arrRowTileWidths = objData.arrRowWidths[index];
+			var rowHeight = objData.arrRowHeights[index];
+			
+			//resize and place tiles
+            var posx = 0;
+            jQuery.each(row, function(indexInRow, tile){
+            	            	            	
+            	var objTile = jQuery(tile);
+            	var tileHeight = rowHeight;
+            	var tileWidth = arrRowTileWidths[indexInRow];
+            	
+            	g_functions.setElementSizeAndPosition(objTile, posx, posy, tileWidth, tileHeight);
+            	 
+            	posx += tileWidth;
+            	
+            	if(posx > totalWidth)
+            		totalWidth = posx;
+            	
+            	posx += objData.gap;
+            	
+            	if(toShow == true)
+            		jQuery(tile).show();
+            	
+        			g_objWrapper.trigger(t.events.THUMB_SIZE_CHANGE, objTile);
+            });
+            
+            posy += (rowHeight + objData.gap);
+            
+		});
+		
+	}
+	
+	
+	
+	
+	/**
+	 * run justified type gallery
+	 */
+	function runJustifiedType(){
+		
+		var objImages = jQuery(g_objWrapper).find("img.ug-thumb-image");
+		var objTiles = g_thumbs.getThumbs();
+		
+		objTiles.fadeTo(0,0);				
+		
+		g_functions.checkImagesLoaded(objImages, function(){
+			
+			setTimeout(function(){
+				placeJustified(true);
+				objTiles.fadeTo(0,1);
+				g_objThis.trigger(t.events.TILES_FIRST_PLACED);
+				setTransition();
+			});
+			
+		});
+				
+	}
+	
+
+	/**
+	 * run the gallery after init and set html
+	 */
+	function run(){
+		
+		//show tiles
+		g_objWrapper.children(".ug-tile").show();
+		
+		g_objTileDesign.run();
+				
+		switch(g_options.tiles_type){
+			default:
+			case "columns":
+				runColumnsType();
+			break;
+			case "justified":
+				runJustifiedType();
+			break;
+		}
+		
+		if(g_temp.isFirstTimeRun == true){
+			initEvents();
+		}
+		
+		g_temp.isFirstTimeRun = false;
+	}
+	
+		
+	
+	function __________EVENTS_______(){};
+	
+	/**
+	 * on resize event
+	 */
+	function onResize(){
+		
+		if(g_temp.isFirstTimeRun == true)
+			return(true);
+			
+		switch(g_options.tiles_type){
+			case "columns":
+				placeTiles(false);
+			break;
+			case "justified":
+				placeJustified(false);
+			break;
+		}
+		
+	}
+
+	
+	/**
+	 * init panel events
+	 */
+	function initEvents(){
+		
+		g_objGallery.on(g_gallery.events.SIZE_CHANGE, onResize);
+		
+		g_objTileDesign.initEvents();
+				
+	}
+	
+	/**
+	 * destroy the events
+	 */
+	this.destroy = function(){
+		
+		g_objGallery.off(g_gallery.events.SIZE_CHANGE);
+		g_objTileDesign.destroy();
+	}
+	
+	
+	/**
+	 * init function for avia controls
+	 */
+	this.init = function(gallery, customOptions){
+		
+		init(gallery, customOptions);
+	}
+
+	
+	/**
+	 * set html
+	 */
+	this.setHtml = function(objParent){
+		setHtml(objParent);
+	}
+	
+	/**
+	 * get tile design object
+	 */
+	this.getObjTileDesign = function(){
+		return(g_objTileDesign);
+	}
+	
+	/**
+	 * set html and properties
+	 */	
+	this.run = function(){
+		run();
+	}
+	
+	
+}
+
+
+
 /**f
  * touch thumbs control class
  * addon to strip gallery
@@ -11556,7 +17097,7 @@ function UGTouchSliderControl(){
 	
 	this.events = {
 		CLICK:"click"
-	}
+	};
 	
 	var g_options = {
 		  slider_transition_continuedrag_speed: 250,				//the duration of continue dragging after drag end
@@ -11566,7 +17107,6 @@ function UGTouchSliderControl(){
 	};
 	
 	var g_temp = {
-		
 		touch_active: false,		
 		startMouseX: 0,		
 		startMouseY: 0,
@@ -11576,7 +17116,8 @@ function UGTouchSliderControl(){
 		startTime:0,
 		isInitDataValid:false,
 		slides: null,
-		lastNumTouches:0
+		lastNumTouches:0,
+		isDragging: false
 	};
 	
 	
@@ -11680,21 +17221,24 @@ function UGTouchSliderControl(){
 		
 		if(g_parent.isInnerInPlace() == true)
 			return(false);
-				
+						
 		//trigger before return event
 		g_objParent.trigger(g_parent.events.BEFORE_RETURN);
-		
+				
 		if(!slides)
 			var slides = g_parent.getSlidesReference();
 		
 		var posCurrent = g_functions.getElementSize(slides.objCurrentSlide);
 		var destX = -posCurrent.left;
-		
+				
 		//animate objects		
 		g_objInner.animate({left:destX+"px"},{
 			duration: g_options.slider_transition_return_speed,
 			easing: g_options.slider_transition_continuedrag_easing,
-			queue: false
+			queue: false,
+			complete: function(){
+				g_objParent.trigger(g_parent.events.AFTER_RETURN);
+			}
 		});
 		
 	}
@@ -11765,6 +17309,7 @@ function UGTouchSliderControl(){
 				queue: false,
 				always:function(){
 					changeItem(direction);
+					g_objParent.trigger(g_parent.events.AFTER_DRAG_CHANGE);
 				}
 			});
 			
@@ -11787,7 +17332,7 @@ function UGTouchSliderControl(){
 		var direction = (diff < 0) ? "left":"right";
 		
 		var objZoomSlider = g_parent.getObjZoom();
-				
+		
 		//don't drag if the zoom panning enabled
 		//store init position after image zoom pan end
 		if(objZoomSlider){
@@ -11823,9 +17368,13 @@ function UGTouchSliderControl(){
 				currentPosx = g_temp.startPosx + diff/3;
 			}
 		}
-				
-		g_objInner.css("left", currentPosx+"px");
 		
+		if(g_temp.isDragging == false){
+			g_temp.isDragging = true;
+			g_objParent.trigger(g_parent.events.START_DRAG);
+		}
+		
+		g_objInner.css("left", currentPosx+"px");
 	}
 	
 	/**
@@ -11885,6 +17434,8 @@ function UGTouchSliderControl(){
 		
 		event.preventDefault();
 		
+		g_temp.isDragging = false;
+		
 		//debugLine("touchstart", true, true);
 		
 		//check if the slides are changing from another event.
@@ -11908,7 +17459,6 @@ function UGTouchSliderControl(){
 		}
 		
 		enableTouchActive("1", event);
-
 	}
 	
 	
@@ -11935,7 +17485,7 @@ function UGTouchSliderControl(){
 		var mousePos = g_functions.getMousePosition(event);
 		g_temp.lastMouseX = mousePos.pageX;
 		g_temp.lastMouseY = mousePos.pageY;
-		
+				
 		//debugLine("lastX:" + g_temp.lastMouseX, true, true);
 		
 		handleSliderDrag(event);
@@ -12018,7 +17568,30 @@ function UGTouchSliderControl(){
 				
 		initEvents();
 	}
-
+	
+	
+	/**
+	 * get last mouse position
+	 */
+	this.getLastMousePos = function(){
+		var obj = {
+			pageX: g_temp.lastMouseX,
+			pageY: g_temp.lastMouseY
+		};
+		
+		return(obj);
+	}
+	
+	
+	/**
+	 * is touch active
+	 */
+	this.isTouchActive = function(){
+		
+		return(g_temp.touch_active);
+		
+	}
+	
 	
 }
 
@@ -12216,7 +17789,7 @@ function UGTouchThumbsControl(){
 		g_temp.startTime = jQuery.now();
 		g_temp.startPos = g_temp.innerPos;
 		
-		g_temp.lastTime = g_temp.startTime
+		g_temp.lastTime = g_temp.startTime;
 		g_temp.lastPos = g_temp.startPos;
 		g_temp.speed = 0;
 	}
@@ -12501,6 +18074,16 @@ function UGTouchThumbsControl(){
 		
 	}
 	
+	
+	/**
+	 * destroy the touch events
+	 */
+	this.destroy = function(){
+		g_objStrip.unbind("mousedown");
+		g_objStrip.unbind("touchstart");
+		jQuery(window).add("body").unbind("mouseup").unbind("touchend");
+		jQuery("body").unbind("mousemove").unbind("touchmove");
+	}
 }
 
 
@@ -13280,6 +18863,10 @@ function UGYoutubeAPI(){
 	var t = this, g_player = null, g_intHandle, g_isPlayerReady = false;
 	var g_objThis = jQuery(this), g_prevState = -1, g_lastContainerID;	//unstarted
 	
+	var g_options = {
+			video_youtube_showinfo: true
+	}
+	
 	this.events = {
 		START_PLAYING: "start_playing",
 		STOP_PLAYING: "stop_playing"
@@ -13296,7 +18883,9 @@ function UGYoutubeAPI(){
 		}
 		
 		var playerVars = {
-			controls:2, showinfo:1, rel:0
+			controls:2,
+			showinfo:g_options.video_youtube_showinfo, 
+			rel:0
 		};
 		
 		if(isAutoplay === true)
@@ -13332,6 +18921,14 @@ function UGYoutubeAPI(){
 	
 	
 	/**
+	 * set options
+	 */
+	this.setOptions = function(objOptions){
+		g_options = jQuery.extend(g_options, objOptions);
+	}
+	
+	
+	/**
 	 * put the youtube video
 	 */
 	this.putVideo = function(divID, videoID, width, height, isAutoplay){
@@ -13340,7 +18937,6 @@ function UGYoutubeAPI(){
 			putVideoActually(divID, videoID, width, height, isAutoplay);
 			return(true);
 		}
-		
 		
 		//if no API present, wait for the API being ready
 		this.loadAPI();
@@ -13370,6 +18966,12 @@ function UGYoutubeAPI(){
 	 * trigger events
 	 */
 	function onPlayerStateChange(){
+		
+		if(typeof g_player.getPlayerState != "function"){
+			trace("Youtube API error: can't get player state");
+			return(false);
+		}
+		
 		var state = g_player.getPlayerState();
 				
 		switch(state){
@@ -13410,7 +19012,7 @@ function UGYoutubeAPI(){
 	 * do some command
 	 */
 	this.doCommand = function(command, opt1){
-				
+		
 		if(!g_player)
 			return(true);
 		
@@ -13419,12 +19021,21 @@ function UGYoutubeAPI(){
 		
 		switch(command){
 			case "play":
+				if(typeof g_player.playVideo != "function")
+					return(false);
+				
 				g_player.playVideo();
 			break;
 			case "pause":
+				if(typeof g_player.pauseVideo != "function")
+					return(false);
+				
 				g_player.pauseVideo();
 			break;
 			case "seek":
+				if(typeof g_player.seekTo != "function")
+					return(false);
+
 				g_player.seekTo(opt1);
 			break;
 			case "stopToBeginning":
@@ -13524,11 +19135,15 @@ function UGVideoPlayer(){
 	var g_html5API = new UGHtml5MediaAPI(), g_soundCloudAPI = new UGSoundCloudAPI(), g_wistiaAPI = new UGWistiaAPI();
 	var g_objPlayer, g_objYoutube, g_objVimeo, g_objHtml5, g_objButtonClose, g_objSoundCloud, g_objWistia;
 	
-	var g_options = {};
+	var g_options = {
+			video_enable_closebutton: true
+	};
 	
 	this.events = {
-			SHOW: "show",
-			HIDE: "hide"
+			SHOW: "video_show",
+			HIDE: "video_hide",
+			PLAY_START: "video_play_start",
+			PLAY_STOP: "video_play_stop"
 	};
 	
 	var g_temp = {
@@ -13551,6 +19166,8 @@ function UGVideoPlayer(){
 			throw new Error("missing gallery ID for video player, it's a must!");
 			
 		g_options =  jQuery.extend(g_options, optOptions);
+		
+		g_youtubeAPI.setOptions(g_options);
 		
 		if(isStandAloneMode && isStandAloneMode == true)
 			g_temp.standAloneMode = true;
@@ -13577,7 +19194,7 @@ function UGVideoPlayer(){
 		html += "<div id='"+g_temp.soundCloudPlayerID+"' class='ug-videoplayer-wrapper ug-videoplayer-soundcloud'></div>";
 		html += "<div id='"+g_temp.wistiaPlayerID+"' class='ug-videoplayer-wrapper ug-videoplayer-wistia'></div>";
 		
-		if(g_temp.standAloneMode == false)
+		if(g_temp.standAloneMode == false && g_options.video_enable_closebutton == true)
 			html += "<div class='ug-videoplayer-button-close'></div>";
 		
 		html += "</div>";
@@ -13591,7 +19208,7 @@ function UGVideoPlayer(){
 		g_objSoundCloud = g_objPlayer.children(".ug-videoplayer-soundcloud");
 		g_objWistia = g_objPlayer.children(".ug-videoplayer-wistia");
 		
-		if(g_temp.standAloneMode == false)
+		if(g_temp.standAloneMode == false && g_options.video_enable_closebutton == true)
 			g_objButtonClose = g_objPlayer.children(".ug-videoplayer-button-close")
 	}
 
@@ -13610,6 +19227,8 @@ function UGVideoPlayer(){
 	 */
 	function onPlayStart(){
 		
+		g_objThis.trigger(t.events.PLAY_START);
+		
 		if(g_objButtonClose)
 			g_objButtonClose.hide();
 	}
@@ -13620,9 +19239,12 @@ function UGVideoPlayer(){
 	 */
 	function onPlayStop(){
 		
+		g_objThis.trigger(t.events.PLAY_STOP);
+		
 		if(g_objButtonClose)
 			g_objButtonClose.show();
 	}
+	
 	
 	/**
 	 * init events
@@ -13657,6 +19279,37 @@ function UGVideoPlayer(){
 	
 	
 	/**
+	 * destroy the video player events
+	 */
+	this.destroy = function(){
+		
+		if(g_objButtonClose){
+			g_objButtonClose.off("click");
+			g_objButtonClose.off("touchend");
+		}
+		
+		//youtube events
+		jQuery(g_youtubeAPI).off(g_youtubeAPI.events.START_PLAYING);
+		jQuery(g_youtubeAPI).off(g_youtubeAPI.events.STOP_PLAYING);
+		
+		//vimeo events
+		jQuery(g_vimeoAPI).off(g_vimeoAPI.events.START_PLAYING);
+		jQuery(g_vimeoAPI).off(g_vimeoAPI.events.STOP_PLAYING);
+		
+		//html5 video events
+		jQuery(g_html5API).off(g_html5API.events.START_PLAYING);
+		jQuery(g_html5API).off(g_html5API.events.STOP_PLAYING);
+		
+		jQuery(g_soundCloudAPI).off(g_soundCloudAPI.events.START_PLAYING, onPlayStart);
+		jQuery(g_soundCloudAPI).off(g_soundCloudAPI.events.STOP_PLAYING, onPlayStop);
+		
+		jQuery(g_wistiaAPI).off(g_wistiaAPI.events.START_PLAYING, onPlayStart);
+		jQuery(g_wistiaAPI).off(g_wistiaAPI.events.STOP_PLAYING, onPlayStop);
+		
+	}
+	
+	
+	/**
 	 * init events
 	 */
 	this.initEvents = function(){
@@ -13678,6 +19331,12 @@ function UGVideoPlayer(){
 		
 	}
 	
+	/**
+	 * set video player position
+	 */
+	this.setPosition = function(left, top){
+		g_functions.placeElement(g_objPlayer, left, top);
+	}
 	
 	/**
 	 * get video player object for placing
@@ -13771,7 +19430,7 @@ function UGVideoPlayer(){
 	 * play youtube inside the video, isAutoplay - true by default
 	 */
 	this.playYoutube = function(videoID, isAutoplay){
-		
+			
 		if(typeof isAutoplay == "undefined")
 			var isAutoplay = true;
 		
@@ -13779,10 +19438,16 @@ function UGVideoPlayer(){
 		
 		g_objYoutube.show();
 		
+		var objYoutubeInner = g_objYoutube.children("#"+g_temp.youtubeInnerID);
+		if(objYoutubeInner.length == 0)
+			g_objYoutube.append("<div id='"+g_temp.youtubeInnerID+"'></div>");
+			
+		
 		if(g_youtubeAPI.isPlayerReady() == true && g_temp.standAloneMode == true)
 			g_youtubeAPI.changeVideo(videoID, isAutoplay);
-		else	
+		else{
 			g_youtubeAPI.putVideo(g_temp.youtubeInnerID, videoID, "100%", "100%", isAutoplay);
+		}
 	}
 	
 	
@@ -13973,13 +19638,17 @@ function UGZoomSliderControl(){
 		g_temp.objParentSize = g_functions.getElementSize(g_temp.objParent);
 		
 		var scaleMode = getFitScaleMode();
-		g_temp.objFitImageSize = g_functions.getImageInsideParentDataByImage(g_temp.objImage, scaleMode);
+		
+		objPadding = g_parent.getObjImagePadding();
+		
+		g_temp.objFitImageSize = g_functions.getImageInsideParentDataByImage(g_temp.objImage, scaleMode, objPadding);
 		
 		var currentTime = jQuery.now();
 		g_temp.storeImageLastTime = currentTime;
 		
 		return(true);
 	}
+	
 	
 	/**
 	 * zoom current image
@@ -13996,14 +19665,16 @@ function UGZoomSliderControl(){
 		//flag if the images zoomed
 		var isZoomed = true;
 		
+		var objPadding = g_parent.getObjImagePadding();
+				
 		if(mode == "back"){	
 			var objOriginalSize = g_functions.getImageOriginalSize(objImage);
-			g_functions.scaleImageFitParent(objImage, objOriginalSize.width, objOriginalSize.height, scaleMode);
+			g_functions.scaleImageFitParent(objImage, objOriginalSize.width, objOriginalSize.height, scaleMode, objPadding);
 		}
 		else{			
 			var zoomIn = (mode == "in")?true:false;
 			
-			isZoomed = g_functions.zoomImageInsideParent(objImage, zoomIn, g_options.slider_zoom_step, mousePos, scaleMode, g_options.slider_zoom_max_ratio);
+			isZoomed = g_functions.zoomImageInsideParent(objImage, zoomIn, g_options.slider_zoom_step, mousePos, scaleMode, g_options.slider_zoom_max_ratio, objPadding);
 		}
 		
 		if(isZoomed == true){
@@ -14158,12 +19829,13 @@ function UGZoomSliderControl(){
 				
 		var isReturnX = false, isReturnY = false, newX = 0, newY = 0;
 		var objSize = g_functions.getElementSize(g_temp.objImage);
-		var objCenterPos = g_functions.getElementCenterPosition(g_temp.objImage);
+		var objImagePadding = g_parent.getObjImagePadding();
+				
+		var objCenterPos = g_functions.getElementCenterPosition(g_temp.objImage, objImagePadding);
 		
 		g_temp.panXActive = (g_temp.objImageSize.width > g_temp.objParentSize.width);
 		g_temp.panYActive = (g_temp.objImageSize.height > g_temp.objParentSize.height);
-		
-		
+				
 		
 		if(g_temp.panYActive == true){
 			
@@ -14381,7 +20053,7 @@ function UGZoomSliderControl(){
 	 * check return the image from zoom
 	 */
 	function checkReturnFromZoom(){
-		
+				
 		if(g_temp.objImage == undefined || g_temp.objImage.length == 0)
 			return(true);
 		
@@ -14401,14 +20073,13 @@ function UGZoomSliderControl(){
 				height: g_temp.objFitImageSize.imageHeight + "px"
 			};
 			
-
 			g_temp.objImage.animate(objCss,{
 				duration: g_options.slider_zoom_return_pan_duration,
 				easing: g_options.slider_zoom_return_pan_easing,
 				queue: false
 			});
 			
-		}else{
+		}else{			
 			checkReturnAfterPan();
 		}
 		

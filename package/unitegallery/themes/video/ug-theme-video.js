@@ -15,7 +15,6 @@ function UGTheme_video(){
 	var g_objPanel = new UGStripPanel();
 	
 
-	
 	//theme options
 	var g_options = {
 			theme_skin: "right-thumb",			//right-thumb | right-title-only | right-no-thumb
@@ -107,8 +106,6 @@ function UGTheme_video(){
 	function runTheme(){
 		
 		setHtml();
-
-		setSizeClass();
 		
 		initAndPlaceElements();
 		
@@ -119,41 +116,6 @@ function UGTheme_video(){
 	}
 	
 	
-	/**
-	 * remove all size classes
-	 */
-	function removeAllSizeClasses(){
-		
-		g_objWrapper.removeClass("ug-under-480");
-		g_objWrapper.removeClass("ug-under-780");
-		g_objWrapper.removeClass("ug-under-960");
-	
-	}
-	
-	
-	/**
-	 * set size class to the wrapper
-	 */
-	function setSizeClass(){
-		var objSize = g_gallery.getSize();
-		var width = objSize.width;
-				
-		var addClass = "";
-		
-		if(width <= 480){
-			addClass = "ug-under-480";			
-		}else
-		if(width <= 780){
-			addClass = "ug-under-780";			
-		}else
-		if(width < 960){
-			addClass = "ug-under-960";
-		}
-		
-		removeAllSizeClasses();
-		if(addClass != "")
-			g_objWrapper.addClass(addClass);
-	}
 	
 	
 	/**
@@ -309,7 +271,6 @@ function UGTheme_video(){
 	 */
 	function onSizeChange(){
 				
-		setSizeClass();
 		initAndPlaceElements();
 	}
 	
@@ -326,17 +287,17 @@ function UGTheme_video(){
 				g_objPlayer.playYoutube(selectedItem.videoid, g_options.theme_autoplay);
 			break;
 			case "vimeo":
-				g_objPlayer.playVimeo(selectedItem.videoid, false);
+				g_objPlayer.playVimeo(selectedItem.videoid, g_options.theme_autoplay);
 			break;
 			case "html5video":
-				g_objPlayer.playHtml5Video(selectedItem.videoogv, selectedItem.videowebm, selectedItem.videomp4, selectedItem.urlImage, false);
+				g_objPlayer.playHtml5Video(selectedItem.videoogv, selectedItem.videowebm, selectedItem.videomp4, selectedItem.urlImage, g_options.theme_autoplay);
 			break;
 			case "wistia":
-				g_objPlayer.playWistia(selectedItem.videoid, false);
+				g_objPlayer.playWistia(selectedItem.videoid, g_options.theme_autoplay);
 			break;			
 			case "soundcloud":
-				g_objPlayer.playSoundCloud(selectedItem.trackid, false);
-			break;			
+				g_objPlayer.playSoundCloud(selectedItem.trackid, g_options.theme_autoplay);
+			break;
 		}
 		
 	}
@@ -346,7 +307,7 @@ function UGTheme_video(){
 	 * init buttons functionality and events
 	 */
 	function initEvents(){
-				
+		
 		g_objGallery.on(g_gallery.events.SIZE_CHANGE,onSizeChange);
 		g_objGallery.on(g_gallery.events.ITEM_CHANGE,onItemChange);
 		

@@ -1,3 +1,127 @@
+version 1.3.7
+
+-bug fix: fixed carousel text panel didn't appeared on cloned items
+
+version 1.3.6
+
+-bug fix: fixed bug when closing the lightbox
+
+version 1.3.5
+
+-bug fix: the lightbox was closing on video slider touch
+
+version 1.3.4
+
+-feature: added mobile hide options to slider buttons and zoom panel
+
+version 1.3.3
+
+-feature: added top position navigation option in carousel view
+
+version 1.3.2
+
+-bug fix: fixed the flickering when close compact lightbox with view playing.
+-bug fix: fixed bug with text panel not always on on themes.
+
+version 1.3.1
+
+-bug fix: text panel was not show on carousel cloned items
+-bug fix: fixed issue with one item only on carousel
+
+version 1.3
+
+-feature: added "compact" lightbox type
+
+version 1.2.16
+
+-bug fix: fixed the responsivness of regular themes.
+
+version 1.2.15
+
+-bug fix: fixed hide preloader on tiles theme
+-bug fix: fixed empty image was trying to load
+
+version 1.2.14
+
+-feature: added lightbox close on escape key
+
+version 1.2.13
+
+-bug fix: make all the themes work within tabs
+
+version 1.2.12
+
+-bug fix: make the gallery to work within tabs
+
+version 1.2.11
+
+-bug fix: added clickable function for carousel and tiles grid mode for mobile and tablet
+
+version 1.2.10
+
+-bug fix: adopted tiles clickable functions for mobile and tablet
+
+version 1.2.9
+
+-bug fix: fixed text align in lightbox
+
+version 1.2.8
+
+-feature: added tiles text panel text source, title or description
+
+version 1.2.7
+
+-feature: added disable lightbox option (tile_enable_action).
+
+version 1.2.6
+
+-bug fix: fixed some bug with lightbox text cut off
+
+version 1.2.5
+
+-change: added css protection against unwanted css transitions
+
+version 1.2.4
+
+- bug fix: fixed destorted images on some of the themes like avada
+
+version 1.2.3
+
+-feature: added lightbox additional options including lightbox slider options
+
+version 1.2.2
+
+-bug fix: fixed lightbox textpanel positioning on mobile
+
+version 1.2.1
+
+-bug fix: fixed tiles type total height
+-bug fix: adopted the tiles galleries for touch
+-bug fix: fixed lightbox positioning when back from drag
+-bug fix: fixed tiles youtube play issues
+
+version 1.2
+
+-added theme: tiles (columns,justified) 
+-added theme: tilesgrid
+-added theme: carousel
+
+-option add: added grid option: grid_padding.
+-option add: added textpanel options: textpanel_fontfamily, etc.
+-option add: added option: slider_background_color
+-option add: added option: bullets_space_between to bullets object (for tiles types)
+-option add: added option: tiles_height, tiles_width for tiles fixed type
+-option add: added youtube video options: video_youtube_showinfo,
+
+-change:  removed background color from the gallery wrapper
+-change:  changed gallery min height and min width options to fit into mobile devices.
+
+-bug fix: fixed video gallery autoplay for vimeo video
+-bug fix: fixed video gallery description size
+-bug fix: fixed keyboard navigation in google chrome
+-bug fix: fixed bullets left margin on first item
+
+
 version (1.1.2015) 1.1.6
 
 - bug fix: fixed video gallery title and description skin mobile view

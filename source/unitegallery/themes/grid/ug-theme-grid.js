@@ -209,7 +209,7 @@ function UGTheme_grid(){
 	 * init size of the thumbs panel
 	 */
 	function initThumbsPanel(){
-		
+				
 		//set size:
 		var objGallerySize = g_gallery.getSize();
 		if(g_temp.isHorPos == true)
@@ -367,6 +367,21 @@ function UGTheme_grid(){
 			jQuery(g_objPanel).on(g_objPanel.events.FINISH_MOVE, onPanelMove);
 		}
 		
+	}
+	
+	
+	/**
+	 * destroy the theme events
+	 */
+	this.destroy = function(){
+		
+		g_objGallery.off(g_gallery.events.SIZE_CHANGE,onSizeChange);		
+		
+		if(g_objPanel)
+			jQuery(g_objPanel).off(g_objPanel.events.FINISH_MOVE);
+		
+		g_objPanel.destroy();
+		g_objSlider.destroy();
 	}
 	
 	
