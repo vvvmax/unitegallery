@@ -881,25 +881,24 @@ function UGThumbsGrid(){
 		
 	}
 	
+	
 	/**
 	 * handle scroll top, return if scroll mode or not
 	 */
-	function handleScrollTop(objData){
+	function handleScrollTop(){
+		
+		if(g_options.grid_vertical_scroll_ondrag == false)
+			return(false);
 		
 		if(g_temp.isNavigationVertical == true)
 			return(false);
 		
-		if(Math.abs(objData.diffMouseY) < Math.abs(objData.diffMouseX))
-			return(false);
+		var scrollDir = g_functions.handleScrollTop(g_temp.storedEventID);
 		
-		var currentScrollTop = jQuery(document).scrollTop();
+		if(scrollDir === "vert")
+			return(true);
 		
-		var toScroll = objData.diffMouseY - currentScrollTop;
-		var scrollPos = objData.scrollTop - toScroll;
-		if(scrollPos > 0)
-			jQuery(document).scrollTop(scrollPos);
-		
-		return(true);
+		return(false);
 	}
 	
 	
@@ -917,11 +916,11 @@ function UGThumbsGrid(){
 		
 		var objData = g_functions.getStoredEventData(g_temp.storedEventID, g_temp.isNavigationVertical);
 		
-		if(g_options.grid_vertical_scroll_ondrag == true){
-			var isScroll = handleScrollTop(objData);
-			if(isScroll)
-				return(true);
-		}
+		//check if was vertical scroll
+		var isScroll = handleScrollTop();
+		if(isScroll)
+			return(true);
+		
 		
 		var diff = objData.diffMousePos;
 		var innerPos = objData.startInnerPos + diff;

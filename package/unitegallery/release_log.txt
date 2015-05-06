@@ -1,3 +1,27 @@
+version 1.4.1
+
+-bug fix: fixed some bug in justified tiles view in mobile width
+-bug fix: fixed issue with video size at tabs
+
+version 1.4
+
+-bug fix: add preloader to video player
+-change: video in lightbox compact mode opens in frame instead of on full screen
+
+version 1.3.9
+
+-feature: added option: slider_background_opacity
+-feature: added option: gallery_mousewheel_role
+-feature: added scale mode: fitdown
+-feature: added vertical page scroll on drag 
+
+-change: when go to full screen mode, disable the pause on mouseover mode
+-bug fix: carousel tile was dissapeared when size change less then tile width
+
+version 1.3.8
+
+-bug fix: fixed carousel related bug that text panel was over the icons
+
 version 1.3.7
 
 -bug fix: fixed carousel text panel didn't appeared on cloned items

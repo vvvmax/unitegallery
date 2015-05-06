@@ -26,6 +26,7 @@ function UGTheme_grid(){
 	//global defaults (for right side)
 	var g_defaults = {
 			slider_controls_always_on:true,
+			slider_vertical_scroll_ondrag: true
 	};
 	
 	//special defaults for left side panel position

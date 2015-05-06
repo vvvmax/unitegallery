@@ -68,7 +68,7 @@ function UGZoomSliderControl(){
 		
 		var scaleMode = g_parent.getScaleMode();
 		
-		if(scaleMode == "fill")
+		if(scaleMode != "down")
 			scaleMode = "fit";
 		
 		return(scaleMode);
@@ -703,6 +703,9 @@ function UGZoomSliderControl(){
 	 * on slider mousewheel event
 	 */
 	function onSliderMouseWheel(event, delta, deltaX, deltaY){
+		
+		if(g_options.slider_zoom_mousewheel == false)
+			return(true);
 		
 		if(g_parent.isCurrentSlideType("image") == false)
 			return(true);

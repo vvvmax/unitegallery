@@ -34,7 +34,8 @@ function UGTheme_carousel(){
 			tile_width: 160,
 			tile_height: 160,
 			tile_enable_border: true,
-			tile_enable_outline: true
+			tile_enable_outline: true,
+			carousel_vertical_scroll_ondrag: true
 	};
 	
 	

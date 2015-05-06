@@ -39,14 +39,17 @@ function UGSlider(){
 		  slider_scale_mode: "fill",					//fit: scale down and up the image to always fit the slider
 		  												//down: scale down only, smaller images will be shown, don't enlarge images (scale up)
 		  												//fill: fill the entire slider space by scaling, cropping and centering the image
-		  slider_scale_mode_media: "fill",				//fit, down, full scale mode on media items
-		  slider_scale_mode_fullscreen: "down",			//fit, down, full scale mode on fullscreen.
+		  												//fitvert: make the image always fill the vertical slider area
+		  slider_scale_mode_media: "fill",				//fill, fit, down, fitvert - scale mode on media items
+		  slider_scale_mode_fullscreen: "down",			//fill, fit, down, fitvert - scale mode on fullscreen.
 		  		  
 		  slider_item_padding_top: 0,					//padding top of the slider item
 		  slider_item_padding_bottom: 0,				//padding bottom of the slider item
 		  slider_item_padding_left: 0,					//padding left of the slider item
 		  slider_item_padding_right: 0,					//padding right of the slider item
+		  
 		  slider_background_color: "",					//slider background color, set if you want to change default
+		  slider_background_opacity: 1,					//slider background opacity
 		  
 		  slider_image_padding_top: 0,					//padding top of the image inside the item
 		  slider_image_padding_bottom: 0,				//padding bottom of the image inside the item
@@ -59,10 +62,16 @@ function UGSlider(){
 		  slider_image_border_radius: 0,				//image border radius
 		  slider_image_shadow: false,					//enable border shadow the image
 		  
+		  slider_video_constantsize: false, 			//constant video size mode for video items
+		  slider_video_constantsize_scalemode: "fit", 	//fit,down: constant video size scale mode
+		  slider_video_constantsize_width: 854,			//constant video size width
+		  slider_video_constantsize_height: 480,		//constant video size height
+		  
 		  slider_video_padding_top: 0,					//padding top of the video player inside the item
 		  slider_video_padding_bottom: 0,				//padding bottom of the video player inside the item
 		  slider_video_padding_left: 0,					//padding left of the video player inside the item
 		  slider_video_padding_right: 0,				//padding right of the video player inside the item
+		  
 		  slider_video_enable_closebutton: true,		//enable video close button
 		  
 		  slider_transition: "slide",					//fade, slide - the transition of the slide change
@@ -71,6 +80,8 @@ function UGSlider(){
 		  
 		  slider_control_swipe:true,					//true,false - enable swiping control
 		  slider_control_zoom:true,						//true, false - enable zooming control
+		  slider_zoom_mousewheel: true,					//enable zoom on mousewheel
+		  slider_vertical_scroll_ondrag: false,			//vertical scroll on slider area drag					  
 		  slider_loader_type: 1,						//shape of the loader (1-7)
 		  slider_loader_color:"white",					//color of the loader: (black , white)
 		  
@@ -228,9 +239,22 @@ function UGSlider(){
 		g_temp.isRunOnce = true;
 		
 		//set background color
-	   if(g_options.slider_background_color)		   		
-		   g_objSlider.css("background-color", g_options.slider_background_color);
+	   
+	   if(g_options.slider_background_color){	   		
+		   var bgColor = g_options.slider_background_color;
+		   
+		   if(g_options.slider_background_opacity != 1)
+			   bgColor = g_functions.convertHexToRGB(bgColor, g_options.slider_background_opacity);
+			  
+		   g_objSlider.css("background-color", bgColor);
+	   
+	   }else if(g_options.slider_background_opacity != 1){	//set opacity with default color
 		
+		   bgColor = g_functions.convertHexToRGB("#000000", g_options.slider_background_opacity);
+		   g_objSlider.css("background-color", bgColor);
+	  
+	   }
+	   
 		//init touch slider control
 		if(g_options.slider_control_swipe == true){
 			g_objTouchSlider = new UGTouchSliderControl();
@@ -277,7 +301,12 @@ function UGSlider(){
 		
 		g_options.video_enable_closebutton = g_options.slider_video_enable_closebutton;
 		
+		//set mousewheel option depends on the gallery option
+		if(galleryOptions.gallery_mousewheel_role != "zoom")
+			g_options.slider_zoom_mousewheel = false;
+	
 	}
+	
 	
 	/**
 	 * 
@@ -775,9 +804,27 @@ function UGSlider(){
 	
 	
 	/**
+	 * set video player constant size
+	 */
+	function setVideoPlayerConstantSize(){
+		
+		var videoWidth = g_options.slider_video_constantsize_width;
+		var videoHeight = g_options.slider_video_constantsize_height;
+		
+		g_objVideoPlayer.setSize(videoWidth, videoHeight);
+		g_objVideoPlayer.setPosition("center", "middle");
+		
+		//set video design
+		var videoElement = g_objVideoPlayer.getObject();
+		
+		setImageDesign(videoElement);
+	}
+	
+	
+	/**
 	 * set slider image css design according the settings
 	 */
-	function setImageDesign(objImage){
+	function setImageDesign(objImage, slideType){
 		
 		var css = {};
 		if(g_options.slider_image_border == true){
@@ -787,14 +834,28 @@ function UGSlider(){
 			css["border-radius"] = g_options.slider_image_border_radius;
 		}
 		
+		if(slideType != "image" && g_options.slider_video_constantsize == true)
+			css["background-color"] = "#000000";
+		
 		if(g_options.slider_image_shadow == true){
 			css["box-shadow"] = "3px 3px 10px 0px #353535";
 		}
 		
 		objImage.css(css);
-		
 	}
 	
+	/**
+	 * scale image constant size (for video items)
+	 */
+	function scaleImageConstantSize(objImage, objItem){
+		
+		var constantWidth = g_options.slider_video_constantsize_width;
+		var constantHeight = g_options.slider_video_constantsize_height;
+		var scaleMode = g_options.slider_video_constantsize_scalemode;
+		
+		g_functions.scaleImageExactSizeInParent(objImage, objItem.imageWidth, objItem.imageHeight, constantWidth, constantHeight, scaleMode);
+	}
+
 	
 	/**
 	 * 
@@ -814,29 +875,38 @@ function UGSlider(){
 		
 		var scaleMode = t.getScaleMode(objSlide);
 		
-		objPadding = t.getObjImagePadding();
+		var slideType = t.getSlideType(objSlide);
 		
+		objPadding = t.getObjImagePadding();
+				
 		if(currentImage == urlImage && isForce !== true){
 			
 			var objImage = objItemWrapper.children("img");
-			
+						
 			if(objItem.imageWidth == 0 || objItem.imageHeight == 0){
 				g_gallery.checkFillImageSize(objImage, objItem);
 			}
 			
-			g_functions.scaleImageFitParent(objImage, objItem.imageWidth, objItem.imageHeight, scaleMode, objPadding);
-						
+			if(slideType != "image" && g_options.slider_video_constantsize == true)
+				scaleImageConstantSize(objImage, objItem);
+			else
+				g_functions.scaleImageFitParent(objImage, objItem.imageWidth, objItem.imageHeight, scaleMode, objPadding);
+			
 			g_objThis.trigger(t.events.AFTER_PUT_IMAGE, objSlide);
 			
 		}
 		else{		//place the image inside parent first time
 						
 			objImage = g_functions.placeImageInsideParent(urlImage, objItemWrapper, objItem.imageWidth, objItem.imageHeight, scaleMode, objPadding);
-			
+									
 			//set image loaded on load:
 			if(objItem.isBigImageLoaded == true){
 				objImage.fadeTo(0,1);
 				hidePreloader(objPreloader);
+				
+				if(slideType != "image" && g_options.slider_video_constantsize == true)
+					scaleImageConstantSize(objImage, objItem);
+				
 				g_objThis.trigger(t.events.AFTER_PUT_IMAGE, objSlide);
 			}
 			else{		//if the image not loaded, load the image and show it after.
@@ -854,6 +924,7 @@ function UGSlider(){
 					
 					//get and hide preloader
 					var objSlide = objImage.parent().parent();
+					var slideType = t.getSlideType(objSlide);
 					var objPreloader = getSlidePreloader(objSlide);
 					var objPadding = t.getObjImagePadding();
 					var scaleMode = t.getScaleMode(objSlide);
@@ -863,8 +934,11 @@ function UGSlider(){
 					g_gallery.onItemBigImageLoaded(null, objImage);
 					
 					var objItem = g_gallery.getItem(itemIndex);
-									
-					g_functions.scaleImageFitParent(objImage, objItem.imageWidth, objItem.imageHeight, scaleMode, objPadding);
+										
+					if(slideType != "image" && g_options.slider_video_constantsize == true)
+						scaleImageConstantSize(objImage, objItem);
+					else
+						g_functions.scaleImageFitParent(objImage, objItem.imageWidth, objItem.imageHeight, scaleMode, objPadding);
 					
 					objImage.fadeTo(0,1);
 					
@@ -873,9 +947,10 @@ function UGSlider(){
 			}
 			
 		}
+				
 		
 		if(objImage)
-			setImageDesign(objImage);
+			setImageDesign(objImage, slideType);
 		
 	}
 	
@@ -1967,6 +2042,7 @@ function UGSlider(){
 	}
 	
 	
+	
 	/**
 	 * start some slide action if exists
 	 */
@@ -1979,7 +2055,10 @@ function UGSlider(){
 		
 		if(objItem.type == "image")
 			return(true)
-				
+		
+		if(g_options.slider_video_constantsize == true)
+			setVideoPlayerConstantSize();
+			
 		g_objVideoPlayer.show();
 		
 		switch(objItem.type){
@@ -2106,6 +2185,7 @@ function UGSlider(){
 	 * check if current image in place
 	 */
 	this.isCurrentImageInPlace = function(){
+		
 		var objImage = t.getSlideImage();
 		if(objImage.length == 0)
 			return(false);
@@ -2220,12 +2300,18 @@ function UGSlider(){
 			 g_objTextPanel.setSizeByParent();
 		 }
 		 
-		 var videoWidth = width - g_options.slider_video_padding_left - g_options.slider_video_padding_right;
-		 var videoHeight = height - g_options.slider_video_padding_top - g_options.slider_video_padding_bottom;
-		 
 		 //set video player size
-		 g_objVideoPlayer.setSize(videoWidth, videoHeight);
-		 g_objVideoPlayer.setPosition(g_options.slider_video_padding_left, g_options.slider_video_padding_top);
+		 var currentSlideType = t.getSlideType();
+		 if(currentSlideType != "image" && g_options.slider_video_constantsize == true){
+			 setVideoPlayerConstantSize();
+		 }else{	
+			 var videoWidth = width - g_options.slider_video_padding_left - g_options.slider_video_padding_right;
+			 var videoHeight = height - g_options.slider_video_padding_top - g_options.slider_video_padding_bottom;
+			 
+			 //set video player size
+			 g_objVideoPlayer.setSize(videoWidth, videoHeight);
+			 g_objVideoPlayer.setPosition(g_options.slider_video_padding_left, g_options.slider_video_padding_top);
+		 }
 		 
 		 positionElements();
 		 

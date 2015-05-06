@@ -18,7 +18,8 @@ function UGCarousel(){
 			carousel_autoplay: true,						//true,false - autoplay of the carousel on start
 			carousel_autoplay_timeout: 3000,				//autoplay timeout
 			carousel_autoplay_direction: "right",			//left,right - autoplay direction
-			carousel_autoplay_pause_onhover: true			//pause the autoplay on mouse over
+			carousel_autoplay_pause_onhover: true,			//pause the autoplay on mouse over
+			carousel_vertical_scroll_ondrag: false			//vertical screen scroll on carousel drag
 	};
 	
 	this.events = {
@@ -32,6 +33,8 @@ function UGCarousel(){
 			isFirstTimeRun:true,  //if run once
 			carouselMaxWidth: null,
 			tileWidth:0,
+			initTileWidth:0,
+			initTileHeight:0,
 			sideSpace:1500,				//the space that must be filled with items
 			spaceActionSize:500,
 			numCurrent:0,
@@ -45,7 +48,8 @@ function UGCarousel(){
 			scrollShortEasing: "easeOutQuad",
 			handle:null,
 			isPlayMode: false,
-			isPaused: false
+			isPaused: false,
+			storedEventID: "carousel"
 	};
 
 	
@@ -71,6 +75,9 @@ function UGCarousel(){
 		g_thumbs = g_objTileDesign.getObjThumbs();
 		g_options = g_objTileDesign.getOptions();
 		
+		g_temp.initTileWidth = g_options.tile_width;
+		g_temp.initTileHeight = g_options.tile_height;
+		
 		g_temp.tileWidth = g_options.tile_width;
 	}
 	
@@ -95,6 +102,38 @@ function UGCarousel(){
 		
 	}
 	
+	
+	/**
+	 * resize tiles to new width / height
+	 */
+	function resizeTiles(newTileWidth, newTileHeight){
+		
+		if(!newTileHeight){
+			
+			var newTileHeight = g_temp.initTileHeight / g_temp.initTileWidth * newTileWidth;
+			
+		}
+		
+		g_temp.tileWidth = newTileWidth;
+		
+		//update all options
+		var optUpdate = {
+				tile_width: newTileWidth, 
+				tile_height: newTileHeight
+		};
+		
+		g_objTileDesign.setOptions(optUpdate);
+		
+		g_options.tile_width = newTileWidth;
+		g_options.tile_height = newTileHeight;
+		
+		//resize all tiles
+		g_objTileDesign.resizeAllTiles(newTileWidth);
+		
+		//reposition tiles
+		positionTiles(true);		//must to position tiles right after size change, for inner size change
+	}
+	
 	/**
 	 * run the gallery after init and set html
 	 */
@@ -106,8 +145,34 @@ function UGCarousel(){
 			return(false);
 		}
 		
+		//if the size changed, change it anyway
+		if(g_temp.tileWidth < g_temp.initTileWidth){
+						
+			var newTileWidth = g_temp.carouselMaxWidth - g_options.carousel_padding * 2;
+			if(newTileWidth > g_temp.initTileWidth)
+				newTileWidth = g_temp.initTileWidth;
+			
+			resizeTiles(newTileWidth);
+			
+			var numTiles = g_functions.getNumItemsInSpace(g_temp.carouselMaxWidth, newTileWidth, g_options.carousel_space_between_tiles);
+			
+		}else{
+			
+			//check if need to lower tiles size
+			var numTiles = g_functions.getNumItemsInSpace(g_temp.carouselMaxWidth, g_temp.tileWidth, g_options.carousel_space_between_tiles);
+			
+			//if no tiles fit, resize the tiles
+			if(numTiles <= 0){
+				numTiles = 1;
+				
+				var newTileWidth = g_temp.carouselMaxWidth - g_options.carousel_padding * 2;
+				
+				resizeTiles(newTileWidth);
+			}
+			
+		}
+				
 		//set wrapper width
-		var numTiles = g_functions.getNumItemsInSpace(g_temp.carouselMaxWidth, g_temp.tileWidth, g_options.carousel_space_between_tiles);
 		var realWidth = g_functions.getSpaceByNumItems(numTiles, g_temp.tileWidth, g_options.carousel_space_between_tiles);
 		realWidth += g_options.carousel_padding * 2;
 		
@@ -122,6 +187,7 @@ function UGCarousel(){
 			//set data indexes to tiles
 			jQuery.each(g_arrItems, function(index, item){
 				item.objThumbWrapper.data("index", index);
+
 				g_objWrapper.trigger(g_temp.eventSizeChange, [item.objThumbWrapper,true]);
 				item.objTileOriginal = item.objThumbWrapper.clone(true, true);
 			});
@@ -171,6 +237,7 @@ function UGCarousel(){
 	function getTiles(){
 		
 		var objTiles = g_objInner.children(".ug-thumb-wrapper");
+		
 		return(objTiles);
 	}
 	
@@ -181,15 +248,8 @@ function UGCarousel(){
 	function getNumTilesInSpace(space){
 		
 		var numItems = g_functions.getNumItemsInSpace(space, g_temp.tileWidth, g_options.carousel_space_between_tiles)
-		
+				
 		return(numItems);
-	}
-	
-	/**
-	 * get all tiles in the inner object
-	 */
-	function getTiles(){
-		return g_objInner.children(".ug-thumb-wrapper");
 	}
 	
 	
@@ -276,7 +336,7 @@ function UGCarousel(){
 		
 		var spaceTaken = innerSize.width - wrapperSize.width + innerSize.left;
 		var spaceRemain = g_temp.sideSpace - spaceTaken;
-		
+				
 		return(spaceRemain);
 	}
 	
@@ -324,7 +384,7 @@ function UGCarousel(){
 			var setHeight = false;
 		
 		var objTiles = getTiles();
-		
+				
 		var posx = 0;
 		var maxHeight = 0, totalWidth;
 		
@@ -338,17 +398,16 @@ function UGCarousel(){
 				totalWidth = tileSize.right;
 		});
 		
-		
 		//set heights and widths
 		g_objInner.width(totalWidth);
-		
+				
 		maxHeight += g_options.carousel_padding * 2;
 		
 		if(setHeight === true){
 			g_objInner.height(maxHeight);
 			g_objCarouselWrapper.height(maxHeight);
 		}
-		
+				
 		scrollToTile(g_temp.numCurrent, false);
 
 		return(totalWidth);
@@ -437,7 +496,7 @@ function UGCarousel(){
 			if(g_objInner.is(":animated"))
 				return(true);
 		}
-		
+				
 		var objTile = getTile(numTile);
 		var objSize = g_functions.getElementSize(objTile);
 		var posScroll = -objSize.left + g_options.carousel_padding;
@@ -507,12 +566,15 @@ function UGCarousel(){
 	 * fill the sides with tiles till it fil the sideSpace
 	 */
 	function fillSidesWithTiles(){
-		
+				
 		var spaceLeft = getRemainSpaceLeft();
 		var spaceRight = getRemainSpaceRight();
+		
 		var numItemsLeft = 0, numItemsRight = 0, numItemsRemoveLeft = 0, numItemsRemoveRight = 0;
 		
 		//trace("left: " + spaceLeft+ " right: " + spaceRight);
+		
+		var numTiles = getNumTiles();
 		
 		//add tiles to left
 		if(spaceLeft > g_temp.spaceActionSize){
@@ -536,6 +598,14 @@ function UGCarousel(){
 			removeTiles(numItemsRemoveRight, "right");			
 		}
 		
+		
+		//small validation
+		if(numItemsRemoveRight > numTiles){
+			
+			throw new Error("Can't remove more then num tiles");
+		}
+			
+		//trace(numItemsRemoveRight);
 		//trace("numItems: " + getNumTiles());
 		
 		//scroll to tile and position inner object
@@ -564,7 +634,7 @@ function UGCarousel(){
 	 * position tiles
 	 */
 	function positionElements(isFirstTime){
-		
+				
 		//position inner strip
 		g_functions.placeElement(g_objInner, 0, g_options.carousel_padding);
 		
@@ -671,11 +741,13 @@ function UGCarousel(){
 		
 		pauseAutoplay();
 		
-		g_temp.startTime = jQuery.now();		
+		g_temp.startTime = jQuery.now();	
 		g_temp.startMousePos = getMousePos(event);
 		g_temp.startInnerPos = getInnerPos();
 		g_temp.lastTime = g_temp.startTime;
 		g_temp.lastMousePos = g_temp.startMousePos;
+		
+		g_functions.storeEventData(event, g_temp.storedEventID);
 	}
 
 	
@@ -687,7 +759,17 @@ function UGCarousel(){
 		if(g_temp.touchActive == false)
 			return(true);
 		
+		g_functions.updateStoredEventData(event, g_temp.storedEventID);
+		
 		event.preventDefault();
+		
+		var scrollDir = null;
+		
+		if(g_options.carousel_vertical_scroll_ondrag == true)
+			scrollDir = g_functions.handleScrollTop(g_temp.storedEventID);
+		
+		if(scrollDir === "vert")
+			return(true);
 		
 		g_temp.lastMousePos = getMousePos(event);
 		

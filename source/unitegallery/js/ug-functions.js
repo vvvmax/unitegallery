@@ -63,6 +63,7 @@ function trace(str){
 	
 	if(typeof console != "undefined")
 		console.log(str);
+
 }
 
 
@@ -225,7 +226,7 @@ function UGFunctions(){
 	
 	/**
 	 * get image inside parent data by image (find parent and size)
-	 * scaleMode: fit, down, fill
+	 * scaleMode: fit, down, fill, fitvert
 	 */
 	this.getImageInsideParentDataByImage = function(objImage, scaleMode, objPadding){
 		
@@ -241,23 +242,20 @@ function UGFunctions(){
 	
 	/**
 	 * get data of image inside parent
-	 * scaleMode: fit, down, fill
+	 * scaleMode: fit, down, fill, fitvert
 	 */
-	this.getImageInsideParentData = function(objParent, originalWidth, originalHeight, scaleMode, objPadding){
+	this.getImageInsideParentData = function(objParent, originalWidth, originalHeight, scaleMode, objPadding, maxWidth, maxHeight){
 		
 		if(!objPadding)
 			var objPadding = {};
 		
-		/*
-		if(objPadding.padding_top == 44 && objParent.parent().index() == 1 && objParent.parents(".ug-theme-slider").length){
-			trace(objParent.parent());
-			trace(objPadding.padding_top);
-		}
-		 */
 		var objOutput = {};
-				
-		var maxWidth = objParent.width();
-		var maxHeight = objParent.height();
+		
+		if(typeof maxWidth === "undefined")
+			var maxWidth = objParent.width();
+		
+		if(typeof maxHeight === "undefined")
+			var maxHeight = objParent.height();
 		
 		if(objPadding.padding_left)
 			maxWidth -= objPadding.padding_left;
@@ -280,7 +278,8 @@ function UGFunctions(){
 		if(originalWidth > 0 && originalHeight > 0){
 			
 			//get image size and position
-			if(scaleMode == "down" && originalWidth < maxWidth && originalHeight < maxHeight){				
+			
+			if(scaleMode == "down" && originalWidth < maxWidth && originalHeight < maxHeight){
 			
 				imageHeight = originalHeight;
 				imageWidth = originalWidth;
@@ -314,13 +313,13 @@ function UGFunctions(){
 				imageTop = 0;
 				imageLeft = (maxWidth - imageWidth) / 2;
 				
-				if(imageWidth > maxWidth){
+				if(scaleMode != "fitvert" && imageWidth > maxWidth){
 					imageWidth = maxWidth;
 					imageHeight = imageWidth / ratio;
 					imageLeft = 0;
 					imageTop = (maxHeight - imageHeight) / 2;
 				}
-				
+			
 			}
 			
 			imageWidth = Math.floor(imageWidth);
@@ -432,12 +431,16 @@ function UGFunctions(){
 		
 		var output = {
 			pageX: 	event.pageX,
-			pageY: 	event.pageY
+			pageY: 	event.pageY,
+			clientX: 	event.clientX,
+			clientY: 	event.clientY
 		};
 		
 		if(event.originalEvent && event.originalEvent.touches && event.originalEvent.touches.length > 0){
 			output.pageX = event.originalEvent.touches[0].pageX;
 			output.pageY = event.originalEvent.touches[0].pageY;
+			output.clientX = event.originalEvent.touches[0].clientX;
+			output.clientY = event.originalEvent.touches[0].clientY;
 		}
 		
 		/**
@@ -445,7 +448,6 @@ function UGFunctions(){
 		 */
 		if(element){
 			var elementPos = element.offset();
-						
 			output.mouseX = output.pageX - elementPos.left;
 			output.mouseY = output.pageY - elementPos.top;
 		}
@@ -1019,7 +1021,7 @@ function UGFunctions(){
 			updateCss = true;		
 			objCss.left = obj.imageLeft+"px";
 		}
-		
+				
 		if(updateCss == true){
 			
 			objCss.position = "absolute";
@@ -1029,6 +1031,69 @@ function UGFunctions(){
 		}
 				
 	}
+	
+	
+	/**
+	 * scale image to exact size in parent, by setting image size and padding
+	 */
+	this.scaleImageExactSizeInParent = function(objImage, originalWidth, originalHeight, exactWidth, exactHeight, scaleMode){
+		
+		
+		
+		var objParent = objImage.parent();
+		var parentSize = t.getElementSize(objParent);
+		
+		if(parentSize.width < exactWidth)
+			exactWidth = parentSize.width;
+		
+		if(parentSize.height < exactHeight)
+			exactHeight = parentSize.height;
+		
+		var obj = t.getImageInsideParentData(null, originalWidth, originalHeight, scaleMode, null, exactWidth, exactHeight);
+				
+		var imageWidth = exactWidth;
+		var imageHeight = exactHeight;
+		
+		var paddingLeft = obj.imageLeft;
+		var paddingRight = obj.imageLeft;
+		var paddingTop = obj.imageTop;
+		var paddingBottom = obj.imageTop;
+		var imageLeft = Math.round((parentSize.width - exactWidth) / 2);
+		var imageTop = Math.round((parentSize.height - exactHeight) / 2);
+		
+		var totalWidth = obj.imageWidth + paddingLeft + paddingRight;
+		var diff = exactWidth - totalWidth;
+		if(diff != 0)
+			paddingRight += diff;
+		
+		var totalHeight = obj.imageHeight + paddingTop + paddingBottom;
+		
+		var diff = exactHeight - totalHeight;
+		if(diff != 0)
+			paddingBottom += diff;
+		
+		//update css:
+		objImage.removeAttr("width");
+		objImage.removeAttr("height");
+
+		var objCss = {
+				position: "absolute",
+				margin: "0px 0px"
+		};
+		
+		objCss["width"] = imageWidth+"px";
+		objCss["height"] = imageHeight+"px";
+		objCss["left"] = imageLeft+"px";
+		objCss["top"] = imageTop+"px";
+		objCss["padding-left"] = paddingLeft+"px";
+		objCss["padding-top"] = paddingTop+"px";
+		objCss["padding-right"] = paddingRight+"px";
+		objCss["padding-bottom"] = paddingBottom+"px";
+				
+		objImage.css(objCss);
+		
+	}
+	
 	
 	/**
 	 * show some element and make opacity:1
@@ -1215,18 +1280,77 @@ function UGFunctions(){
 	}
 	
 	
-	this.z_________END_MATH_FUNCTIONS_______ = function(){}
+	this.z_________EVENT_DATA_FUNCTIONS_______ = function(){}
 
+	
+	/**
+	 * handle scroll top, return if scroll mode or not
+	 */
+	this.handleScrollTop = function(storedEventID){
+		
+		if(t.isTouchDevice() == false)
+			return(null);
+		
+		var objData = t.getStoredEventData(storedEventID);
+		
+		var horPass = 15;
+		var vertPass = 15;
+		
+		//check if need to set some movement
+		if(objData.scrollDir === null){
+			
+			if(Math.abs(objData.diffMouseX) > horPass)
+				objData.scrollDir = "hor";
+			else
+				if(Math.abs(objData.diffMouseY) > vertPass && Math.abs(objData.diffMouseY) > Math.abs(objData.diffMouseX) ){
+					objData.scrollDir = "vert";
+					objData.scrollStartY = objData.lastMouseClientY;
+					objData.scrollOrigin = jQuery(document).scrollTop();
+					
+					g_temp.dataCache[storedEventID].scrollStartY = objData.lastMouseClientY;
+					g_temp.dataCache[storedEventID].scrollOrigin = objData.scrollOrigin;
+				}
+			
+			//update scrollDir
+			g_temp.dataCache[storedEventID].scrollDir = objData.scrollDir;
+		}
+				
+		if(objData.scrollDir !== "vert")
+			return(objData.scrollDir);
+		
+		
+		var currentScroll = jQuery(document).scrollTop();
+		
+		var scrollPos = objData.scrollOrigin - (objData.lastMouseClientY - objData.scrollStartY);
+		
+		if(scrollPos >= 0)
+			jQuery(document).scrollTop(scrollPos);
+		
+		return(objData.scrollDir);
+	}
+
+	
+	/**
+	 * return true / false if was vertical scrolling
+	 */
+	this.wasVerticalScroll = function(storedEventID){
+		var objData = t.getStoredEventData(storedEventID);
+		
+		if(objData.scrollDir === "vert")
+			return(true);
+		
+		return(false);
+	}
 	
 	
 	/**
 	 * store event data
 	 */
 	this.storeEventData = function(event, id, addData){
-		
+				
 		var mousePos = t.getMousePosition(event);
 		var time = jQuery.now();
-			
+		
 		var obj = {
 				startTime: time,
 				lastTime: time,
@@ -1234,7 +1358,12 @@ function UGFunctions(){
 				startMouseY: mousePos.pageY,
 				lastMouseX: mousePos.pageX,
 				lastMouseY: mousePos.pageY,
-				scrollTop: jQuery(document).scrollTop()
+				
+				startMouseClientY: mousePos.clientY,
+				lastMouseClientY: mousePos.clientY,
+				
+				scrollTop: jQuery(document).scrollTop(),
+				scrollDir: null,
 		};
 		
 		if(addData)
@@ -1261,6 +1390,7 @@ function UGFunctions(){
 		if(mousePos.pageX !== undefined){
 			obj.lastMouseX = mousePos.pageX;
 			obj.lastMouseY = mousePos.pageY;
+			obj.lastMouseClientY = mousePos.clientY;
 		}
 		
 		if(addData)
@@ -1280,6 +1410,9 @@ function UGFunctions(){
 		
 		obj.diffMouseX = obj.lastMouseX - obj.startMouseX;
 		obj.diffMouseY = obj.lastMouseY - obj.startMouseY;
+		
+		obj.diffMouseClientY = obj.lastMouseClientY - obj.startMouseClientY;
+		
 		obj.diffTime = obj.lastTime - obj.startTime;
 		
 		//get mouse position according orientation
@@ -1341,8 +1474,12 @@ function UGFunctions(){
 	/**
 	 * convert hex color to rgb color
 	 */
-	this.convertHexToRGB = function(hex, opacity){
-	    hex = hex.replace('#','');
+	this.convertHexToRGB = function(hexInput, opacity){
+	    
+		var hex = hexInput.replace('#','');
+	    if(hex === hexInput)
+	    	return(hexInput);
+	    
 	    r = parseInt(hex.substring(0,2), 16);
 	    g = parseInt(hex.substring(2,4), 16);
 	    b = parseInt(hex.substring(4,6), 16);

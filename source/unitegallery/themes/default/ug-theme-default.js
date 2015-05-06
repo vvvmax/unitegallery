@@ -45,6 +45,7 @@ function UGTheme_default(){
 		slider_textpanel_padding_top: 0,
 		slider_textpanel_enable_title: false,
 		slider_textpanel_enable_description: true,
+		slider_vertical_scroll_ondrag: true,
 		
 		//strippanel options
 		strippanel_background_color:"#232323",

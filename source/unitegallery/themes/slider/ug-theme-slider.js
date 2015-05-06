@@ -31,7 +31,8 @@ function UGTheme_slider(){
 		slider_enable_arrows: true,
 		slider_enable_play_button: false,
 		slider_enable_fullscreen_button:false,
-		slider_enable_zoom_panel: false
+		slider_enable_zoom_panel: false,
+		slider_vertical_scroll_ondrag: true
 	};
 	
 	

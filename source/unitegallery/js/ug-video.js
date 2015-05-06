@@ -1233,14 +1233,14 @@ function UGVideoPlayer(){
 	 * set element size and position the button
 	 */
 	this.setSize = function(width, height){
-				
-		g_objPlayer.height(height);
-		g_objPlayer.width(width);
+		
+		g_functions.setElementSize(g_objPlayer, width, height);
 		
 		if(g_objButtonClose)
 			g_functions.placeElement(g_objButtonClose, "right", "top");
 		
 	}
+	
 	
 	/**
 	 * set video player position
@@ -1344,7 +1344,7 @@ function UGVideoPlayer(){
 			
 		if(typeof isAutoplay == "undefined")
 			var isAutoplay = true;
-		
+				
 		stopAndHidePlayers("youtube");
 		
 		g_objYoutube.show();

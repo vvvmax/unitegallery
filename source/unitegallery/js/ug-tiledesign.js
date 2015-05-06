@@ -150,6 +150,7 @@ function UGTileDesign(){
 		
 		if(g_temp.isFixedMode == true){
 			objThumbWrapper.fadeTo(0,0);		//turn on in thumbsGeneral
+			
 			g_functions.setElementSize(objThumbWrapper, g_options.tile_width, g_options.tile_height);
 			objThumbWrapper.addClass("ug-tile-fixed");
 		}
@@ -461,19 +462,20 @@ function UGTileDesign(){
 		
 		var objTextPanel = getTextPanel(objTile);
 		
-		
 		//set text panel:
 		if(g_options.tile_enable_textpanel == true){
-			objTextPanel.refresh();
+			
+			if(objTextPanel)
+				objTextPanel.refresh();
 		}
-		
 
 		//set vertical gap for icons
 		if(objButtonZoom || objButtonLink){
 						
 			var gapVert = 0;
 			if(g_options.tile_enable_textpanel == true){
-				var texPanelSize = g_functions.getElementSize(objTextPanel.getElement());
+				var objTextPanelElement = getTextPanelElement(objTile);
+				var texPanelSize = g_functions.getElementSize(objTextPanelElement);
 				if(texPanelSize.height > 0)
 					gapVert = Math.floor((texPanelSize.height / 2) * -1);  
 			}
@@ -890,6 +892,50 @@ function UGTileDesign(){
 	 */
 	this.getOptions = function(){
 		return g_options;
+	}
+	
+	/**
+	 * resize tile. If no size given, resize to original size
+	 */
+	this.resizeTile = function(objTile, newWidth, newHeight){
+		
+		if(!newWidth){
+			var newWidth = g_options.tile_width;
+			var newHeight = g_options.tile_height;
+		}else{
+			if(!newHeight)
+				var newHeight = g_options.tile_height / g_options.tile_width * newWidth;
+		}
+		
+		g_functions.setElementSize(objTile, newWidth, newHeight);
+		
+		g_objWrapper.trigger(g_temp.eventSizeChange, [objTile,true]);
+		
+		
+	}
+	
+	
+	/**
+	 * resize all thumbs
+	 */
+	this.resizeAllTiles = function(newWidth, newHeight){
+		
+		if(!newHeight)
+			var newHeight = g_options.tile_height / g_options.tile_width * newWidth;
+
+		var objTiles = g_thumbs.getThumbs();
+		objTiles.each(function(index, objTile){
+			t.resizeTile(jQuery(objTile), newWidth, newHeight);
+		});
+		
+	}
+	
+	/**
+	 * set new options
+	 */
+	this.setOptions = function(newOptions){
+		g_options = jQuery.extend(g_options, newOptions);
+		g_thumbs.setOptions(newOptions);
 	}
 	
 }

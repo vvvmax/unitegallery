@@ -67,6 +67,7 @@ function UniteGalleryMain(){
 			GALLERY_KEYPRESS: "gallery_keypress"
 	};
 	
+	
 	//set the default gallery options
 	var g_options = {				
 			gallery_width:900,							//gallery width		
@@ -87,7 +88,7 @@ function UniteGalleryMain(){
 			gallery_play_interval: 3000,				//play interval of the slideshow
 			gallery_pause_on_mouseover: true,			//true,false - pause on mouseover when playing slideshow true/false
 			
-			gallery_control_thumbs_mousewheel:false,	//true,false - change this option, add more mousewheel choices
+			gallery_mousewheel_role:"zoom",				//none, zoom, advance
 			gallery_control_keyboard: true,				//true,false - enable / disble keyboard controls
 			gallery_carousel:true,						//true,false - next button on last image goes to first image.
 			
@@ -95,6 +96,8 @@ function UniteGalleryMain(){
 			gallery_debug_errors:false,					//show error message when there is some error on the gallery area.
 			gallery_background_color: ""				//set custom background color. If not set it will be taken from css.
 	};
+	
+	//gallery_control_thumbs_mousewheel
 	
 	
 	var g_temp = {					//temp variables
@@ -247,6 +250,7 @@ function UniteGalleryMain(){
 			 setHtmlObjectsProperties();
 			 
 			 var galleryWidth = g_objWrapper.width();
+			 		 
 			 if(galleryWidth == 0){
 				 g_functions.waitForWidth(g_objWrapper, runGalleryActually);
 			 }else
@@ -259,6 +263,8 @@ function UniteGalleryMain(){
 	 * actually run the gallery
 	 */
 	function runGalleryActually(){
+		 
+		t.setSizeClass();
 		
 		if(g_temp.isFreestyleMode == false){
 			 	
@@ -271,7 +277,7 @@ function UniteGalleryMain(){
 		 preloadBigImages();
 		 
 		 initEvents();
-		 		 
+		 
 		 //select first item
 		 if(g_numItems > 0) 
 			 t.selectItem(0);
@@ -479,6 +485,7 @@ function UniteGalleryMain(){
 				 objItem.objThumbImage = null;
 			 }
 			 
+			 
 			 objItem.link = itemLink;
 			 objItem.description = objChild.data("description");
 			 
@@ -551,11 +558,9 @@ function UniteGalleryMain(){
 				 objItem.objThumbImage.removeAttr("data-image", "");				 
 			 }
 			 
-			 if(objItem.urlThumb && objItem.urlThumb !== undefined && objItem.urlThumb != ""){
-				 objItem.index = numIndex;
-				 g_arrItems.push(objItem);
-				 numIndex++;
-			 }
+			 objItem.index = numIndex;
+			 g_arrItems.push(objItem);
+			 numIndex++;
 			 
 		 }
 		 
@@ -853,6 +858,7 @@ function UniteGalleryMain(){
 	
 	function __________EVENTS_____________(){};
 
+	
 	/**
 	 * on gallery mousewheel event handler, advance the thumbs
 	 */
@@ -872,7 +878,7 @@ function UniteGalleryMain(){
 	 */
 	function onSliderMouseEnter(event){
 		
-		if(g_options.gallery_pause_on_mouseover == true && g_temp.isPlayMode == true && g_objSlider && g_objSlider.isSlideActionActive() == false)
+		if(g_options.gallery_pause_on_mouseover == true && t.isFullScreen() == false && g_temp.isPlayMode == true && g_objSlider && g_objSlider.isSlideActionActive() == false)
 			t.pausePlaying();
 	}
 	
@@ -999,9 +1005,9 @@ function UniteGalleryMain(){
 				break;
 			}
 		}
-				
+		
 		//init mouse wheel
-		if(g_options.gallery_control_thumbs_mousewheel == true)
+		if(g_options.gallery_mousewheel_role == "advance")
 			g_objWrapper.on("mousewheel",onGalleryMouseWheel);
 		
 		 //on resize event
@@ -1028,7 +1034,13 @@ function UniteGalleryMain(){
 			 //add slider onmousemove event
 			 if(g_options.gallery_pause_on_mouseover == true){
 				 var sliderElement = g_objSlider.getElement();
-				 sliderElement.hover(onSliderMouseEnter, onSliderMouseLeave);			 
+				 sliderElement.hover(onSliderMouseEnter, onSliderMouseLeave);
+				 
+				 //on full screen, run on mouse leave
+				 g_objGallery.on(t.events.ENTER_FULLSCREEN, function(){
+						 onSliderMouseLeave();
+				 });
+				 
 			 }
 			 
 			 //retrigger slider events
@@ -1041,8 +1053,6 @@ function UniteGalleryMain(){
 		 if(g_options.gallery_control_keyboard == true)
 			 jQuery(document).keydown(onKeyPress);
 		 		 
-		 
-			 
 	}
 		
 	
@@ -1772,6 +1782,9 @@ function UniteGalleryMain(){
 		if(width < 960){
 			addClass = "ug-under-960";
 		}
+		
+		if(objWrapper.hasClass(addClass) == true)
+			return(true);
 		
 		removeAllSizeClasses(objWrapper);
 		if(addClass != "")

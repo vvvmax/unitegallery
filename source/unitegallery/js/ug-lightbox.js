@@ -52,7 +52,8 @@ function UGLightbox(){
 			isArrowsInside: false,
 			isArrowsOnHoverMode: false,
 			lastMouseX: null,
-			lastMouseY: null
+			lastMouseY: null,
+			originalOptions: null
 	};
 	
 	var g_defaults = {
@@ -79,26 +80,29 @@ function UGLightbox(){
 			lightbox_textpanel_padding_top: 5,
 			lightbox_textpanel_padding_bottom: 5,
 			
+			slider_video_constantsize: false,
+			lightbox_slider_image_border: false,
+			
 			lightbox_textpanel_enable_title: true,
 			lightbox_textpanel_enable_description: false,
 			
 			lightbox_textpanel_enable_bg:false,
 			
 			video_enable_closebutton: false,
-			slider_video_enable_closebutton: false,
+			lightbox_slider_video_enable_closebutton: false,
 			video_youtube_showinfo: false
 	};
 	
 	var g_defaultsCompact = {
-			lightbox_slider_image_border: true,
-			lightbox_slider_image_shadow:true,
 			lightbox_overlay_opacity:0.6,
 			
+			lightbox_slider_image_border: true,
+			lightbox_slider_image_shadow:true,
 			lightbox_slider_image_padding_top: 30,
 			lightbox_slider_image_padding_bottom: 30,
-			lightbox_slider_video_padding_top: 0,
-			lightbox_slider_video_padding_bottom: 0,
 			
+			slider_video_constantsize: true,
+						
 			lightbox_textpanel_align: "bottom",
 			lightbox_textpanel_title_text_align: "left",
 			lightbox_textpanel_desc_text_align: "left",
@@ -120,6 +124,8 @@ function UGLightbox(){
 		
 		g_options = jQuery.extend(g_options, g_defaults);
 		g_options = jQuery.extend(g_options, customOptions);
+	
+		g_temp.originalOptions = jQuery.extend({}, g_options);
 		
 		if(g_options.lightbox_type == "compact"){
 			g_temp.isCompact = true;
@@ -154,6 +160,7 @@ function UGLightbox(){
 	 * modify some options according user options
 	 */
 	function modifyOptions(){
+		
 		
 		if(g_temp.isCompact == true && g_options.lightbox_show_textpanel == true){
 			g_options.lightbox_slider_image_padding_bottom = g_temp.initTextPanelHeight;
@@ -287,6 +294,8 @@ function UGLightbox(){
 	
 	}
 	
+	function __________WIDE_ONLY_________(){};
+	
 	
 	/**
 	 * handle panel height according text height
@@ -324,13 +333,58 @@ function UGLightbox(){
 				
 	}
 
+
+	/**
+	 * position text panel for wide
+	 * size - wrapper size
+	 */
+	function positionTextPanelWide(size){
+
+		var objOptions = {};
+		
+		var textWidth = g_options.lightbox_textpanel_width;
+		var minPaddingLeft = 47;
+		var minPaddingRight = 40;
+		var maxTextPanelWidth = size.width - minPaddingLeft - minPaddingRight;
+		
+		if(textWidth > maxTextPanelWidth){		//mobile mode
+			
+			objOptions.textpanel_padding_left = minPaddingLeft;
+			objOptions.textpanel_padding_right = minPaddingRight;
+			
+			objOptions.textpanel_title_text_align = "center";
+			objOptions.textpanel_desc_text_align = "center";			
+		}else{
+			objOptions.textpanel_padding_left = Math.floor((size.width - textWidth) / 2);
+			objOptions.textpanel_padding_right = objOptions.textpanel_padding_left;
+			objOptions.textpanel_title_text_align = "left";
+			objOptions.textpanel_desc_text_align = "left";
+			
+			if(g_options.lightbox_textpanel_title_text_align)
+					objOptions.textpanel_title_text_align = g_options.lightbox_textpanel_desc_text_align;
+			
+			if(g_options.lightbox_textpanel_desc_text_align)
+				objOptions.textpanel_desc_text_align = g_options.lightbox_textpanel_desc_text_align;
+			
+		}
+				
+		g_objTextPanel.setOptions(objOptions);
+		
+		g_objTextPanel.refresh(true, true);
+		
+		handlePanelHeight();
+		g_objTextPanel.positionPanel();
+	}
 	
+	
+	function __________COMPACT_ONLY_________(){};
+
 	/**
 	 * handle slider image height according the textpanel height
 	 * refresh the slider if the height is not in place
 	 */
 	function handleCompactHeight(objImageSize){
-		
+				
 		if(g_temp.isOpened == false)
 			return(false);
 		
@@ -406,10 +460,6 @@ function UGLightbox(){
 	 */
 	function handleCompactTextpanelSizes(showTextpanel){
 		
-		var isActionActive = g_objSlider.isSlideActionActive();
-		if(isActionActive)
-			return(false);
-		
 		var wrapperSize = g_functions.getElementSize(g_objWrapper);
 		var objImage = g_objSlider.getSlideImage();
 		var objImageSize = g_functions.getElementSize(objImage);
@@ -455,15 +505,18 @@ function UGLightbox(){
 		
 	}
 	
+	
+	
 	/**
 	 * return that current slider image is in place
 	 */
 	function isSliderImageInPlace(){
+
+		if(g_objSlider.isCurrentSlideType("image") == false)
+			return(true);
 		
 		var isImageInPlace = (g_objSlider.isCurrentImageInPlace() == true);
-		if(g_objSlider.isCurrentSlideType("image") == false && g_objSlider.isSlideActionActive() == true)
-			isImageInPlace = false;
-		
+				
 		return(isImageInPlace);
 	}
 	
@@ -506,7 +559,7 @@ function UGLightbox(){
 			var leftArrowTop = g_functions.getElementRelativePos(g_objArrowLeft, "middle", 0, objImage) + objImageSize.top;
 			var rightArrowLeft = g_functions.getElementRelativePos(g_objArrowLeft, "right", 0, objImage) + objImageSize.left - g_options.lightbox_arrows_inside_offset;
 			var rightArrowTop = leftArrowTop;
-						
+			
 		}
 		
 		
@@ -556,10 +609,13 @@ function UGLightbox(){
 		
 		var isImageInPlace = isSliderImageInPlace();
 		
+		var minButtonTop = 2;
+		var maxButtonLeft = g_functions.getElementRelativePos(g_objButtonClose, "right", 2, g_objWrapper);
+		
 		if(isImageInPlace == false){	//put image to corner
 			
-			var closeButtonTop = 2;
-			var closeButtonLeft = g_functions.getElementRelativePos(g_objButtonClose, "right", 2, g_objWrapper);
+			var closeButtonTop = minButtonTop;
+			var closeButtonLeft = maxButtonLeft;
 			
 		}else{
 			var objImage = g_objSlider.getSlideImage();
@@ -573,6 +629,13 @@ function UGLightbox(){
 			
 			var closeButtonLeft = objSliderSize.left + objImageSize.right - objButtonSize.width / 2 + g_options.lightbox_compact_closebutton_offsetx;
 			var closeButtonTop = objSliderSize.top + objImageSize.top - objButtonSize.height / 2 - g_options.lightbox_compact_closebutton_offsety;
+			
+			if(closeButtonTop < minButtonTop)
+				closeButtonTop = minButtonTop;
+			
+			if(closeButtonLeft > maxButtonLeft)
+				closeButtonLeft = maxButtonLeft;
+			
 		}
 		
 		//place the image with animation or not
@@ -596,49 +659,25 @@ function UGLightbox(){
 		
 	}
 	
+	
 	/**
-	 * position text panel for wide
-	 * size - wrapper size
+	 * hide close button
 	 */
-	function positionTextPanelWide(size){
-
-		var objOptions = {};
+	function hideCompactElements(){
 		
-		var textWidth = g_options.lightbox_textpanel_width;
-		var minPaddingLeft = 47;
-		var minPaddingRight = 40;
-		var maxTextPanelWidth = size.width - minPaddingLeft - minPaddingRight;
+		if(g_objButtonClose)
+			g_objButtonClose.stop().fadeTo(g_temp.fadeDuration, 0);
 		
-		if(textWidth > maxTextPanelWidth){		//mobile mode
-			
-			objOptions.textpanel_padding_left = minPaddingLeft;
-			objOptions.textpanel_padding_right = minPaddingRight;
-			
-			objOptions.textpanel_title_text_align = "center";
-			objOptions.textpanel_desc_text_align = "center";			
-		}else{
-			objOptions.textpanel_padding_left = Math.floor((size.width - textWidth) / 2);
-			objOptions.textpanel_padding_right = objOptions.textpanel_padding_left;
-			objOptions.textpanel_title_text_align = "left";
-			objOptions.textpanel_desc_text_align = "left";
-			
-			if(g_options.lightbox_textpanel_title_text_align)
-					objOptions.textpanel_title_text_align = g_options.lightbox_textpanel_desc_text_align;
-			
-			if(g_options.lightbox_textpanel_desc_text_align)
-				objOptions.textpanel_desc_text_align = g_options.lightbox_textpanel_desc_text_align;
-			
-		}
-				
-		g_objTextPanel.setOptions(objOptions);
+		hideTextPanel();
 		
-		g_objTextPanel.refresh(true, true);
+		hideNumbers();
 		
-		handlePanelHeight();
-		g_objTextPanel.positionPanel();
+		g_temp.positionFrom = "hideCompactElements";
+		if(g_temp.isArrowsInside == true)
+			hideArrows();
 	}
 	
-	
+	function __________COMMON_________(){};
 	
 	
 	/**
@@ -811,22 +850,6 @@ function UGLightbox(){
 
 	
 	
-	/**
-	 * hide close button
-	 */
-	function hideCompactElements(){
-		
-		if(g_objButtonClose)
-			g_objButtonClose.stop().fadeTo(g_temp.fadeDuration, 0);
-		
-		hideTextPanel();
-		
-		hideNumbers();
-		
-		g_temp.positionFrom = "hideCompactElements";
-		if(g_temp.isArrowsInside == true)
-			hideArrows();
-	}
 	
 	
 	/**
@@ -1071,7 +1094,7 @@ function UGLightbox(){
 	function onSliderClick(data, event){
 		
 		var slideType = g_objSlider.getSlideType();
-		if(slideType != "image")
+		if(slideType != "image" && g_temp.isCompact == false && g_objSlider.isSlideActionActive() )
 			return(true);
 		
 		var isPreloading = g_objSlider.isPreloading();
@@ -1095,43 +1118,6 @@ function UGLightbox(){
 		positionElements();
 	}
 	
-	
-	/**
-	 * on slider action start. remove extras
-	 */
-	function onSliderActionStart(){
-		
-		if(g_temp.isCompact == false)
-			return(true);
-		
-		positionCloseButton(true);
-		positionArrowsInside(true);
-		
-		if(g_objTextPanel)
-			g_objTextPanel.getElement().hide();
-		
-		if(g_objNumbers)
-			g_objNumbers.hide();
-		
-	}
-
-	
-	//show extras
-	function onSliderActionEnd(){
-		
-		if(g_temp.isCompact == false)
-			return(true);
-		
-		positionCloseButton(true);
-		positionArrowsInside(true);
-		
-		if(g_objTextPanel)
-			g_objTextPanel.getElement().show();
-		
-		if(g_objNumbers)
-			g_objNumbers.show();
-		
-	}
 	
 	
 	/**
@@ -1252,9 +1238,6 @@ function UGLightbox(){
 			//on slider click event
 			jQuery(g_objSlider).on(g_objSlider.events.CLICK, onSliderClick);
 			
-			jQuery(g_objSlider).on(g_objSlider.events.ACTION_START, onSliderActionStart);
-			jQuery(g_objSlider).on(g_objSlider.events.ACTION_END, onSliderActionEnd);
-
 			//on slider video 
 			var objVideo = g_objSlider.getVideoObject();
 					
@@ -1293,7 +1276,17 @@ function UGLightbox(){
 			 jQuery(document).bind('mousemove', onMouseMove);
 		 
 		 }
-			 
+		
+		//on mouse wheel - disable functionality if video
+		g_objWrapper.on("mousewheel", function(event){
+			
+			var slideType = g_objSlider.getSlideType();
+			if(slideType != "image" && g_options.gallery_mousewheel_role != "advance"){
+				event.preventDefault();
+			}
+						
+		});
+
 	}
 
 	
@@ -1310,8 +1303,6 @@ function UGLightbox(){
 		g_objGallery.off(g_gallery.events.ITEM_CHANGE);
 		
 		if(g_objSlider){
-			jQuery(g_objSlider).off(g_objSlider.events.ACTION_START);
-			jQuery(g_objSlider).off(g_objSlider.events.ACTION_END);
 			jQuery(g_objSlider).off(g_objSlider.events.TRANSITION_END);
 			jQuery(g_objSlider).off(g_objSlider.events.CLICK);
 			jQuery(g_objSlider).off(g_objSlider.events.START_DRAG);
@@ -1331,7 +1322,8 @@ function UGLightbox(){
 		
 		jQuery(window).unbind("resize");
 		g_objGallery.off(g_gallery.events.GALLERY_KEYPRESS, onKeyPress);
-
+		
+		g_objWrapper.off("mousewheel");
 	}
 	
 	
@@ -1442,13 +1434,33 @@ function UGLightbox(){
 	
 	
 	/**
+	 * switch to wide mode from compact mode
+	 */
+	function switchToWide(){
+		g_temp.isCompact = false;
+		modifyOptions();
+		
+		g_options = jQuery.extend({}, g_temp.originalOptions);
+		
+		trace(g_options);
+		
+		g_objSlider.setOptions(g_options);
+	}
+	
+	
+	/**
 	 * external put html function
 	 */
 	this.putHtml = function(){
 		
-		putLightboxHtml();
+		//check if switch to wide mode
+		var isMobile = g_gallery.isMobileMode();
+		if(isMobile && g_temp.isCompact == true)
+			switchToWide();
 		
+		putLightboxHtml();
 	}
+	
 	
 	/**
 	 * run lightbox elements

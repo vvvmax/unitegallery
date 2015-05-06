@@ -31,7 +31,11 @@ function UGTouchSliderControl(){
 		isInitDataValid:false,
 		slides: null,
 		lastNumTouches:0,
-		isDragging: false
+		isDragging: false,
+		storedEventID: "touchSlider",
+		videoStartX: 0,
+		isDragVideo: false,
+		videoObject: null
 	};
 	
 	
@@ -138,7 +142,7 @@ function UGTouchSliderControl(){
 						
 		//trigger before return event
 		g_objParent.trigger(g_parent.events.BEFORE_RETURN);
-				
+		
 		if(!slides)
 			var slides = g_parent.getSlidesReference();
 		
@@ -150,6 +154,20 @@ function UGTouchSliderControl(){
 			duration: g_options.slider_transition_return_speed,
 			easing: g_options.slider_transition_continuedrag_easing,
 			queue: false,
+			progress: function(animation, number, remainingMS){
+								
+				//check drag video
+				if(g_temp.isDragVideo == true){
+					var objSize = g_functions.getElementSize(g_objInner);
+					var innerX = objSize.left;
+					
+					var posDiff = innerX - destX;
+					
+					var videoPosX = g_temp.videoStartX + posDiff;
+					g_temp.videoObject.css("left", videoPosX);
+				}
+				
+			},
 			complete: function(){
 				g_objParent.trigger(g_parent.events.AFTER_RETURN);
 			}
@@ -164,6 +182,7 @@ function UGTouchSliderControl(){
 	 */
 	function changeItem(direction){
 		
+		g_parent.getVideoObject().hide();
 		g_parent.switchSlideNums(direction);
 		g_parent.placeNabourItems();
 
@@ -215,12 +234,24 @@ function UGTouchSliderControl(){
 			returnToPlace(slides);
 			
 		}else{
-			
+						
 			//animate objects
 			g_objInner.stop().animate({left:destX+"px"},{
 				duration: g_options.slider_transition_continuedrag_speed,
 				easing: g_options.slider_transition_continuedrag_easing,
 				queue: false,
+				progress: function(){
+					
+					//check drag video
+					if(g_temp.isDragVideo == true){
+						var objSize = g_functions.getElementSize(g_objInner);
+						var innerX = objSize.left;
+						var posDiff = innerX - g_temp.startPosx;
+						var videoPosX = g_temp.videoStartX + posDiff;
+						g_temp.videoObject.css("left", videoPosX);
+					}
+					
+				},
 				always:function(){
 					changeItem(direction);
 					g_objParent.trigger(g_parent.events.AFTER_DRAG_CHANGE);
@@ -231,7 +262,7 @@ function UGTouchSliderControl(){
 				
 		
 	}
-	
+
 	
 	/**
 	 * handle slider drag on mouse drag
@@ -265,7 +296,7 @@ function UGTouchSliderControl(){
 				
 			}
 		}
-							
+		
 		//set inner div position
 		var currentPosx = g_temp.startPosx + diff;
 		
@@ -287,8 +318,17 @@ function UGTouchSliderControl(){
 			g_temp.isDragging = true;
 			g_objParent.trigger(g_parent.events.START_DRAG);
 		}
-		
+				
 		g_objInner.css("left", currentPosx+"px");
+		
+		//drag video
+		if(g_temp.isDragVideo == true){
+			var posDiff = currentPosx - g_temp.startPosx;
+			var videoPosX = g_temp.videoStartX + posDiff;
+			
+			g_temp.videoObject.css("left", videoPosX);
+		}
+		
 	}
 	
 	/**
@@ -316,6 +356,21 @@ function UGTouchSliderControl(){
 		g_temp.startPosx = objPos.left;
 		
 		g_temp.isInitDataValid = true;
+		
+		//check if video object need to be dragged
+		g_temp.isDragVideo = false;
+		
+		var objVideo = g_parent.getVideoObject();
+		if(objVideo.isVisible() == true){
+			g_temp.isDragVideo = true;
+			g_temp.videoObject = objVideo.getObject();
+			var videoSize = g_functions.getElementSize(g_temp.videoObject);
+			g_temp.videoStartX = videoSize.left;
+			
+		}
+			
+		
+		g_functions.storeEventData(event, g_temp.storedEventID);
 	}
 	
 	/**
@@ -373,9 +428,10 @@ function UGTouchSliderControl(){
 		}
 		
 		enableTouchActive("1", event);
+		
 	}
 	
-	
+
 	/**
 	 * 
 	 * on touch move event
@@ -393,7 +449,9 @@ function UGTouchSliderControl(){
 						
 			return(true);
 		}
-		
+
+		g_functions.updateStoredEventData(event, g_temp.storedEventID);
+				
 		event.preventDefault();
 		
 		var mousePos = g_functions.getMousePosition(event);
@@ -402,7 +460,14 @@ function UGTouchSliderControl(){
 				
 		//debugLine("lastX:" + g_temp.lastMouseX, true, true);
 		
-		handleSliderDrag(event);
+		var scrollDir = null;
+		
+		if(g_options.slider_vertical_scroll_ondrag == true)
+			scrollDir = g_functions.handleScrollTop(g_temp.storedEventID);
+		
+		if(scrollDir !== "vert")
+			handleSliderDrag(event);
+			
 	}
 	
 	/**
@@ -429,7 +494,12 @@ function UGTouchSliderControl(){
 									
 			disableTouchActive("3");
 			
-			var isValid = isMovementValidForChange();
+			var isValid = false;
+			
+			var wasVerticalScroll = g_functions.wasVerticalScroll(g_temp.storedEventID);
+			
+			if(wasVerticalScroll == false)
+				isValid = isMovementValidForChange();
 						
 			if(isValid == true)
 				continueSlideDragChange();		//change the slide
@@ -452,7 +522,7 @@ function UGTouchSliderControl(){
 	 * init touch events
 	 */
 	function initEvents(){
-				
+		
 		//slider mouse down - drag start
 		g_objSlider.bind("mousedown touchstart",onTouchStart);
 		

@@ -1,4 +1,4 @@
-// Unite Gallery, Version: 1.3.7, released 23 Apr 2015 
+// Unite Gallery, Version: 1.4.1, released 06 May 2015 
 
 
 /**
@@ -548,7 +548,8 @@ function UGCarousel(){
 			carousel_autoplay: true,						//true,false - autoplay of the carousel on start
 			carousel_autoplay_timeout: 3000,				//autoplay timeout
 			carousel_autoplay_direction: "right",			//left,right - autoplay direction
-			carousel_autoplay_pause_onhover: true			//pause the autoplay on mouse over
+			carousel_autoplay_pause_onhover: true,			//pause the autoplay on mouse over
+			carousel_vertical_scroll_ondrag: false			//vertical screen scroll on carousel drag
 	};
 	
 	this.events = {
@@ -562,6 +563,8 @@ function UGCarousel(){
 			isFirstTimeRun:true,  //if run once
 			carouselMaxWidth: null,
 			tileWidth:0,
+			initTileWidth:0,
+			initTileHeight:0,
 			sideSpace:1500,				//the space that must be filled with items
 			spaceActionSize:500,
 			numCurrent:0,
@@ -575,7 +578,8 @@ function UGCarousel(){
 			scrollShortEasing: "easeOutQuad",
 			handle:null,
 			isPlayMode: false,
-			isPaused: false
+			isPaused: false,
+			storedEventID: "carousel"
 	};
 
 	
@@ -601,6 +605,9 @@ function UGCarousel(){
 		g_thumbs = g_objTileDesign.getObjThumbs();
 		g_options = g_objTileDesign.getOptions();
 		
+		g_temp.initTileWidth = g_options.tile_width;
+		g_temp.initTileHeight = g_options.tile_height;
+		
 		g_temp.tileWidth = g_options.tile_width;
 	}
 	
@@ -625,6 +632,38 @@ function UGCarousel(){
 		
 	}
 	
+	
+	/**
+	 * resize tiles to new width / height
+	 */
+	function resizeTiles(newTileWidth, newTileHeight){
+		
+		if(!newTileHeight){
+			
+			var newTileHeight = g_temp.initTileHeight / g_temp.initTileWidth * newTileWidth;
+			
+		}
+		
+		g_temp.tileWidth = newTileWidth;
+		
+		//update all options
+		var optUpdate = {
+				tile_width: newTileWidth, 
+				tile_height: newTileHeight
+		};
+		
+		g_objTileDesign.setOptions(optUpdate);
+		
+		g_options.tile_width = newTileWidth;
+		g_options.tile_height = newTileHeight;
+		
+		//resize all tiles
+		g_objTileDesign.resizeAllTiles(newTileWidth);
+		
+		//reposition tiles
+		positionTiles(true);		//must to position tiles right after size change, for inner size change
+	}
+	
 	/**
 	 * run the gallery after init and set html
 	 */
@@ -636,8 +675,34 @@ function UGCarousel(){
 			return(false);
 		}
 		
+		//if the size changed, change it anyway
+		if(g_temp.tileWidth < g_temp.initTileWidth){
+						
+			var newTileWidth = g_temp.carouselMaxWidth - g_options.carousel_padding * 2;
+			if(newTileWidth > g_temp.initTileWidth)
+				newTileWidth = g_temp.initTileWidth;
+			
+			resizeTiles(newTileWidth);
+			
+			var numTiles = g_functions.getNumItemsInSpace(g_temp.carouselMaxWidth, newTileWidth, g_options.carousel_space_between_tiles);
+			
+		}else{
+			
+			//check if need to lower tiles size
+			var numTiles = g_functions.getNumItemsInSpace(g_temp.carouselMaxWidth, g_temp.tileWidth, g_options.carousel_space_between_tiles);
+			
+			//if no tiles fit, resize the tiles
+			if(numTiles <= 0){
+				numTiles = 1;
+				
+				var newTileWidth = g_temp.carouselMaxWidth - g_options.carousel_padding * 2;
+				
+				resizeTiles(newTileWidth);
+			}
+			
+		}
+				
 		//set wrapper width
-		var numTiles = g_functions.getNumItemsInSpace(g_temp.carouselMaxWidth, g_temp.tileWidth, g_options.carousel_space_between_tiles);
 		var realWidth = g_functions.getSpaceByNumItems(numTiles, g_temp.tileWidth, g_options.carousel_space_between_tiles);
 		realWidth += g_options.carousel_padding * 2;
 		
@@ -652,6 +717,7 @@ function UGCarousel(){
 			//set data indexes to tiles
 			jQuery.each(g_arrItems, function(index, item){
 				item.objThumbWrapper.data("index", index);
+
 				g_objWrapper.trigger(g_temp.eventSizeChange, [item.objThumbWrapper,true]);
 				item.objTileOriginal = item.objThumbWrapper.clone(true, true);
 			});
@@ -701,6 +767,7 @@ function UGCarousel(){
 	function getTiles(){
 		
 		var objTiles = g_objInner.children(".ug-thumb-wrapper");
+		
 		return(objTiles);
 	}
 	
@@ -711,15 +778,8 @@ function UGCarousel(){
 	function getNumTilesInSpace(space){
 		
 		var numItems = g_functions.getNumItemsInSpace(space, g_temp.tileWidth, g_options.carousel_space_between_tiles)
-		
+				
 		return(numItems);
-	}
-	
-	/**
-	 * get all tiles in the inner object
-	 */
-	function getTiles(){
-		return g_objInner.children(".ug-thumb-wrapper");
 	}
 	
 	
@@ -806,7 +866,7 @@ function UGCarousel(){
 		
 		var spaceTaken = innerSize.width - wrapperSize.width + innerSize.left;
 		var spaceRemain = g_temp.sideSpace - spaceTaken;
-		
+				
 		return(spaceRemain);
 	}
 	
@@ -854,7 +914,7 @@ function UGCarousel(){
 			var setHeight = false;
 		
 		var objTiles = getTiles();
-		
+				
 		var posx = 0;
 		var maxHeight = 0, totalWidth;
 		
@@ -868,17 +928,16 @@ function UGCarousel(){
 				totalWidth = tileSize.right;
 		});
 		
-		
 		//set heights and widths
 		g_objInner.width(totalWidth);
-		
+				
 		maxHeight += g_options.carousel_padding * 2;
 		
 		if(setHeight === true){
 			g_objInner.height(maxHeight);
 			g_objCarouselWrapper.height(maxHeight);
 		}
-		
+				
 		scrollToTile(g_temp.numCurrent, false);
 
 		return(totalWidth);
@@ -967,7 +1026,7 @@ function UGCarousel(){
 			if(g_objInner.is(":animated"))
 				return(true);
 		}
-		
+				
 		var objTile = getTile(numTile);
 		var objSize = g_functions.getElementSize(objTile);
 		var posScroll = -objSize.left + g_options.carousel_padding;
@@ -1037,12 +1096,15 @@ function UGCarousel(){
 	 * fill the sides with tiles till it fil the sideSpace
 	 */
 	function fillSidesWithTiles(){
-		
+				
 		var spaceLeft = getRemainSpaceLeft();
 		var spaceRight = getRemainSpaceRight();
+		
 		var numItemsLeft = 0, numItemsRight = 0, numItemsRemoveLeft = 0, numItemsRemoveRight = 0;
 		
 		//trace("left: " + spaceLeft+ " right: " + spaceRight);
+		
+		var numTiles = getNumTiles();
 		
 		//add tiles to left
 		if(spaceLeft > g_temp.spaceActionSize){
@@ -1066,6 +1128,14 @@ function UGCarousel(){
 			removeTiles(numItemsRemoveRight, "right");			
 		}
 		
+		
+		//small validation
+		if(numItemsRemoveRight > numTiles){
+			
+			throw new Error("Can't remove more then num tiles");
+		}
+			
+		//trace(numItemsRemoveRight);
 		//trace("numItems: " + getNumTiles());
 		
 		//scroll to tile and position inner object
@@ -1094,7 +1164,7 @@ function UGCarousel(){
 	 * position tiles
 	 */
 	function positionElements(isFirstTime){
-		
+				
 		//position inner strip
 		g_functions.placeElement(g_objInner, 0, g_options.carousel_padding);
 		
@@ -1201,11 +1271,13 @@ function UGCarousel(){
 		
 		pauseAutoplay();
 		
-		g_temp.startTime = jQuery.now();		
+		g_temp.startTime = jQuery.now();	
 		g_temp.startMousePos = getMousePos(event);
 		g_temp.startInnerPos = getInnerPos();
 		g_temp.lastTime = g_temp.startTime;
 		g_temp.lastMousePos = g_temp.startMousePos;
+		
+		g_functions.storeEventData(event, g_temp.storedEventID);
 	}
 
 	
@@ -1217,7 +1289,17 @@ function UGCarousel(){
 		if(g_temp.touchActive == false)
 			return(true);
 		
+		g_functions.updateStoredEventData(event, g_temp.storedEventID);
+		
 		event.preventDefault();
+		
+		var scrollDir = null;
+		
+		if(g_options.carousel_vertical_scroll_ondrag == true)
+			scrollDir = g_functions.handleScrollTop(g_temp.storedEventID);
+		
+		if(scrollDir === "vert")
+			return(true);
 		
 		g_temp.lastMousePos = getMousePos(event);
 		
@@ -1592,6 +1674,7 @@ function trace(str){
 	
 	if(typeof console != "undefined")
 		console.log(str);
+
 }
 
 
@@ -1754,7 +1837,7 @@ function UGFunctions(){
 	
 	/**
 	 * get image inside parent data by image (find parent and size)
-	 * scaleMode: fit, down, fill
+	 * scaleMode: fit, down, fill, fitvert
 	 */
 	this.getImageInsideParentDataByImage = function(objImage, scaleMode, objPadding){
 		
@@ -1770,23 +1853,20 @@ function UGFunctions(){
 	
 	/**
 	 * get data of image inside parent
-	 * scaleMode: fit, down, fill
+	 * scaleMode: fit, down, fill, fitvert
 	 */
-	this.getImageInsideParentData = function(objParent, originalWidth, originalHeight, scaleMode, objPadding){
+	this.getImageInsideParentData = function(objParent, originalWidth, originalHeight, scaleMode, objPadding, maxWidth, maxHeight){
 		
 		if(!objPadding)
 			var objPadding = {};
 		
-		/*
-		if(objPadding.padding_top == 44 && objParent.parent().index() == 1 && objParent.parents(".ug-theme-slider").length){
-			trace(objParent.parent());
-			trace(objPadding.padding_top);
-		}
-		 */
 		var objOutput = {};
-				
-		var maxWidth = objParent.width();
-		var maxHeight = objParent.height();
+		
+		if(typeof maxWidth === "undefined")
+			var maxWidth = objParent.width();
+		
+		if(typeof maxHeight === "undefined")
+			var maxHeight = objParent.height();
 		
 		if(objPadding.padding_left)
 			maxWidth -= objPadding.padding_left;
@@ -1809,7 +1889,8 @@ function UGFunctions(){
 		if(originalWidth > 0 && originalHeight > 0){
 			
 			//get image size and position
-			if(scaleMode == "down" && originalWidth < maxWidth && originalHeight < maxHeight){				
+			
+			if(scaleMode == "down" && originalWidth < maxWidth && originalHeight < maxHeight){
 			
 				imageHeight = originalHeight;
 				imageWidth = originalWidth;
@@ -1843,13 +1924,13 @@ function UGFunctions(){
 				imageTop = 0;
 				imageLeft = (maxWidth - imageWidth) / 2;
 				
-				if(imageWidth > maxWidth){
+				if(scaleMode != "fitvert" && imageWidth > maxWidth){
 					imageWidth = maxWidth;
 					imageHeight = imageWidth / ratio;
 					imageLeft = 0;
 					imageTop = (maxHeight - imageHeight) / 2;
 				}
-				
+			
 			}
 			
 			imageWidth = Math.floor(imageWidth);
@@ -1961,12 +2042,16 @@ function UGFunctions(){
 		
 		var output = {
 			pageX: 	event.pageX,
-			pageY: 	event.pageY
+			pageY: 	event.pageY,
+			clientX: 	event.clientX,
+			clientY: 	event.clientY
 		};
 		
 		if(event.originalEvent && event.originalEvent.touches && event.originalEvent.touches.length > 0){
 			output.pageX = event.originalEvent.touches[0].pageX;
 			output.pageY = event.originalEvent.touches[0].pageY;
+			output.clientX = event.originalEvent.touches[0].clientX;
+			output.clientY = event.originalEvent.touches[0].clientY;
 		}
 		
 		/**
@@ -1974,7 +2059,6 @@ function UGFunctions(){
 		 */
 		if(element){
 			var elementPos = element.offset();
-						
 			output.mouseX = output.pageX - elementPos.left;
 			output.mouseY = output.pageY - elementPos.top;
 		}
@@ -2548,7 +2632,7 @@ function UGFunctions(){
 			updateCss = true;		
 			objCss.left = obj.imageLeft+"px";
 		}
-		
+				
 		if(updateCss == true){
 			
 			objCss.position = "absolute";
@@ -2558,6 +2642,69 @@ function UGFunctions(){
 		}
 				
 	}
+	
+	
+	/**
+	 * scale image to exact size in parent, by setting image size and padding
+	 */
+	this.scaleImageExactSizeInParent = function(objImage, originalWidth, originalHeight, exactWidth, exactHeight, scaleMode){
+		
+		
+		
+		var objParent = objImage.parent();
+		var parentSize = t.getElementSize(objParent);
+		
+		if(parentSize.width < exactWidth)
+			exactWidth = parentSize.width;
+		
+		if(parentSize.height < exactHeight)
+			exactHeight = parentSize.height;
+		
+		var obj = t.getImageInsideParentData(null, originalWidth, originalHeight, scaleMode, null, exactWidth, exactHeight);
+				
+		var imageWidth = exactWidth;
+		var imageHeight = exactHeight;
+		
+		var paddingLeft = obj.imageLeft;
+		var paddingRight = obj.imageLeft;
+		var paddingTop = obj.imageTop;
+		var paddingBottom = obj.imageTop;
+		var imageLeft = Math.round((parentSize.width - exactWidth) / 2);
+		var imageTop = Math.round((parentSize.height - exactHeight) / 2);
+		
+		var totalWidth = obj.imageWidth + paddingLeft + paddingRight;
+		var diff = exactWidth - totalWidth;
+		if(diff != 0)
+			paddingRight += diff;
+		
+		var totalHeight = obj.imageHeight + paddingTop + paddingBottom;
+		
+		var diff = exactHeight - totalHeight;
+		if(diff != 0)
+			paddingBottom += diff;
+		
+		//update css:
+		objImage.removeAttr("width");
+		objImage.removeAttr("height");
+
+		var objCss = {
+				position: "absolute",
+				margin: "0px 0px"
+		};
+		
+		objCss["width"] = imageWidth+"px";
+		objCss["height"] = imageHeight+"px";
+		objCss["left"] = imageLeft+"px";
+		objCss["top"] = imageTop+"px";
+		objCss["padding-left"] = paddingLeft+"px";
+		objCss["padding-top"] = paddingTop+"px";
+		objCss["padding-right"] = paddingRight+"px";
+		objCss["padding-bottom"] = paddingBottom+"px";
+				
+		objImage.css(objCss);
+		
+	}
+	
 	
 	/**
 	 * show some element and make opacity:1
@@ -2744,18 +2891,77 @@ function UGFunctions(){
 	}
 	
 	
-	this.z_________END_MATH_FUNCTIONS_______ = function(){}
+	this.z_________EVENT_DATA_FUNCTIONS_______ = function(){}
 
+	
+	/**
+	 * handle scroll top, return if scroll mode or not
+	 */
+	this.handleScrollTop = function(storedEventID){
+		
+		if(t.isTouchDevice() == false)
+			return(null);
+		
+		var objData = t.getStoredEventData(storedEventID);
+		
+		var horPass = 15;
+		var vertPass = 15;
+		
+		//check if need to set some movement
+		if(objData.scrollDir === null){
+			
+			if(Math.abs(objData.diffMouseX) > horPass)
+				objData.scrollDir = "hor";
+			else
+				if(Math.abs(objData.diffMouseY) > vertPass && Math.abs(objData.diffMouseY) > Math.abs(objData.diffMouseX) ){
+					objData.scrollDir = "vert";
+					objData.scrollStartY = objData.lastMouseClientY;
+					objData.scrollOrigin = jQuery(document).scrollTop();
+					
+					g_temp.dataCache[storedEventID].scrollStartY = objData.lastMouseClientY;
+					g_temp.dataCache[storedEventID].scrollOrigin = objData.scrollOrigin;
+				}
+			
+			//update scrollDir
+			g_temp.dataCache[storedEventID].scrollDir = objData.scrollDir;
+		}
+				
+		if(objData.scrollDir !== "vert")
+			return(objData.scrollDir);
+		
+		
+		var currentScroll = jQuery(document).scrollTop();
+		
+		var scrollPos = objData.scrollOrigin - (objData.lastMouseClientY - objData.scrollStartY);
+		
+		if(scrollPos >= 0)
+			jQuery(document).scrollTop(scrollPos);
+		
+		return(objData.scrollDir);
+	}
+
+	
+	/**
+	 * return true / false if was vertical scrolling
+	 */
+	this.wasVerticalScroll = function(storedEventID){
+		var objData = t.getStoredEventData(storedEventID);
+		
+		if(objData.scrollDir === "vert")
+			return(true);
+		
+		return(false);
+	}
 	
 	
 	/**
 	 * store event data
 	 */
 	this.storeEventData = function(event, id, addData){
-		
+				
 		var mousePos = t.getMousePosition(event);
 		var time = jQuery.now();
-			
+		
 		var obj = {
 				startTime: time,
 				lastTime: time,
@@ -2763,7 +2969,12 @@ function UGFunctions(){
 				startMouseY: mousePos.pageY,
 				lastMouseX: mousePos.pageX,
 				lastMouseY: mousePos.pageY,
-				scrollTop: jQuery(document).scrollTop()
+				
+				startMouseClientY: mousePos.clientY,
+				lastMouseClientY: mousePos.clientY,
+				
+				scrollTop: jQuery(document).scrollTop(),
+				scrollDir: null,
 		};
 		
 		if(addData)
@@ -2790,6 +3001,7 @@ function UGFunctions(){
 		if(mousePos.pageX !== undefined){
 			obj.lastMouseX = mousePos.pageX;
 			obj.lastMouseY = mousePos.pageY;
+			obj.lastMouseClientY = mousePos.clientY;
 		}
 		
 		if(addData)
@@ -2809,6 +3021,9 @@ function UGFunctions(){
 		
 		obj.diffMouseX = obj.lastMouseX - obj.startMouseX;
 		obj.diffMouseY = obj.lastMouseY - obj.startMouseY;
+		
+		obj.diffMouseClientY = obj.lastMouseClientY - obj.startMouseClientY;
+		
 		obj.diffTime = obj.lastTime - obj.startTime;
 		
 		//get mouse position according orientation
@@ -2870,8 +3085,12 @@ function UGFunctions(){
 	/**
 	 * convert hex color to rgb color
 	 */
-	this.convertHexToRGB = function(hex, opacity){
-	    hex = hex.replace('#','');
+	this.convertHexToRGB = function(hexInput, opacity){
+	    
+		var hex = hexInput.replace('#','');
+	    if(hex === hexInput)
+	    	return(hexInput);
+	    
 	    r = parseInt(hex.substring(0,2), 16);
 	    g = parseInt(hex.substring(2,4), 16);
 	    b = parseInt(hex.substring(4,6), 16);
@@ -3427,6 +3646,7 @@ function UniteGalleryMain(){
 			GALLERY_KEYPRESS: "gallery_keypress"
 	};
 	
+	
 	//set the default gallery options
 	var g_options = {				
 			gallery_width:900,							//gallery width		
@@ -3447,7 +3667,7 @@ function UniteGalleryMain(){
 			gallery_play_interval: 3000,				//play interval of the slideshow
 			gallery_pause_on_mouseover: true,			//true,false - pause on mouseover when playing slideshow true/false
 			
-			gallery_control_thumbs_mousewheel:false,	//true,false - change this option, add more mousewheel choices
+			gallery_mousewheel_role:"zoom",				//none, zoom, advance
 			gallery_control_keyboard: true,				//true,false - enable / disble keyboard controls
 			gallery_carousel:true,						//true,false - next button on last image goes to first image.
 			
@@ -3455,6 +3675,8 @@ function UniteGalleryMain(){
 			gallery_debug_errors:false,					//show error message when there is some error on the gallery area.
 			gallery_background_color: ""				//set custom background color. If not set it will be taken from css.
 	};
+	
+	//gallery_control_thumbs_mousewheel
 	
 	
 	var g_temp = {					//temp variables
@@ -3607,6 +3829,7 @@ function UniteGalleryMain(){
 			 setHtmlObjectsProperties();
 			 
 			 var galleryWidth = g_objWrapper.width();
+			 		 
 			 if(galleryWidth == 0){
 				 g_functions.waitForWidth(g_objWrapper, runGalleryActually);
 			 }else
@@ -3619,6 +3842,8 @@ function UniteGalleryMain(){
 	 * actually run the gallery
 	 */
 	function runGalleryActually(){
+		 
+		t.setSizeClass();
 		
 		if(g_temp.isFreestyleMode == false){
 			 	
@@ -3631,7 +3856,7 @@ function UniteGalleryMain(){
 		 preloadBigImages();
 		 
 		 initEvents();
-		 		 
+		 
 		 //select first item
 		 if(g_numItems > 0) 
 			 t.selectItem(0);
@@ -3839,6 +4064,7 @@ function UniteGalleryMain(){
 				 objItem.objThumbImage = null;
 			 }
 			 
+			 
 			 objItem.link = itemLink;
 			 objItem.description = objChild.data("description");
 			 
@@ -3911,11 +4137,9 @@ function UniteGalleryMain(){
 				 objItem.objThumbImage.removeAttr("data-image", "");				 
 			 }
 			 
-			 if(objItem.urlThumb && objItem.urlThumb !== undefined && objItem.urlThumb != ""){
-				 objItem.index = numIndex;
-				 g_arrItems.push(objItem);
-				 numIndex++;
-			 }
+			 objItem.index = numIndex;
+			 g_arrItems.push(objItem);
+			 numIndex++;
 			 
 		 }
 		 
@@ -4213,6 +4437,7 @@ function UniteGalleryMain(){
 	
 	function __________EVENTS_____________(){};
 
+	
 	/**
 	 * on gallery mousewheel event handler, advance the thumbs
 	 */
@@ -4232,7 +4457,7 @@ function UniteGalleryMain(){
 	 */
 	function onSliderMouseEnter(event){
 		
-		if(g_options.gallery_pause_on_mouseover == true && g_temp.isPlayMode == true && g_objSlider && g_objSlider.isSlideActionActive() == false)
+		if(g_options.gallery_pause_on_mouseover == true && t.isFullScreen() == false && g_temp.isPlayMode == true && g_objSlider && g_objSlider.isSlideActionActive() == false)
 			t.pausePlaying();
 	}
 	
@@ -4359,9 +4584,9 @@ function UniteGalleryMain(){
 				break;
 			}
 		}
-				
+		
 		//init mouse wheel
-		if(g_options.gallery_control_thumbs_mousewheel == true)
+		if(g_options.gallery_mousewheel_role == "advance")
 			g_objWrapper.on("mousewheel",onGalleryMouseWheel);
 		
 		 //on resize event
@@ -4388,7 +4613,13 @@ function UniteGalleryMain(){
 			 //add slider onmousemove event
 			 if(g_options.gallery_pause_on_mouseover == true){
 				 var sliderElement = g_objSlider.getElement();
-				 sliderElement.hover(onSliderMouseEnter, onSliderMouseLeave);			 
+				 sliderElement.hover(onSliderMouseEnter, onSliderMouseLeave);
+				 
+				 //on full screen, run on mouse leave
+				 g_objGallery.on(t.events.ENTER_FULLSCREEN, function(){
+						 onSliderMouseLeave();
+				 });
+				 
 			 }
 			 
 			 //retrigger slider events
@@ -4401,8 +4632,6 @@ function UniteGalleryMain(){
 		 if(g_options.gallery_control_keyboard == true)
 			 jQuery(document).keydown(onKeyPress);
 		 		 
-		 
-			 
 	}
 		
 	
@@ -5132,6 +5361,9 @@ function UniteGalleryMain(){
 		if(width < 960){
 			addClass = "ug-under-960";
 		}
+		
+		if(objWrapper.hasClass(addClass) == true)
+			return(true);
 		
 		removeAllSizeClasses(objWrapper);
 		if(addClass != "")
@@ -6172,7 +6404,8 @@ function UGLightbox(){
 			isArrowsInside: false,
 			isArrowsOnHoverMode: false,
 			lastMouseX: null,
-			lastMouseY: null
+			lastMouseY: null,
+			originalOptions: null
 	};
 	
 	var g_defaults = {
@@ -6199,26 +6432,29 @@ function UGLightbox(){
 			lightbox_textpanel_padding_top: 5,
 			lightbox_textpanel_padding_bottom: 5,
 			
+			slider_video_constantsize: false,
+			lightbox_slider_image_border: false,
+			
 			lightbox_textpanel_enable_title: true,
 			lightbox_textpanel_enable_description: false,
 			
 			lightbox_textpanel_enable_bg:false,
 			
 			video_enable_closebutton: false,
-			slider_video_enable_closebutton: false,
+			lightbox_slider_video_enable_closebutton: false,
 			video_youtube_showinfo: false
 	};
 	
 	var g_defaultsCompact = {
-			lightbox_slider_image_border: true,
-			lightbox_slider_image_shadow:true,
 			lightbox_overlay_opacity:0.6,
 			
+			lightbox_slider_image_border: true,
+			lightbox_slider_image_shadow:true,
 			lightbox_slider_image_padding_top: 30,
 			lightbox_slider_image_padding_bottom: 30,
-			lightbox_slider_video_padding_top: 0,
-			lightbox_slider_video_padding_bottom: 0,
 			
+			slider_video_constantsize: true,
+						
 			lightbox_textpanel_align: "bottom",
 			lightbox_textpanel_title_text_align: "left",
 			lightbox_textpanel_desc_text_align: "left",
@@ -6240,6 +6476,8 @@ function UGLightbox(){
 		
 		g_options = jQuery.extend(g_options, g_defaults);
 		g_options = jQuery.extend(g_options, customOptions);
+	
+		g_temp.originalOptions = jQuery.extend({}, g_options);
 		
 		if(g_options.lightbox_type == "compact"){
 			g_temp.isCompact = true;
@@ -6274,6 +6512,7 @@ function UGLightbox(){
 	 * modify some options according user options
 	 */
 	function modifyOptions(){
+		
 		
 		if(g_temp.isCompact == true && g_options.lightbox_show_textpanel == true){
 			g_options.lightbox_slider_image_padding_bottom = g_temp.initTextPanelHeight;
@@ -6407,6 +6646,8 @@ function UGLightbox(){
 	
 	}
 	
+	function __________WIDE_ONLY_________(){};
+	
 	
 	/**
 	 * handle panel height according text height
@@ -6444,13 +6685,58 @@ function UGLightbox(){
 				
 	}
 
+
+	/**
+	 * position text panel for wide
+	 * size - wrapper size
+	 */
+	function positionTextPanelWide(size){
+
+		var objOptions = {};
+		
+		var textWidth = g_options.lightbox_textpanel_width;
+		var minPaddingLeft = 47;
+		var minPaddingRight = 40;
+		var maxTextPanelWidth = size.width - minPaddingLeft - minPaddingRight;
+		
+		if(textWidth > maxTextPanelWidth){		//mobile mode
+			
+			objOptions.textpanel_padding_left = minPaddingLeft;
+			objOptions.textpanel_padding_right = minPaddingRight;
+			
+			objOptions.textpanel_title_text_align = "center";
+			objOptions.textpanel_desc_text_align = "center";			
+		}else{
+			objOptions.textpanel_padding_left = Math.floor((size.width - textWidth) / 2);
+			objOptions.textpanel_padding_right = objOptions.textpanel_padding_left;
+			objOptions.textpanel_title_text_align = "left";
+			objOptions.textpanel_desc_text_align = "left";
+			
+			if(g_options.lightbox_textpanel_title_text_align)
+					objOptions.textpanel_title_text_align = g_options.lightbox_textpanel_desc_text_align;
+			
+			if(g_options.lightbox_textpanel_desc_text_align)
+				objOptions.textpanel_desc_text_align = g_options.lightbox_textpanel_desc_text_align;
+			
+		}
+				
+		g_objTextPanel.setOptions(objOptions);
+		
+		g_objTextPanel.refresh(true, true);
+		
+		handlePanelHeight();
+		g_objTextPanel.positionPanel();
+	}
 	
+	
+	function __________COMPACT_ONLY_________(){};
+
 	/**
 	 * handle slider image height according the textpanel height
 	 * refresh the slider if the height is not in place
 	 */
 	function handleCompactHeight(objImageSize){
-		
+				
 		if(g_temp.isOpened == false)
 			return(false);
 		
@@ -6526,10 +6812,6 @@ function UGLightbox(){
 	 */
 	function handleCompactTextpanelSizes(showTextpanel){
 		
-		var isActionActive = g_objSlider.isSlideActionActive();
-		if(isActionActive)
-			return(false);
-		
 		var wrapperSize = g_functions.getElementSize(g_objWrapper);
 		var objImage = g_objSlider.getSlideImage();
 		var objImageSize = g_functions.getElementSize(objImage);
@@ -6575,15 +6857,18 @@ function UGLightbox(){
 		
 	}
 	
+	
+	
 	/**
 	 * return that current slider image is in place
 	 */
 	function isSliderImageInPlace(){
+
+		if(g_objSlider.isCurrentSlideType("image") == false)
+			return(true);
 		
 		var isImageInPlace = (g_objSlider.isCurrentImageInPlace() == true);
-		if(g_objSlider.isCurrentSlideType("image") == false && g_objSlider.isSlideActionActive() == true)
-			isImageInPlace = false;
-		
+				
 		return(isImageInPlace);
 	}
 	
@@ -6626,7 +6911,7 @@ function UGLightbox(){
 			var leftArrowTop = g_functions.getElementRelativePos(g_objArrowLeft, "middle", 0, objImage) + objImageSize.top;
 			var rightArrowLeft = g_functions.getElementRelativePos(g_objArrowLeft, "right", 0, objImage) + objImageSize.left - g_options.lightbox_arrows_inside_offset;
 			var rightArrowTop = leftArrowTop;
-						
+			
 		}
 		
 		
@@ -6676,10 +6961,13 @@ function UGLightbox(){
 		
 		var isImageInPlace = isSliderImageInPlace();
 		
+		var minButtonTop = 2;
+		var maxButtonLeft = g_functions.getElementRelativePos(g_objButtonClose, "right", 2, g_objWrapper);
+		
 		if(isImageInPlace == false){	//put image to corner
 			
-			var closeButtonTop = 2;
-			var closeButtonLeft = g_functions.getElementRelativePos(g_objButtonClose, "right", 2, g_objWrapper);
+			var closeButtonTop = minButtonTop;
+			var closeButtonLeft = maxButtonLeft;
 			
 		}else{
 			var objImage = g_objSlider.getSlideImage();
@@ -6693,6 +6981,13 @@ function UGLightbox(){
 			
 			var closeButtonLeft = objSliderSize.left + objImageSize.right - objButtonSize.width / 2 + g_options.lightbox_compact_closebutton_offsetx;
 			var closeButtonTop = objSliderSize.top + objImageSize.top - objButtonSize.height / 2 - g_options.lightbox_compact_closebutton_offsety;
+			
+			if(closeButtonTop < minButtonTop)
+				closeButtonTop = minButtonTop;
+			
+			if(closeButtonLeft > maxButtonLeft)
+				closeButtonLeft = maxButtonLeft;
+			
 		}
 		
 		//place the image with animation or not
@@ -6716,49 +7011,25 @@ function UGLightbox(){
 		
 	}
 	
+	
 	/**
-	 * position text panel for wide
-	 * size - wrapper size
+	 * hide close button
 	 */
-	function positionTextPanelWide(size){
-
-		var objOptions = {};
+	function hideCompactElements(){
 		
-		var textWidth = g_options.lightbox_textpanel_width;
-		var minPaddingLeft = 47;
-		var minPaddingRight = 40;
-		var maxTextPanelWidth = size.width - minPaddingLeft - minPaddingRight;
+		if(g_objButtonClose)
+			g_objButtonClose.stop().fadeTo(g_temp.fadeDuration, 0);
 		
-		if(textWidth > maxTextPanelWidth){		//mobile mode
-			
-			objOptions.textpanel_padding_left = minPaddingLeft;
-			objOptions.textpanel_padding_right = minPaddingRight;
-			
-			objOptions.textpanel_title_text_align = "center";
-			objOptions.textpanel_desc_text_align = "center";			
-		}else{
-			objOptions.textpanel_padding_left = Math.floor((size.width - textWidth) / 2);
-			objOptions.textpanel_padding_right = objOptions.textpanel_padding_left;
-			objOptions.textpanel_title_text_align = "left";
-			objOptions.textpanel_desc_text_align = "left";
-			
-			if(g_options.lightbox_textpanel_title_text_align)
-					objOptions.textpanel_title_text_align = g_options.lightbox_textpanel_desc_text_align;
-			
-			if(g_options.lightbox_textpanel_desc_text_align)
-				objOptions.textpanel_desc_text_align = g_options.lightbox_textpanel_desc_text_align;
-			
-		}
-				
-		g_objTextPanel.setOptions(objOptions);
+		hideTextPanel();
 		
-		g_objTextPanel.refresh(true, true);
+		hideNumbers();
 		
-		handlePanelHeight();
-		g_objTextPanel.positionPanel();
+		g_temp.positionFrom = "hideCompactElements";
+		if(g_temp.isArrowsInside == true)
+			hideArrows();
 	}
 	
-	
+	function __________COMMON_________(){};
 	
 	
 	/**
@@ -6931,22 +7202,6 @@ function UGLightbox(){
 
 	
 	
-	/**
-	 * hide close button
-	 */
-	function hideCompactElements(){
-		
-		if(g_objButtonClose)
-			g_objButtonClose.stop().fadeTo(g_temp.fadeDuration, 0);
-		
-		hideTextPanel();
-		
-		hideNumbers();
-		
-		g_temp.positionFrom = "hideCompactElements";
-		if(g_temp.isArrowsInside == true)
-			hideArrows();
-	}
 	
 	
 	/**
@@ -7191,7 +7446,7 @@ function UGLightbox(){
 	function onSliderClick(data, event){
 		
 		var slideType = g_objSlider.getSlideType();
-		if(slideType != "image")
+		if(slideType != "image" && g_temp.isCompact == false && g_objSlider.isSlideActionActive() )
 			return(true);
 		
 		var isPreloading = g_objSlider.isPreloading();
@@ -7215,43 +7470,6 @@ function UGLightbox(){
 		positionElements();
 	}
 	
-	
-	/**
-	 * on slider action start. remove extras
-	 */
-	function onSliderActionStart(){
-		
-		if(g_temp.isCompact == false)
-			return(true);
-		
-		positionCloseButton(true);
-		positionArrowsInside(true);
-		
-		if(g_objTextPanel)
-			g_objTextPanel.getElement().hide();
-		
-		if(g_objNumbers)
-			g_objNumbers.hide();
-		
-	}
-
-	
-	//show extras
-	function onSliderActionEnd(){
-		
-		if(g_temp.isCompact == false)
-			return(true);
-		
-		positionCloseButton(true);
-		positionArrowsInside(true);
-		
-		if(g_objTextPanel)
-			g_objTextPanel.getElement().show();
-		
-		if(g_objNumbers)
-			g_objNumbers.show();
-		
-	}
 	
 	
 	/**
@@ -7372,9 +7590,6 @@ function UGLightbox(){
 			//on slider click event
 			jQuery(g_objSlider).on(g_objSlider.events.CLICK, onSliderClick);
 			
-			jQuery(g_objSlider).on(g_objSlider.events.ACTION_START, onSliderActionStart);
-			jQuery(g_objSlider).on(g_objSlider.events.ACTION_END, onSliderActionEnd);
-
 			//on slider video 
 			var objVideo = g_objSlider.getVideoObject();
 					
@@ -7413,7 +7628,17 @@ function UGLightbox(){
 			 jQuery(document).bind('mousemove', onMouseMove);
 		 
 		 }
-			 
+		
+		//on mouse wheel - disable functionality if video
+		g_objWrapper.on("mousewheel", function(event){
+			
+			var slideType = g_objSlider.getSlideType();
+			if(slideType != "image" && g_options.gallery_mousewheel_role != "advance"){
+				event.preventDefault();
+			}
+						
+		});
+
 	}
 
 	
@@ -7430,8 +7655,6 @@ function UGLightbox(){
 		g_objGallery.off(g_gallery.events.ITEM_CHANGE);
 		
 		if(g_objSlider){
-			jQuery(g_objSlider).off(g_objSlider.events.ACTION_START);
-			jQuery(g_objSlider).off(g_objSlider.events.ACTION_END);
 			jQuery(g_objSlider).off(g_objSlider.events.TRANSITION_END);
 			jQuery(g_objSlider).off(g_objSlider.events.CLICK);
 			jQuery(g_objSlider).off(g_objSlider.events.START_DRAG);
@@ -7451,7 +7674,8 @@ function UGLightbox(){
 		
 		jQuery(window).unbind("resize");
 		g_objGallery.off(g_gallery.events.GALLERY_KEYPRESS, onKeyPress);
-
+		
+		g_objWrapper.off("mousewheel");
 	}
 	
 	
@@ -7562,13 +7786,33 @@ function UGLightbox(){
 	
 	
 	/**
+	 * switch to wide mode from compact mode
+	 */
+	function switchToWide(){
+		g_temp.isCompact = false;
+		modifyOptions();
+		
+		g_options = jQuery.extend({}, g_temp.originalOptions);
+		
+		trace(g_options);
+		
+		g_objSlider.setOptions(g_options);
+	}
+	
+	
+	/**
 	 * external put html function
 	 */
 	this.putHtml = function(){
 		
-		putLightboxHtml();
+		//check if switch to wide mode
+		var isMobile = g_gallery.isMobileMode();
+		if(isMobile && g_temp.isCompact == true)
+			switchToWide();
 		
+		putLightboxHtml();
 	}
+	
 	
 	/**
 	 * run lightbox elements
@@ -8160,14 +8404,17 @@ function UGSlider(){
 		  slider_scale_mode: "fill",					//fit: scale down and up the image to always fit the slider
 		  												//down: scale down only, smaller images will be shown, don't enlarge images (scale up)
 		  												//fill: fill the entire slider space by scaling, cropping and centering the image
-		  slider_scale_mode_media: "fill",				//fit, down, full scale mode on media items
-		  slider_scale_mode_fullscreen: "down",			//fit, down, full scale mode on fullscreen.
+		  												//fitvert: make the image always fill the vertical slider area
+		  slider_scale_mode_media: "fill",				//fill, fit, down, fitvert - scale mode on media items
+		  slider_scale_mode_fullscreen: "down",			//fill, fit, down, fitvert - scale mode on fullscreen.
 		  		  
 		  slider_item_padding_top: 0,					//padding top of the slider item
 		  slider_item_padding_bottom: 0,				//padding bottom of the slider item
 		  slider_item_padding_left: 0,					//padding left of the slider item
 		  slider_item_padding_right: 0,					//padding right of the slider item
+		  
 		  slider_background_color: "",					//slider background color, set if you want to change default
+		  slider_background_opacity: 1,					//slider background opacity
 		  
 		  slider_image_padding_top: 0,					//padding top of the image inside the item
 		  slider_image_padding_bottom: 0,				//padding bottom of the image inside the item
@@ -8180,10 +8427,16 @@ function UGSlider(){
 		  slider_image_border_radius: 0,				//image border radius
 		  slider_image_shadow: false,					//enable border shadow the image
 		  
+		  slider_video_constantsize: false, 			//constant video size mode for video items
+		  slider_video_constantsize_scalemode: "fit", 	//fit,down: constant video size scale mode
+		  slider_video_constantsize_width: 854,			//constant video size width
+		  slider_video_constantsize_height: 480,		//constant video size height
+		  
 		  slider_video_padding_top: 0,					//padding top of the video player inside the item
 		  slider_video_padding_bottom: 0,				//padding bottom of the video player inside the item
 		  slider_video_padding_left: 0,					//padding left of the video player inside the item
 		  slider_video_padding_right: 0,				//padding right of the video player inside the item
+		  
 		  slider_video_enable_closebutton: true,		//enable video close button
 		  
 		  slider_transition: "slide",					//fade, slide - the transition of the slide change
@@ -8192,6 +8445,8 @@ function UGSlider(){
 		  
 		  slider_control_swipe:true,					//true,false - enable swiping control
 		  slider_control_zoom:true,						//true, false - enable zooming control
+		  slider_zoom_mousewheel: true,					//enable zoom on mousewheel
+		  slider_vertical_scroll_ondrag: false,			//vertical scroll on slider area drag					  
 		  slider_loader_type: 1,						//shape of the loader (1-7)
 		  slider_loader_color:"white",					//color of the loader: (black , white)
 		  
@@ -8349,9 +8604,22 @@ function UGSlider(){
 		g_temp.isRunOnce = true;
 		
 		//set background color
-	   if(g_options.slider_background_color)		   		
-		   g_objSlider.css("background-color", g_options.slider_background_color);
+	   
+	   if(g_options.slider_background_color){	   		
+		   var bgColor = g_options.slider_background_color;
+		   
+		   if(g_options.slider_background_opacity != 1)
+			   bgColor = g_functions.convertHexToRGB(bgColor, g_options.slider_background_opacity);
+			  
+		   g_objSlider.css("background-color", bgColor);
+	   
+	   }else if(g_options.slider_background_opacity != 1){	//set opacity with default color
 		
+		   bgColor = g_functions.convertHexToRGB("#000000", g_options.slider_background_opacity);
+		   g_objSlider.css("background-color", bgColor);
+	  
+	   }
+	   
 		//init touch slider control
 		if(g_options.slider_control_swipe == true){
 			g_objTouchSlider = new UGTouchSliderControl();
@@ -8398,7 +8666,12 @@ function UGSlider(){
 		
 		g_options.video_enable_closebutton = g_options.slider_video_enable_closebutton;
 		
+		//set mousewheel option depends on the gallery option
+		if(galleryOptions.gallery_mousewheel_role != "zoom")
+			g_options.slider_zoom_mousewheel = false;
+	
 	}
+	
 	
 	/**
 	 * 
@@ -8896,9 +9169,27 @@ function UGSlider(){
 	
 	
 	/**
+	 * set video player constant size
+	 */
+	function setVideoPlayerConstantSize(){
+		
+		var videoWidth = g_options.slider_video_constantsize_width;
+		var videoHeight = g_options.slider_video_constantsize_height;
+		
+		g_objVideoPlayer.setSize(videoWidth, videoHeight);
+		g_objVideoPlayer.setPosition("center", "middle");
+		
+		//set video design
+		var videoElement = g_objVideoPlayer.getObject();
+		
+		setImageDesign(videoElement);
+	}
+	
+	
+	/**
 	 * set slider image css design according the settings
 	 */
-	function setImageDesign(objImage){
+	function setImageDesign(objImage, slideType){
 		
 		var css = {};
 		if(g_options.slider_image_border == true){
@@ -8908,14 +9199,28 @@ function UGSlider(){
 			css["border-radius"] = g_options.slider_image_border_radius;
 		}
 		
+		if(slideType != "image" && g_options.slider_video_constantsize == true)
+			css["background-color"] = "#000000";
+		
 		if(g_options.slider_image_shadow == true){
 			css["box-shadow"] = "3px 3px 10px 0px #353535";
 		}
 		
 		objImage.css(css);
-		
 	}
 	
+	/**
+	 * scale image constant size (for video items)
+	 */
+	function scaleImageConstantSize(objImage, objItem){
+		
+		var constantWidth = g_options.slider_video_constantsize_width;
+		var constantHeight = g_options.slider_video_constantsize_height;
+		var scaleMode = g_options.slider_video_constantsize_scalemode;
+		
+		g_functions.scaleImageExactSizeInParent(objImage, objItem.imageWidth, objItem.imageHeight, constantWidth, constantHeight, scaleMode);
+	}
+
 	
 	/**
 	 * 
@@ -8935,29 +9240,38 @@ function UGSlider(){
 		
 		var scaleMode = t.getScaleMode(objSlide);
 		
-		objPadding = t.getObjImagePadding();
+		var slideType = t.getSlideType(objSlide);
 		
+		objPadding = t.getObjImagePadding();
+				
 		if(currentImage == urlImage && isForce !== true){
 			
 			var objImage = objItemWrapper.children("img");
-			
+						
 			if(objItem.imageWidth == 0 || objItem.imageHeight == 0){
 				g_gallery.checkFillImageSize(objImage, objItem);
 			}
 			
-			g_functions.scaleImageFitParent(objImage, objItem.imageWidth, objItem.imageHeight, scaleMode, objPadding);
-						
+			if(slideType != "image" && g_options.slider_video_constantsize == true)
+				scaleImageConstantSize(objImage, objItem);
+			else
+				g_functions.scaleImageFitParent(objImage, objItem.imageWidth, objItem.imageHeight, scaleMode, objPadding);
+			
 			g_objThis.trigger(t.events.AFTER_PUT_IMAGE, objSlide);
 			
 		}
 		else{		//place the image inside parent first time
 						
 			objImage = g_functions.placeImageInsideParent(urlImage, objItemWrapper, objItem.imageWidth, objItem.imageHeight, scaleMode, objPadding);
-			
+									
 			//set image loaded on load:
 			if(objItem.isBigImageLoaded == true){
 				objImage.fadeTo(0,1);
 				hidePreloader(objPreloader);
+				
+				if(slideType != "image" && g_options.slider_video_constantsize == true)
+					scaleImageConstantSize(objImage, objItem);
+				
 				g_objThis.trigger(t.events.AFTER_PUT_IMAGE, objSlide);
 			}
 			else{		//if the image not loaded, load the image and show it after.
@@ -8975,6 +9289,7 @@ function UGSlider(){
 					
 					//get and hide preloader
 					var objSlide = objImage.parent().parent();
+					var slideType = t.getSlideType(objSlide);
 					var objPreloader = getSlidePreloader(objSlide);
 					var objPadding = t.getObjImagePadding();
 					var scaleMode = t.getScaleMode(objSlide);
@@ -8984,8 +9299,11 @@ function UGSlider(){
 					g_gallery.onItemBigImageLoaded(null, objImage);
 					
 					var objItem = g_gallery.getItem(itemIndex);
-									
-					g_functions.scaleImageFitParent(objImage, objItem.imageWidth, objItem.imageHeight, scaleMode, objPadding);
+										
+					if(slideType != "image" && g_options.slider_video_constantsize == true)
+						scaleImageConstantSize(objImage, objItem);
+					else
+						g_functions.scaleImageFitParent(objImage, objItem.imageWidth, objItem.imageHeight, scaleMode, objPadding);
 					
 					objImage.fadeTo(0,1);
 					
@@ -8994,9 +9312,10 @@ function UGSlider(){
 			}
 			
 		}
+				
 		
 		if(objImage)
-			setImageDesign(objImage);
+			setImageDesign(objImage, slideType);
 		
 	}
 	
@@ -10088,6 +10407,7 @@ function UGSlider(){
 	}
 	
 	
+	
 	/**
 	 * start some slide action if exists
 	 */
@@ -10100,7 +10420,10 @@ function UGSlider(){
 		
 		if(objItem.type == "image")
 			return(true)
-				
+		
+		if(g_options.slider_video_constantsize == true)
+			setVideoPlayerConstantSize();
+			
 		g_objVideoPlayer.show();
 		
 		switch(objItem.type){
@@ -10227,6 +10550,7 @@ function UGSlider(){
 	 * check if current image in place
 	 */
 	this.isCurrentImageInPlace = function(){
+		
 		var objImage = t.getSlideImage();
 		if(objImage.length == 0)
 			return(false);
@@ -10341,12 +10665,18 @@ function UGSlider(){
 			 g_objTextPanel.setSizeByParent();
 		 }
 		 
-		 var videoWidth = width - g_options.slider_video_padding_left - g_options.slider_video_padding_right;
-		 var videoHeight = height - g_options.slider_video_padding_top - g_options.slider_video_padding_bottom;
-		 
 		 //set video player size
-		 g_objVideoPlayer.setSize(videoWidth, videoHeight);
-		 g_objVideoPlayer.setPosition(g_options.slider_video_padding_left, g_options.slider_video_padding_top);
+		 var currentSlideType = t.getSlideType();
+		 if(currentSlideType != "image" && g_options.slider_video_constantsize == true){
+			 setVideoPlayerConstantSize();
+		 }else{	
+			 var videoWidth = width - g_options.slider_video_padding_left - g_options.slider_video_padding_right;
+			 var videoHeight = height - g_options.slider_video_padding_top - g_options.slider_video_padding_bottom;
+			 
+			 //set video player size
+			 g_objVideoPlayer.setSize(videoWidth, videoHeight);
+			 g_objVideoPlayer.setPosition(g_options.slider_video_padding_left, g_options.slider_video_padding_top);
+		 }
 		 
 		 positionElements();
 		 
@@ -14061,25 +14391,24 @@ function UGThumbsGrid(){
 		
 	}
 	
+	
 	/**
 	 * handle scroll top, return if scroll mode or not
 	 */
-	function handleScrollTop(objData){
+	function handleScrollTop(){
+		
+		if(g_options.grid_vertical_scroll_ondrag == false)
+			return(false);
 		
 		if(g_temp.isNavigationVertical == true)
 			return(false);
 		
-		if(Math.abs(objData.diffMouseY) < Math.abs(objData.diffMouseX))
-			return(false);
+		var scrollDir = g_functions.handleScrollTop(g_temp.storedEventID);
 		
-		var currentScrollTop = jQuery(document).scrollTop();
+		if(scrollDir === "vert")
+			return(true);
 		
-		var toScroll = objData.diffMouseY - currentScrollTop;
-		var scrollPos = objData.scrollTop - toScroll;
-		if(scrollPos > 0)
-			jQuery(document).scrollTop(scrollPos);
-		
-		return(true);
+		return(false);
 	}
 	
 	
@@ -14097,11 +14426,11 @@ function UGThumbsGrid(){
 		
 		var objData = g_functions.getStoredEventData(g_temp.storedEventID, g_temp.isNavigationVertical);
 		
-		if(g_options.grid_vertical_scroll_ondrag == true){
-			var isScroll = handleScrollTop(objData);
-			if(isScroll)
-				return(true);
-		}
+		//check if was vertical scroll
+		var isScroll = handleScrollTop();
+		if(isScroll)
+			return(true);
+		
 		
 		var diff = objData.diffMousePos;
 		var innerPos = objData.startInnerPos + diff;
@@ -15714,6 +16043,7 @@ function UGTileDesign(){
 		
 		if(g_temp.isFixedMode == true){
 			objThumbWrapper.fadeTo(0,0);		//turn on in thumbsGeneral
+			
 			g_functions.setElementSize(objThumbWrapper, g_options.tile_width, g_options.tile_height);
 			objThumbWrapper.addClass("ug-tile-fixed");
 		}
@@ -16025,19 +16355,20 @@ function UGTileDesign(){
 		
 		var objTextPanel = getTextPanel(objTile);
 		
-		
 		//set text panel:
 		if(g_options.tile_enable_textpanel == true){
-			objTextPanel.refresh();
+			
+			if(objTextPanel)
+				objTextPanel.refresh();
 		}
-		
 
 		//set vertical gap for icons
 		if(objButtonZoom || objButtonLink){
 						
 			var gapVert = 0;
 			if(g_options.tile_enable_textpanel == true){
-				var texPanelSize = g_functions.getElementSize(objTextPanel.getElement());
+				var objTextPanelElement = getTextPanelElement(objTile);
+				var texPanelSize = g_functions.getElementSize(objTextPanelElement);
 				if(texPanelSize.height > 0)
 					gapVert = Math.floor((texPanelSize.height / 2) * -1);  
 			}
@@ -16456,6 +16787,50 @@ function UGTileDesign(){
 		return g_options;
 	}
 	
+	/**
+	 * resize tile. If no size given, resize to original size
+	 */
+	this.resizeTile = function(objTile, newWidth, newHeight){
+		
+		if(!newWidth){
+			var newWidth = g_options.tile_width;
+			var newHeight = g_options.tile_height;
+		}else{
+			if(!newHeight)
+				var newHeight = g_options.tile_height / g_options.tile_width * newWidth;
+		}
+		
+		g_functions.setElementSize(objTile, newWidth, newHeight);
+		
+		g_objWrapper.trigger(g_temp.eventSizeChange, [objTile,true]);
+		
+		
+	}
+	
+	
+	/**
+	 * resize all thumbs
+	 */
+	this.resizeAllTiles = function(newWidth, newHeight){
+		
+		if(!newHeight)
+			var newHeight = g_options.tile_height / g_options.tile_width * newWidth;
+
+		var objTiles = g_thumbs.getThumbs();
+		objTiles.each(function(index, objTile){
+			t.resizeTile(jQuery(objTile), newWidth, newHeight);
+		});
+		
+	}
+	
+	/**
+	 * set new options
+	 */
+	this.setOptions = function(newOptions){
+		g_options = jQuery.extend(g_options, newOptions);
+		g_thumbs.setOptions(newOptions);
+	}
+	
 }
 /**
  * tiles class
@@ -16759,6 +17134,8 @@ function UGTiles(){
 		var arrWidths = [];
 		var totalWidth = 0;
 		var gap = g_options.tiles_justified_space_between;
+		var numTiles = objTiles.length;
+		
 		
 		//get arr widths and total width
 		jQuery.each(objTiles, function(index, objTile){
@@ -16788,8 +17165,11 @@ function UGTiles(){
 
 		
 		var numRows = Math.ceil(totalWidth / galleryWidth);
+		
+		if(numRows > numTiles)
+			numRows = numTiles;
+		
 		var finalRowWidth = totalWidth / numRows;
-
 		
 		//fill rows array, break tiles to rows
 		var arrRows = [], eachRowWidth = 0;
@@ -17117,7 +17497,11 @@ function UGTouchSliderControl(){
 		isInitDataValid:false,
 		slides: null,
 		lastNumTouches:0,
-		isDragging: false
+		isDragging: false,
+		storedEventID: "touchSlider",
+		videoStartX: 0,
+		isDragVideo: false,
+		videoObject: null
 	};
 	
 	
@@ -17224,7 +17608,7 @@ function UGTouchSliderControl(){
 						
 		//trigger before return event
 		g_objParent.trigger(g_parent.events.BEFORE_RETURN);
-				
+		
 		if(!slides)
 			var slides = g_parent.getSlidesReference();
 		
@@ -17236,6 +17620,20 @@ function UGTouchSliderControl(){
 			duration: g_options.slider_transition_return_speed,
 			easing: g_options.slider_transition_continuedrag_easing,
 			queue: false,
+			progress: function(animation, number, remainingMS){
+								
+				//check drag video
+				if(g_temp.isDragVideo == true){
+					var objSize = g_functions.getElementSize(g_objInner);
+					var innerX = objSize.left;
+					
+					var posDiff = innerX - destX;
+					
+					var videoPosX = g_temp.videoStartX + posDiff;
+					g_temp.videoObject.css("left", videoPosX);
+				}
+				
+			},
 			complete: function(){
 				g_objParent.trigger(g_parent.events.AFTER_RETURN);
 			}
@@ -17250,6 +17648,7 @@ function UGTouchSliderControl(){
 	 */
 	function changeItem(direction){
 		
+		g_parent.getVideoObject().hide();
 		g_parent.switchSlideNums(direction);
 		g_parent.placeNabourItems();
 
@@ -17301,12 +17700,24 @@ function UGTouchSliderControl(){
 			returnToPlace(slides);
 			
 		}else{
-			
+						
 			//animate objects
 			g_objInner.stop().animate({left:destX+"px"},{
 				duration: g_options.slider_transition_continuedrag_speed,
 				easing: g_options.slider_transition_continuedrag_easing,
 				queue: false,
+				progress: function(){
+					
+					//check drag video
+					if(g_temp.isDragVideo == true){
+						var objSize = g_functions.getElementSize(g_objInner);
+						var innerX = objSize.left;
+						var posDiff = innerX - g_temp.startPosx;
+						var videoPosX = g_temp.videoStartX + posDiff;
+						g_temp.videoObject.css("left", videoPosX);
+					}
+					
+				},
 				always:function(){
 					changeItem(direction);
 					g_objParent.trigger(g_parent.events.AFTER_DRAG_CHANGE);
@@ -17317,7 +17728,7 @@ function UGTouchSliderControl(){
 				
 		
 	}
-	
+
 	
 	/**
 	 * handle slider drag on mouse drag
@@ -17351,7 +17762,7 @@ function UGTouchSliderControl(){
 				
 			}
 		}
-							
+		
 		//set inner div position
 		var currentPosx = g_temp.startPosx + diff;
 		
@@ -17373,8 +17784,17 @@ function UGTouchSliderControl(){
 			g_temp.isDragging = true;
 			g_objParent.trigger(g_parent.events.START_DRAG);
 		}
-		
+				
 		g_objInner.css("left", currentPosx+"px");
+		
+		//drag video
+		if(g_temp.isDragVideo == true){
+			var posDiff = currentPosx - g_temp.startPosx;
+			var videoPosX = g_temp.videoStartX + posDiff;
+			
+			g_temp.videoObject.css("left", videoPosX);
+		}
+		
 	}
 	
 	/**
@@ -17402,6 +17822,21 @@ function UGTouchSliderControl(){
 		g_temp.startPosx = objPos.left;
 		
 		g_temp.isInitDataValid = true;
+		
+		//check if video object need to be dragged
+		g_temp.isDragVideo = false;
+		
+		var objVideo = g_parent.getVideoObject();
+		if(objVideo.isVisible() == true){
+			g_temp.isDragVideo = true;
+			g_temp.videoObject = objVideo.getObject();
+			var videoSize = g_functions.getElementSize(g_temp.videoObject);
+			g_temp.videoStartX = videoSize.left;
+			
+		}
+			
+		
+		g_functions.storeEventData(event, g_temp.storedEventID);
 	}
 	
 	/**
@@ -17459,9 +17894,10 @@ function UGTouchSliderControl(){
 		}
 		
 		enableTouchActive("1", event);
+		
 	}
 	
-	
+
 	/**
 	 * 
 	 * on touch move event
@@ -17479,7 +17915,9 @@ function UGTouchSliderControl(){
 						
 			return(true);
 		}
-		
+
+		g_functions.updateStoredEventData(event, g_temp.storedEventID);
+				
 		event.preventDefault();
 		
 		var mousePos = g_functions.getMousePosition(event);
@@ -17488,7 +17926,14 @@ function UGTouchSliderControl(){
 				
 		//debugLine("lastX:" + g_temp.lastMouseX, true, true);
 		
-		handleSliderDrag(event);
+		var scrollDir = null;
+		
+		if(g_options.slider_vertical_scroll_ondrag == true)
+			scrollDir = g_functions.handleScrollTop(g_temp.storedEventID);
+		
+		if(scrollDir !== "vert")
+			handleSliderDrag(event);
+			
 	}
 	
 	/**
@@ -17515,7 +17960,12 @@ function UGTouchSliderControl(){
 									
 			disableTouchActive("3");
 			
-			var isValid = isMovementValidForChange();
+			var isValid = false;
+			
+			var wasVerticalScroll = g_functions.wasVerticalScroll(g_temp.storedEventID);
+			
+			if(wasVerticalScroll == false)
+				isValid = isMovementValidForChange();
 						
 			if(isValid == true)
 				continueSlideDragChange();		//change the slide
@@ -17538,7 +17988,7 @@ function UGTouchSliderControl(){
 	 * init touch events
 	 */
 	function initEvents(){
-				
+		
 		//slider mouse down - drag start
 		g_objSlider.bind("mousedown touchstart",onTouchStart);
 		
@@ -19322,14 +19772,14 @@ function UGVideoPlayer(){
 	 * set element size and position the button
 	 */
 	this.setSize = function(width, height){
-				
-		g_objPlayer.height(height);
-		g_objPlayer.width(width);
+		
+		g_functions.setElementSize(g_objPlayer, width, height);
 		
 		if(g_objButtonClose)
 			g_functions.placeElement(g_objButtonClose, "right", "top");
 		
 	}
+	
 	
 	/**
 	 * set video player position
@@ -19433,7 +19883,7 @@ function UGVideoPlayer(){
 			
 		if(typeof isAutoplay == "undefined")
 			var isAutoplay = true;
-		
+				
 		stopAndHidePlayers("youtube");
 		
 		g_objYoutube.show();
@@ -19607,7 +20057,7 @@ function UGZoomSliderControl(){
 		
 		var scaleMode = g_parent.getScaleMode();
 		
-		if(scaleMode == "fill")
+		if(scaleMode != "down")
 			scaleMode = "fit";
 		
 		return(scaleMode);
@@ -20242,6 +20692,9 @@ function UGZoomSliderControl(){
 	 * on slider mousewheel event
 	 */
 	function onSliderMouseWheel(event, delta, deltaX, deltaY){
+		
+		if(g_options.slider_zoom_mousewheel == false)
+			return(true);
 		
 		if(g_parent.isCurrentSlideType("image") == false)
 			return(true);

@@ -26,6 +26,7 @@ function UGTheme_compact(){
 	var g_defaults = {
 			slider_controls_always_on:true,
 			slider_enable_text_panel:false,
+			slider_vertical_scroll_ondrag: true,
 			strippanel_enable_buttons:false			
 	};
 	
