@@ -15801,7 +15801,7 @@ function UGThumbsStrip(){
 
 		var thumbsOptions = g_thumbs.getOptions();
 		
-		g_temp.isNotFixedThumbs = (thumbsOptions.fixed_thumbs === false);
+		g_temp.isNotFixedThumbs = (thumbsOptions.thumb_fixed_size === false);
 		g_isVertical = g_options.strip_vertical_type;
 	}
 	
