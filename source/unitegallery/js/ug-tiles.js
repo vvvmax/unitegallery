@@ -11,6 +11,7 @@ function UGTiles(){
 	var g_options = {
 		 tiles_type: "columns",				//columns / justified - tiles layout type
 		 tiles_col_width: 250,				//column width
+		 tiles_align:"center",				//align of the tiles in the space
 		 tiles_space_between_cols: 3,		//space between images
 		 tiles_justified_row_height: 150,	//base row height of the justified type
 		 tiles_justified_space_between: 3,	//space between the tiles justified type
@@ -103,9 +104,22 @@ function UGTiles(){
 		
 		g_vars.numCols = g_functions.getNumItemsInSpace(g_vars.galleryWidth, g_vars.colWidth, g_vars.colGap);
 		g_vars.totalWidth = g_vars.numCols*(g_vars.colWidth + g_vars.colGap) - g_vars.colGap;
-		g_vars.addX = Math.round( (g_vars.galleryWidth - g_vars.totalWidth) / 2 );	//add x to center point
-		g_vars.maxColHeight = 0;
 		
+		switch(g_options.tiles_align){
+			case "center":
+			default:
+				//add x to center point
+				g_vars.addX = Math.round( (g_vars.galleryWidth - g_vars.totalWidth) / 2 );
+			break;	
+			case "left":
+				g_vars.addX = 0;
+			break;
+			case "right":
+				g_vars.addX = g_vars.galleryWidth - g_vars.totalWidth;
+			break;
+		}
+		
+		g_vars.maxColHeight = 0;
 		
 		//get posx array (constact to all columns)
 		g_vars.arrPosx = [];		
@@ -302,11 +316,12 @@ function UGTiles(){
 		var gap = g_options.tiles_justified_space_between;
 		var numTiles = objTiles.length;
 		
-		
 		//get arr widths and total width
 		jQuery.each(objTiles, function(index, objTile){
 			objTile = jQuery(objTile);
-			var objSize = g_functions.getElementSize(objTile);
+			
+			var objImage = g_objTileDesign.getTileImage(objTile);
+			var objSize = g_functions.getImageOriginalSize(objImage);
 						
 			var tileWidth = objSize.width;
 			var tileHeight = objSize.height;
@@ -319,7 +334,6 @@ function UGTiles(){
 				objTile.data("originalWidth", tileWidth);
 				objTile.data("originalHeight", tileHeight);				
 			}
-			            
 			
 			if (tileHeight !== rowHeightOpt) 
 				tileWidth = Math.floor(tileWidth / tileHeight * rowHeightOpt);

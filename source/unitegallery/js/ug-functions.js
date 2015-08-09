@@ -79,12 +79,15 @@ function UGFunctions(){
 		starTime:0,
 		arrThemes:[],
 		isTouchDevice:-1,
+		isRgbaSupported: -1,
 		timeCache:{},
 		dataCache:{},
 		lastEventType:"",		//for validate touchstart click
 		lastEventTime:0,
 		handle: null			//interval handle
 	};
+	
+	this.debugVar = "";
 
 	this.z__________FULL_SCREEN___________ = function(){}
 	
@@ -105,9 +108,10 @@ function UGFunctions(){
 	
 	/**
 	 * move to full screen mode
+	 * fullscreen ID - the ID of current fullscreen
 	 */
-	this.toFullscreen = function(element) {
-		
+	this.toFullscreen = function(element, fullscreenID) {
+				  
 		  if(element.requestFullscreen) {
 		    element.requestFullscreen();
 		  } else if(element.mozRequestFullScreen) {
@@ -163,11 +167,23 @@ function UGFunctions(){
 	 * add fullscreen event to some function
 	 */
 	this.addFullScreenChangeEvent = function(func){
-				
+		
 		addEvent("fullscreenchange",document,func);		 
 		addEvent("mozfullscreenchange",document,func);
 		addEvent("webkitfullscreenchange",document,func);
 		addEvent("msfullscreenchange",document,func);
+	}
+	
+	
+	/**
+	 * destroy the full screen change event
+	 */
+	this.destroyFullScreenChangeEvent = function(){
+		
+		jQuery(document).unbind("fullscreenchange");
+		jQuery(document).unbind("mozfullscreenchange");
+		jQuery(document).unbind("webkitfullscreenchange");
+		jQuery(document).unbind("msfullscreenchange");
 	}
 	
 	
@@ -306,7 +322,6 @@ function UGFunctions(){
 								
 			}
 			else{		//fit to borders
-				
 				var ratio = originalWidth / originalHeight;
 				imageHeight = maxHeight;
 				imageWidth = imageHeight * ratio;
@@ -482,19 +497,56 @@ function UGFunctions(){
 		
 		return(elementPoint);
 	}
+
 	
 	/**
 	 * get image oritinal size
+	 * if originalWidth, originalHeight is set, just return them.
 	 */		
-	this.getImageOriginalSize = function(objImage){
+	this.getImageOriginalSize = function(objImage, originalWidth, originalHeight){
+		
+		if(typeof originalWidth != "undefined" && typeof originalHeight != "undefined")
+			return({width:originalWidth, height:originalHeight});
 		
 		var htmlImage = objImage[0];
 		
 		var output = {};
-		output.width = htmlImage.naturalWidth;
-		output.height = htmlImage.naturalHeight;
 		
-		return(output);
+		if(typeof htmlImage.naturalWidth == "undefined"){
+
+			//check from cache
+			if(typeof objImage.data("naturalWidth") == "number"){
+				var output = {};
+				output.width = objImage.data("naturalWidth");
+				output.height = objImage.data("naturalHeight");
+				return(output);
+			}
+			
+		   //load new image
+		   var newImg = new Image();
+	       newImg.src = htmlImage.src;
+	        
+	       if (newImg.complete) {
+	        	output.width = newImg.width;
+	        	output.height = newImg.height;
+
+	        	//caching
+				objImage.data("naturalWidth", output.width);
+				objImage.data("naturalHeight", output.height);
+	        	return(output);
+	        	
+	       }
+	    
+	       return({width:0,height:0});
+		        
+		}else{
+			
+			output.width = htmlImage.naturalWidth;
+			output.height = htmlImage.naturalHeight;
+			
+			return(output);
+		}
+		
 	}
 
 	
@@ -528,12 +580,12 @@ function UGFunctions(){
 	 * get size and position of some object
 	 */
 	this.getElementSize = function(element){
-				
-		var obj = element.position();
-		
-		if(obj == undefined){
+
+		if(element === undefined){
 			throw new Error("Can't get size, empty element");
 		}
+				
+		var obj = element.position();
 				
 		obj.height = element.outerHeight();
 		obj.width = element.outerWidth();
@@ -954,7 +1006,7 @@ function UGFunctions(){
 		var parentHeight = objParent.outerHeight();
 		
 		var objOriginalSize = t.getImageOriginalSize(objImage);
-		
+
 		var imageWidth = objOriginalSize.width;
 		var imageHeight = objOriginalSize.height;
 		
@@ -984,6 +1036,8 @@ function UGFunctions(){
 					  "left":posx+"px",
 					  "top":posy+"px"});		
 	}
+
+
 	
 	
 	/**
@@ -1034,11 +1088,41 @@ function UGFunctions(){
 	
 	
 	/**
+	 * scale image by height
+	 */
+	this.scaleImageByHeight = function(objImage, height, originalWidth, originalHeight){
+		
+		var objOriginalSize = t.getImageOriginalSize(objImage, originalWidth, originalHeight);
+		
+		var ratio = objOriginalSize.width / objOriginalSize.height;
+		var width = Math.round(height * ratio);
+		height = Math.round(height);
+		
+		t.setElementSize(objImage, width, height);
+	}
+
+	
+	/**
+	 * scale image by height
+	 */
+	this.scaleImageByWidth = function(objImage, width, originalWidth, originalHeight){
+		
+		var objOriginalSize = t.getImageOriginalSize(objImage, originalWidth, originalHeight);
+		
+		var ratio = objOriginalSize.width / objOriginalSize.height;
+		
+		var height = Math.round(width / ratio);
+		width = Math.round(width);
+		
+		t.setElementSize(objImage, width, height);
+		
+	}
+	
+	
+	/**
 	 * scale image to exact size in parent, by setting image size and padding
 	 */
 	this.scaleImageExactSizeInParent = function(objImage, originalWidth, originalHeight, exactWidth, exactHeight, scaleMode){
-		
-		
 		
 		var objParent = objImage.parent();
 		var parentSize = t.getElementSize(objParent);
@@ -1050,7 +1134,7 @@ function UGFunctions(){
 			exactHeight = parentSize.height;
 		
 		var obj = t.getImageInsideParentData(null, originalWidth, originalHeight, scaleMode, null, exactWidth, exactHeight);
-				
+		
 		var imageWidth = exactWidth;
 		var imageHeight = exactHeight;
 		
@@ -1279,6 +1363,26 @@ function UGFunctions(){
 		return(col);
 	}
 	
+	this.z_________DATA_FUNCTIONS_______ = function(){}
+	
+	/**
+	 * set data value
+	 */
+	this.setGlobalData = function(key, value){
+		
+		jQuery.data(document.body, key, value);
+		
+	}
+	
+	/**
+	 * get global data
+	 */
+	this.getGlobalData = function(key){
+		
+		var value = jQuery.data(document.body, key);
+		
+		return(value);
+	}
 	
 	this.z_________EVENT_DATA_FUNCTIONS_______ = function(){}
 
@@ -1458,8 +1562,87 @@ function UGFunctions(){
 	this.clearStoredEventData = function(id){
 		g_temp.dataCache[id] = null;
 	}
+
+	this.z_________CHECK_SUPPORT_FUNCTIONS_______ = function(){}
+	
+	
+	
+	/**
+	 * is canvas exists in the browser
+	 */
+	this.isCanvasExists = function(){
+		
+		var canvas = jQuery('<canvas width="500" height="500" > </canvas>')[0];
+		
+		if(typeof canvas.getContext == "function")
+			return(true);
+		
+		return(false);
+	}
+	
+	/**
+	 * tells if vertical scrollbar exists
+	 */
+	this.isScrollbarExists = function(){
+		var hasScrollbar = window.innerWidth > document.documentElement.clientWidth;
+		return(hasScrollbar);
+	}
+	
+	/**
+	 * check if this device are touch enabled
+	 */
+	this.isTouchDevice = function(){
+		
+		  //get from cache
+		  if(g_temp.isTouchDevice !== -1)
+			  return(g_temp.isTouchDevice);
+		  
+		  try{ 
+			  document.createEvent("TouchEvent"); 
+			  g_temp.isTouchDevice = true; 
+		  }
+		  catch(e){ 
+			  g_temp.isTouchDevice = false; 
+		  }
+		  
+		  return(g_temp.isTouchDevice);
+	}
+	
+	
+	/**
+	 * check if it's a desctop devide
+	 */
+	this.isDesktopDevice = function(){
+		
+		var isDesktop = typeof window.screenX !== undefined && !t.isTouchDevice() ? true : false;		
+		
+		return(isDesktop);
+	}
+	
+	/**
+	 * check if 
+	 */
+	this.isRgbaSupported = function(){
+		
+		if(g_temp.isRgbaSupported !== -1)
+			return(g_temp.isRgbaSupported);
+		
+		var scriptElement = document.getElementsByTagName('script')[0];
+		var prevColor = scriptElement.style.color;
+		try {
+			scriptElement.style.color = 'rgba(1,5,13,0.44)';
+		} catch(e) {}
+		var result = scriptElement.style.color != prevColor;
+		scriptElement.style.color = prevColor;
+		
+		g_temp.isRgbaSupported = result;
+		
+		return result;
+	}
 	
 	this.z_________GENERAL_FUNCTIONS_______ = function(){}
+	
+
 	
 	/**
 	 * get css size parameter, like width. if % given, leave it, if number without px - add px.
@@ -1552,30 +1735,7 @@ function UGFunctions(){
 		debugLine({"Time Passed": diffTime},true);
 	}
 	
-	
-	/**
-	 * is canvas exists in the browser
-	 */
-	this.isCanvasExists = function(){
 		
-		var canvas = jQuery('<canvas width="500" height="500" > </canvas>')[0];
-		
-		if(typeof canvas.getContext == "function")
-			return(true);
-		
-		return(false);
-	}
-	
-	
-	/**
-	 * tells if vertical scrollbar exists
-	 */
-	this.isScrollbarExists = function(){
-		var hasScrollbar = window.innerWidth > document.documentElement.clientWidth;
-		return(hasScrollbar);
-	}
-	
-	
 	/**
 	 * put progress indicator to some parent by type
 	 * return the progress indicator object
@@ -1639,6 +1799,7 @@ function UGFunctions(){
 	 * register gallery theme
 	 */
 	this.registerTheme = function(themeName){
+		
 		g_temp.arrThemes.push(themeName);
 	}
 	
@@ -1674,36 +1835,6 @@ function UGFunctions(){
 	}
 
 	
-	/**
-	 * check if this device are touch enabled
-	 */
-	this.isTouchDevice = function(){
-		
-		  //get from cache
-		  if(g_temp.isTouchDevice !== -1)
-			  return(g_temp.isTouchDevice);
-		  
-		  try{ 
-			  document.createEvent("TouchEvent"); 
-			  g_temp.isTouchDevice = true; 
-		  }
-		  catch(e){ 
-			  g_temp.isTouchDevice = false; 
-		  }
-		  
-		  return(g_temp.isTouchDevice);
-	}
-	
-	
-	/**
-	 * check if it's a desctop devide
-	 */
-	this.isDesktopDevice = function(){
-		
-		var isDesktop = typeof window.screenX !== undefined && !t.isTouchDevice() ? true : false;		
-		
-		return(isDesktop);
-	}
 	
 	
 	/**
@@ -1862,9 +1993,11 @@ function UGFunctions(){
 		    	elem.attachEvent('on' + event, func);
 		  }
 		 
-	  }	
-	
-	 
+	  }
+
+
+
+
 	/**
 	 * fire event where all images are loaded
 	 */
@@ -1898,8 +2031,8 @@ function UGFunctions(){
 			}
 			
 		}
-		
-		
+
+
 		//start a little later
 		setTimeout(function(){
 			
@@ -1952,6 +2085,18 @@ function UGFunctions(){
 
 		}, 300);
 		
+	}
+	
+	/**
+	 * shuffle (randomise) array
+	 */
+	this.arrayShuffle = function(arr){
+		
+		if(typeof arr != "object")
+			return(arr);
+			
+	    for(var j, x, i = arr.length; i; j = parseInt(Math.random() * i), x = arr[--i], arr[i] = arr[j], arr[j] = x);
+	    return arr;
 	}
 	
 	this.z_________END_GENERAL_FUNCTIONS_______ = function(){}

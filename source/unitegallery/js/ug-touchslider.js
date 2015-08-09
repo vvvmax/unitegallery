@@ -9,9 +9,6 @@ function UGTouchSliderControl(){
 	
 	var g_functions = new UGFunctions();
 	
-	this.events = {
-		CLICK:"click"
-	};
 	
 	var g_options = {
 		  slider_transition_continuedrag_speed: 250,				//the duration of continue dragging after drag end
@@ -476,7 +473,7 @@ function UGTouchSliderControl(){
 	function onTouchEnd(event){
 		
 		//debugLine("touchend", true, true);
-				
+		
 		var arrTouches = g_functions.getArrTouches(event);
 		var numTouches = arrTouches.length;
 		var isParentInPlace = g_parent.isInnerInPlace();
@@ -487,11 +484,7 @@ function UGTouchSliderControl(){
 		}
 				
 		if(numTouches == 0 && g_temp.touch_active == true){
-			
-			//trigger click event
-			if(isParentInPlace == true)
-				jQuery(t).trigger(t.events.CLICK);
-									
+											
 			disableTouchActive("3");
 			
 			var isValid = false;

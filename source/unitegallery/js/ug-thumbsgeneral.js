@@ -6,18 +6,23 @@ function UGThumbsGeneral(){
 	var g_gallery = new UniteGalleryMain(), g_objGallery, g_objects, g_objWrapper; 
 	var g_arrItems, g_objStrip, g_objParent;
 	var g_functions = new UGFunctions();
+	var g_strip;
+	var outer_options;
 
 	this.events = {		
 		SETOVERSTYLE: "thumbmouseover",
 		SETNORMALSTYLE: "thumbmouseout",
 		PLACEIMAGE: "thumbplaceimage",
-		IMAGELOADERROR: "thumbimageloaderror",
+		AFTERPLACEIMAGE: "thumb_after_place_image",
+		IMAGELOADERROR: "thumbimageloaderror"
 	};
 	
 	var g_options = {
 			thumb_width:88,								//thumb width
 			thumb_height:50,							//thumb height
-
+			thumb_fixed_size: true,					//true,false - fixed/auto thumbnail width
+			thumb_resize_by: "height",					//set resize by width or height of the image in case of non fixed size, 
+			
 			thumb_border_effect:true,					//true, false - specify if the thumb has border
 			thumb_border_width: 0,						//thumb border width
 			thumb_border_color: "#000000",				//thumb border color
@@ -33,7 +38,7 @@ function UGThumbsGeneral(){
 			thumb_overlay_opacity: 0.4,					//thumb overlay color opacity
 			thumb_overlay_reverse:false,				//true,false - reverse the overlay, will be shown on selected state only
 			
-			thumb_image_overlay_effect: false,			//true,false - images overlay effect on normal state only
+			thumb_image_overlay_effect: false,			//true,false - images orverlay effect on normal state only
 			thumb_image_overlay_type: "bw",				//bw , blur, sepia - the type of image effect overlay, black and white, sepia and blur.
 			
 			thumb_text_overlay: false,					//turn on text overlay
@@ -55,7 +60,8 @@ function UGThumbsGeneral(){
 			funcSetCustomThumbHtml:null,
 			isEffectBorder: false,
 			isEffectOverlay: false,
-			isEffectImage: false
+			isEffectImage: false,
+			colorOverlayOpacity: 1
 		};
 		
 		var g_serviceParams = {			//service variables	
@@ -63,28 +69,27 @@ function UGThumbsGeneral(){
 			thumb_max_check_times:600,	//60 seconds
 			eventSizeChange: "thumb_size_change"
 		};
-		
-		
+
 		/**
 		 * init the thumbs object
 		 */
 		this.init = function(gallery, customOptions){
-			
 			g_objects = gallery.getObjects();
 			g_gallery = gallery;
 			g_objGallery = jQuery(gallery);
 			g_objWrapper = g_objects.g_objWrapper;
 			g_arrItems = g_objects.g_arrItems;
-			
+
 			g_options = jQuery.extend(g_options, customOptions);
-			
+
 			//set effects vars:
 			g_temp.isEffectBorder = g_options.thumb_border_effect;
 			g_temp.isEffectOverlay = g_options.thumb_color_overlay_effect;
 			g_temp.isEffectImage = g_options.thumb_image_overlay_effect;
-						
+		
 		}
 		
+		this._____________EXTERNAL_SETTERS__________ = function(){};
 		
 		/**
 		 * append the thumbs html to some parent
@@ -108,8 +113,9 @@ function UGThumbsGeneral(){
 				 var classAddition = "";
 				 if(g_temp.customThumbs == false)
 					 classAddition = " ug-thumb-generated";
-				 
-				 var htmlThumb = "<div class='ug-thumb-wrapper"+classAddition+"'></div>";
+
+			 	var htmlThumb = "<div class='ug-thumb-wrapper"+classAddition+"'></div>";
+
 				 if(g_options.thumb_wrapper_as_link == true){
 					 var urlLink = objItem.link;
 					 if(objItem.link == "")
@@ -160,9 +166,8 @@ function UGThumbsGeneral(){
 				 
 				 if(g_temp.isEffectOverlay)
 					 objThumbWrapper.append("<div class='ug-thumb-overlay'></div>");
-				 				 
-				 g_objParent.append(objThumbWrapper);
 				 
+				 g_objParent.append(objThumbWrapper);
 
 				 //only custom thumbs function
 				 if(g_temp.customThumbs){
@@ -176,97 +181,38 @@ function UGThumbsGeneral(){
 				 
 			 }
 		}
-		
-		
-		/**
-		 * set thumbnails html properties
-		 */
-		this.setHtmlProperties = function(){
-			 			
-			 //set thumb params
-			if(g_temp.customThumbs == false){
-				var objThumbCss = {};
-				 objThumbCss["width"] = g_options.thumb_width+"px";
-				 objThumbCss["height"] = g_options.thumb_height+"px";
-				 		 
-				 g_objParent.children(".ug-thumb-wrapper").css(objThumbCss);
-				 
-				 setThumbsBorderRadius();		 				
-			} 
-			 
-			 //set normal style to all the thumbs
-			 g_objParent.children(".ug-thumb-wrapper").each(function(){
-				 var objThumb = jQuery(this);
-				 t.setThumbNormalStyle(objThumb, true);
-			 });
-			
-			 
-			//set thumbs loader and error params
-			if(g_temp.customThumbs == false){
-				 var objThumbsLoaderCss = {};
-				 objThumbsLoaderCss["width"] = g_options.thumb_width+"px";
-				 objThumbsLoaderCss["height"] = g_options.thumb_height+"px";			 
-				 g_objParent.find(".ug-thumb-loader, .ug-thumb-error, .ug-thumb-border-overlay, .ug-thumb-overlay").css(objThumbsLoaderCss);
-			}
-			
-			//set color. if empty set from css
-			if(g_temp.isEffectOverlay){
-				
-				if(g_options.thumb_overlay_color){
-										
-					var objCss = {};
-					var colorRGB = g_functions.convertHexToRGB(g_options.thumb_overlay_color, g_options.thumb_overlay_opacity);
-					
-					objCss["background-color"] = colorRGB;										
-					g_objParent.find(".ug-thumb-wrapper .ug-thumb-overlay").css(objCss);
-				}
-				
-			}
-			
-		}
-		
-		
-		/**
-		 * get the image effects class from the options
-		 */
-		function getImageEffectsClass(){
-			
-			var imageEffectClass = "";
-			var arrEffects = g_options.thumb_image_overlay_type.split(",");
-			
-			for(var index in arrEffects){
-				var effect = arrEffects[index];
-				
-				switch(effect){
-					case "bw":
-						imageEffectClass += " ug-bw-effect";
-					break;
-					case "blur":
-						imageEffectClass += " ug-blur-effect";
-					break; 
-					case "sepia":
-						imageEffectClass += " ug-sepia-effect";
-					break;
-				}
-			}
-					
-			return(imageEffectClass);
-		}
-		
 
-		/**
-		 * animate thumb transitions
-		 */
-		function animateThumb(objThumb, objThumbCss){
-			
-			objThumb.stop(true).animate(objThumbCss ,{
-				duration: g_options.thumb_transition_duration,
-				easing: g_options.thumb_transition_easing,
-				queue: false
-			});
-					
-		}
 		
+		function _______________SETTERS______________(){};
+
+		
+		/**
+		 * set thumb size with all the inside components (without the image).
+		 * else, set to all the thumbs
+		 */
+		function setThumbSize(width, height, objThumb, innerOnly){
+			 
+			var objCss = {
+				width: width+"px",
+				height: height+"px"
+			};
+			
+			var selectorsString = ".ug-thumb-loader, .ug-thumb-error, .ug-thumb-border-overlay, .ug-thumb-overlay";
+			
+			//set thumb size
+			if(objThumb){
+				if(innerOnly !== true)
+					objThumb.css(objCss);
+				
+				objThumb.children(selectorsString).css(objCss);
+			}
+			else{	
+				g_objParent.children(".ug-thumb-wrapper").css(objCss);
+				g_objParent.find(selectorsString).css(objCss);
+			}
+			
+		}
+
 		
 		/**
 		 * set thumb border effect
@@ -326,9 +272,9 @@ function UGThumbsGeneral(){
 			var animationDuration = g_options.thumb_transition_duration;
 			if(noAnimation && noAnimation === true)
 				animationDuration = 0;
-						
+			
 			if(isActive){
-				objOverlay.stop(true).fadeTo(animationDuration, 1);
+				objOverlay.stop(true).fadeTo(animationDuration, g_temp.colorOverlayOpacity);
 			}else{
 				objOverlay.stop(true).fadeTo(animationDuration, 0);
 			}
@@ -433,6 +379,186 @@ function UGThumbsGeneral(){
 		}
 		
 		/**
+		 * set loading error of the thumb
+		 */
+		function setItemThumbLoadedError(objThumb){
+			
+			var objItem = t.getItemByThumb(objThumb);
+			
+			objItem.isLoaded = true;
+			objItem.isThumbImageLoaded = false;		
+			
+			if(g_temp.customThumbs == true){
+				
+				g_objThis.trigger(t.events.IMAGELOADERROR, objThumb);
+				return(true);
+			
+			}
+			
+			objThumb.children(".ug-thumb-loader").hide();
+			objThumb.children(".ug-thumb-error").show();		
+		}
+		
+		/**
+		 * set border radius of all the thmbs
+		 */
+		function setThumbsBorderRadius(){
+			
+			if(g_options.thumb_round_corners_radius <= 0)
+				return(false);
+			
+			//set radius:
+			var objCss = {
+				"border-radius":g_options.thumb_round_corners_radius + "px"
+			};
+			
+			g_objParent.find(".ug-thumb-wrapper, .ug-thumb-wrapper .ug-thumb-border-overlay").css(objCss);
+			
+		}
+		
+		/**
+		 * animate thumb transitions
+		 */
+		function animateThumb(objThumb, objThumbCss){
+			
+			objThumb.stop(true).animate(objThumbCss ,{
+				duration: g_options.thumb_transition_duration,
+				easing: g_options.thumb_transition_easing,
+				queue: false
+			});
+					
+		}
+		
+		
+		/**
+		 * redraw the thumb style according the state
+		 */
+		function redrawThumbStyle(objThumb){
+
+			if(isThumbSelected(objThumb) == true)
+				setThumbSelectedStyle(objThumb, true);
+			else
+				t.setThumbNormalStyle(objThumb, true);
+		}
+		
+		
+		
+		
+		/**
+		 * place thumb image
+		 * retrun - false, if already loaded
+		 * return true - if was set on this function
+		 * isForce - set the image anyway
+		 */
+		function placeThumbImage(objThumb, objImage, objItem){
+			
+			//scale the image
+			if(g_options.thumb_fixed_size == true){
+				g_functions.scaleImageCoverParent(objImage, objThumb);
+			}
+			else{
+				
+				if(g_options.thumb_resize_by == "height")	//horizontal strip
+					g_functions.scaleImageByHeight(objImage, g_options.thumb_height);
+				else		//vertical strip
+					g_functions.scaleImageByWidth(objImage, g_options.thumb_width);
+				
+				var imageSize = g_functions.getElementSize(objImage);
+				g_functions.placeElement(objImage, 0, 0);
+				setThumbSize(imageSize.width, imageSize.height, objThumb);
+				
+			}
+			
+			//hide loader
+			objThumb.children(".ug-thumb-loader").hide();
+			
+			//show image
+			objImage.show();
+			
+			//if overlay effect exists
+			if(g_options.thumb_image_overlay_effect == false){
+				objImage.fadeTo(0,1);
+			}
+			else{
+
+				//place bw image also if exists
+				if(g_options.thumb_image_overlay_effect == true){
+					copyPositionToThumbOverlayImage(objImage);
+				}
+
+				//hide the original image (avoid blinking at start)
+				objImage.fadeTo(0,0);
+
+				//redraw the style, because this function can overwrite it
+				redrawThumbStyle(objThumb);
+			}
+			
+			g_objThis.trigger(t.events.AFTERPLACEIMAGE, objThumb);
+			
+		}
+
+
+		
+		/**
+		 * copy image position to bw image (if exists)
+		 */
+		function copyPositionToThumbOverlayImage(objImage){
+						
+			var objImageBW = objImage.siblings(".ug-thumb-image-overlay");
+			if(objImageBW.length == 0)
+				return(false);
+			
+			var objSize = g_functions.getElementSize(objImage);
+				
+			var objCss = {
+					"width":objSize.width+"px",
+					"height":objSize.height+"px",
+					"left":objSize.left+"px",
+					"top":objSize.top+"px"
+				}
+				
+			objImageBW.css(objCss);
+			
+			//show the image
+			if(g_temp.customThumbs == false)
+				objImageBW.fadeTo(0,1);
+			
+		}
+		
+		
+		
+		
+		function _______________GETTERS______________(){};
+		
+		
+		/**
+		 * get the image effects class from the options
+		 */
+		function getImageEffectsClass(){
+			
+			var imageEffectClass = "";
+			var arrEffects = g_options.thumb_image_overlay_type.split(",");
+			
+			for(var index in arrEffects){
+				var effect = arrEffects[index];
+				
+				switch(effect){
+					case "bw":
+						imageEffectClass += " ug-bw-effect";
+					break;
+					case "blur":
+						imageEffectClass += " ug-blur-effect";
+					break; 
+					case "sepia":
+						imageEffectClass += " ug-sepia-effect";
+					break;
+				}
+			}
+					
+			return(imageEffectClass);
+		}
+
+		/**
 		 * get if the thumb is selected
 		 */
 		function isThumbSelected(objThumbWrapper){
@@ -442,19 +568,63 @@ function UGThumbsGeneral(){
 			
 			return(false);
 		}
+
+		
+		function _______________EVENTS______________(){};
+
 		
 		/**
-		 * get item by thumb object
+		 * set thumbnails html properties
 		 */
-		this.getItemByThumb = function(objThumb){
-			var index = objThumb.data("index");
+		this.setHtmlProperties = function(){
 			
-			if(index === undefined)
-				index = objThumb.index();
+			 //set thumb params
+			if(g_temp.customThumbs == false){
+				var objThumbCss = {};
 			
-			var arrItem = g_arrItems[index];
-			return(arrItem);
+				//set thumb fixed size
+				if(g_options.thumb_fixed_size == true)
+					setThumbSize(g_options.thumb_width, g_options.thumb_height);
+					
+				 setThumbsBorderRadius();
+			}
+			 
+			 //set normal style to all the thumbs
+			 g_objParent.children(".ug-thumb-wrapper").each(function(){
+				 var objThumb = jQuery(this);
+				 t.setThumbNormalStyle(objThumb, true);
+			 });
+			
+
+
+			//set color. if empty set from css
+			if(g_temp.isEffectOverlay){
+				
+				if(g_options.thumb_overlay_color){
+										
+					var objCss = {};
+					if(g_functions.isRgbaSupported()){
+						var colorRGB = g_functions.convertHexToRGB(g_options.thumb_overlay_color, g_options.thumb_overlay_opacity);
+						objCss["background-color"] = colorRGB;										
+					}else{
+						objCss["background-color"] = g_options.thumb_overlay_color;
+						g_temp.colorOverlayOpacity = g_options.thumb_overlay_opacity;
+					}
+					
+					g_objParent.find(".ug-thumb-wrapper .ug-thumb-overlay").css(objCss);
+				}
+				
+			}
+			
 		}
+
+		
+		
+
+		
+		
+		
+		
 		
 		
 		/**
@@ -474,61 +644,64 @@ function UGThumbsGeneral(){
 			setThumbSelectedStyle(objThumbWrapper);
 		}
 		
-		
 		/**
-		 * redraw the thumb style according the state
+		 * set the thumb unselected state
 		 */
-		function redrawThumbStyle(objThumb){
+		this.setThumbUnselected = function(objThumbWrapper){
 			
-			if(isThumbSelected(objThumb) == true)
-				setThumbSelectedStyle(objThumb, true);
-			else
-				t.setThumbNormalStyle(objThumb, true);
+			//remove the selected class
+			objThumbWrapper.removeClass("ug-thumb-selected");
+			
+			t.setThumbNormalStyle(objThumbWrapper);
 		}
 		
 		
 		/**
-		 * set border radius of all the thmbs
+		 * set the options of the strip
 		 */
-		function setThumbsBorderRadius(){
+		this.setOptions = function(objOptions){
 			
-			if(g_options.thumb_round_corners_radius <= 0)
-				return(false);
-			
-			//set radius:
-			var objCss = {
-				"border-radius":g_options.thumb_round_corners_radius + "px"
-			};
-			
-			g_objParent.find(".ug-thumb-wrapper, .ug-thumb-wrapper .ug-thumb-border-overlay").css(objCss);
+			g_options = jQuery.extend(g_options, objOptions);
 			
 		}
+		
+		
+		/**
+		 * set custom thumbs
+		 * allowedEffects - border, overlay, image
+		 */
+		this.setCustomThumbs = function(funcSetHtml, arrAlowedEffects){
+			g_temp.customThumbs = true;
+						
+			if(typeof funcSetHtml != "function")
+				throw new Error("The argument should be function");
+				
+			g_temp.funcSetCustomThumbHtml = funcSetHtml;
+			
+			//enable effects:
+			if(jQuery.inArray("overlay", arrAlowedEffects) == -1)
+				g_temp.isEffectOverlay = false;				
+			
+			if(jQuery.inArray("border", arrAlowedEffects) == -1)
+				g_temp.isEffectBorder = false;
+			
+			g_temp.isEffectImage = false;		//for custom effects the image is always off
+			
+		}
+		
 		
 		
 		/**
 		 * on thumb size change - triggered by parent on custom thumbs type
 		 */
 		function onThumbSizeChange(temp, objThumb){
-						
+					
 			objThumb = jQuery(objThumb);
 			var objItem = t.getItemByThumb(objThumb);
 			
-			//if(objThumb.index() != 0) return(true);
-			
 			var objSize = g_functions.getElementSize(objThumb);
 			
-			var objSizeCss = {
-					width: objSize.width+"px",
-					height: objSize.height+"px"
-			};
-			
-			
-			//set inner objects properties
-			if(g_temp.isEffectBorder == true)
-				objThumb.children(".ug-thumb-border-overlay").css(objSizeCss);
-			
-			if(g_temp.isEffectOverlay == true)
-				objThumb.children(".ug-thumb-overlay").css(objSizeCss);
+			setThumbSize(objSize.width, objSize.height, objThumb, true);
 			
 			t.setThumbNormalStyle(objThumb, true);
 		}
@@ -563,6 +736,94 @@ function UGThumbsGeneral(){
 				t.setThumbNormalStyle(objThumb);
 		}
 		
+		/**
+		 * on image loaded event
+		 */
+		function onImageLoaded(image, isForce){
+
+			if(!isForce)
+				var isForce = false;
+			
+			var objImage = jQuery(image);
+			var objThumb = objImage.parent();
+			
+			if(objThumb.parent().length == 0)		//don't treat detached thumbs
+				return(false);
+						
+			objItem = t.getItemByThumb(objThumb);
+
+			if(objItem.isLoaded == true && isForce === false)
+				return(false);
+
+			objItem.isLoaded = true;
+			objItem.isThumbImageLoaded = true;
+
+			if(g_temp.customThumbs == true){
+			
+				g_objThis.trigger(t.events.PLACEIMAGE, [objThumb, objImage]);
+			
+			}else{
+				
+				placeThumbImage(objThumb, objImage, objItem);
+				
+			}
+			
+		}
+		
+
+		this._____________EXTERNAL_GETTERS__________ = function(){};
+
+		/**
+		 * get the options object
+		 */
+		this.getOptions = function(){
+			
+			return(g_options);
+		}
+		
+		
+		/**
+		 * get num thumbs
+		 */
+		this.getNumThumbs = function(){
+			var numThumbs = g_arrItems.length;
+			return(numThumbs);
+		}
+
+		
+		/**
+		 * get thumb image
+		 */
+		this.getThumbImage = function(objThumb){
+			
+			var objImage = objThumb.children(".ug-thumb-image");
+			return(objImage);
+		}
+		
+		/**
+		 * get all thumbs jquery object
+		 */
+		this.getThumbs = function(){
+			return(g_objParent.children(".ug-thumb-wrapper"));
+		}
+		
+		/**
+		 * get item by thumb object
+		 */
+		this.getItemByThumb = function(objThumb){
+			var index = objThumb.data("index");
+			
+			if(index === undefined)
+				index = objThumb.index();
+			
+			var arrItem = g_arrItems[index];
+			return(arrItem);
+		}
+		
+		
+		this._____________EXTERNAL_OTHERS__________ = function(){};
+
+
 		
 		/**
 		 * init events
@@ -603,202 +864,30 @@ function UGThumbsGeneral(){
 		
 		
 		/**
-		 * set the thumb unselected state
-		 */
-		this.setThumbUnselected = function(objThumbWrapper){
-			
-			//remove the selected class
-			objThumbWrapper.removeClass("ug-thumb-selected");
-			
-			t.setThumbNormalStyle(objThumbWrapper);
-		}
-		
-		
-		/**
 		 * preload thumbs images and put them into the thumbnails
 		 */
 		this.loadThumbsImages = function(){
-			
+
 			var objImages = g_objParent.find(".ug-thumb-image");
 			g_functions.checkImagesLoaded(objImages, null, function(objImage,isError){
 				
-				if(isError == false)
-					placeThumbImage(objImage, true);
+				if(isError == false){
+					onImageLoaded(objImage, true);
+				}
 				else{
 					var objItem = jQuery(objImage).parent();
 					setItemThumbLoadedError(objItem);										
 				}
-					
 			});
-
-		}
-		
-		
-		/**
-		 * place thumb image
-		 * retrun - false, if already loaded
-		 * return true - if was set on this function
-		 * isForce - set the image anyway
-		 */
-		function placeThumbImage(image, isForce){
-			if(!isForce)
-				var isForce = false;
-						
-			var objImage = jQuery(image);
-			var objThumb = objImage.parent();
-			
-			if(objThumb.parent().length == 0)		//don't treat detached thumbs
-				return(false);
-						
-			objItem = t.getItemByThumb(objThumb);
-			
-			if(objItem.isLoaded == true && isForce === false)
-				return(false);
-						
-			objItem.isLoaded = true;
-			objItem.isThumbImageLoaded = true;
-			
-			if(g_temp.customThumbs == true){
-				g_objThis.trigger(t.events.PLACEIMAGE, [objThumb, objImage]);
-				return(true);
-			}
-			
-			g_functions.scaleImageCoverParent(objImage, objThumb);
-			
-			//hide loader
-			objThumb.children(".ug-thumb-loader").hide();
-			
-			//show image
-			objImage.show();
-			
-			//if overlay effect exists
-			if(g_options.thumb_image_overlay_effect == false){
-				objImage.fadeTo(0,1);
-			}
-			else{
-				
-				//place bw image also if exists
-				if(g_options.thumb_image_overlay_effect == true){
-					copyPositionToThumbOverlayImage(objImage);
-				}
-				
-				//hide the original image (avoid blinking at start)
-				objImage.fadeTo(0,0);
-				
-				var objThumb = objImage.parent();
-				
-				//redraw the style, because this function can overwrite it
-				redrawThumbStyle(objThumb);
-			}
-				
 		}
 		
 		/**
-		 * copy image position to bw image (if exists)
+		 * hide thumbs
 		 */
-		function copyPositionToThumbOverlayImage(objImage){
-						
-			var objImageBW = objImage.siblings(".ug-thumb-image-overlay");
-			if(objImageBW.length == 0)
-				return(false);
+		this.hideThumbs = function(){
 			
-			var objSize = g_functions.getElementSize(objImage);
-				
-			var objCss = {
-					"width":objSize.width+"px",
-					"height":objSize.height+"px",
-					"left":objSize.left+"px",
-					"top":objSize.top+"px"
-				}
-				
-			objImageBW.css(objCss);
-			
-			//show the image
-			if(g_temp.customThumbs == false)
-				objImageBW.fadeTo(0,1);
+			g_objParent.find(".ug-thumb-wrapper").hide();
 			
 		}
 		
-		
-		/**
-		 * set loading error of the thumb
-		 */
-		function setItemThumbLoadedError(objThumb){
-			
-			var objItem = t.getItemByThumb(objThumb);
-			
-			objItem.isLoaded = true;
-			objItem.isThumbImageLoaded = false;		
-			
-			if(g_temp.customThumbs == true){
-				
-				g_objThis.trigger(t.events.IMAGELOADERROR, objThumb);
-				return(true);
-			
-			}
-			
-			objThumb.children(".ug-thumb-loader").hide();
-			objThumb.children(".ug-thumb-error").show();		
-		}
-		
-		
-		
-		
-		/**
-		 * set the options of the strip
-		 */
-		this.setOptions = function(objOptions){
-			
-			g_options = jQuery.extend(g_options, objOptions);
-			
-		}
-		
-		
-		/**
-		 * set custom thumbs
-		 * allowedEffects - border, overlay, image
-		 */
-		this.setCustomThumbs = function(funcSetHtml, arrAlowedEffects){
-			g_temp.customThumbs = true;
-						
-			if(typeof funcSetHtml != "function")
-				throw new Error("The argument should be function");
-				
-			g_temp.funcSetCustomThumbHtml = funcSetHtml;
-			
-			//enable effects:
-			if(jQuery.inArray("overlay", arrAlowedEffects) == -1)
-				g_temp.isEffectOverlay = false;				
-			
-			if(jQuery.inArray("border", arrAlowedEffects) == -1)
-				g_temp.isEffectBorder = false;
-			
-			g_temp.isEffectImage = false;		//for custom effects the image is always off
-			
-		}
-		
-		
-		/**
-		 * get the options object
-		 */
-		this.getOptions = function(){
-			
-			return(g_options);
-		}
-		
-		
-		/**
-		 * get num thumbs
-		 */
-		this.getNumThumbs = function(){
-			var numThumbs = g_arrItems.length;
-			return(numThumbs);
-		}
-		
-		/**
-		 * get all thumbs jquery object
-		 */
-		this.getThumbs = function(){
-			return(g_objParent.children(".ug-thumb-wrapper"));
-		}
 }

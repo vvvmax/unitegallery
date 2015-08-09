@@ -43,11 +43,11 @@ function UGPanelsBase(){
 		
 		//set disabled at start if exists
 		if(g_temp.isDisabledAtStart === true){
-			var html = "<div class='ug-panel-disabled-overlay'></div>";
+			var html = "<div class='ug-overlay-disabled'></div>";
 			g_objPanel.append(html);
 			
 			setTimeout(function(){
-				g_objPanel.children(".ug-panel-disabled-overlay").hide();
+				g_objPanel.children(".ug-overlay-disabled").hide();
 			}, g_temp.disabledAtStartTimeout);
 		
 		}

@@ -1,3 +1,71 @@
+version 1.5.9
+
+-feature: added option thumb_fixed_size that alow to run dynamic size strips.
+
+version 1.5.8
+
+-bug fix: the video player stayed on compact mode on slide change
+
+version 1.5.7
+
+-feature: added option: tiles_align for columns type
+-change: changed default lightbox transition to "fade" 
+
+version 1.5.6
+
+-bug fix: add "ug-rtl" style
+-feature: added option: tile_videoplay_icon_always_on in tile design section
+
+version 1.5.5
+
+-bug fix: fixed size bugs in justified type
+
+version 1.5.4
+
+-bug fix: fixed video gallery with tabs
+
+version 1.5.3
+
+-feature: added "destroy function to API"
+-bug fix: fixed destroy function
+
+version 1.5.2
+
+-bug fix: added remove html function to lightbox
+-bug fix: fixed some ie8 related issues
+-bug fix: disabled scrolling on lightbox with mousewheel: none
+
+version 1.5.1
+
+-bog fix: fixed theme default options (like autoplay=true) that was brocken in the last update
+
+version 1.5
+
+-feature: added "category tabs" support
+
+version 1.4.6
+
+-bug fix: fixed js error on carousel without navigation
+
+version 1.4.5
+
+- change: added support for "title" attribute as item description
+
+version 1.4.4
+
+-feature: enable slider area links
+-bug fix: on playing mode slides was advanced even when images was not loaded
+-bug fix: fixed mousewheel advance item on lightbox
+
+version 1.4.3
+
+-bug fix: gallery on hidden tab was dissapeared on fullscreen
+
+version 1.4.2
+
+-feature: added option gallery_shuffle
+-bug fix: bullets miss position after back from full screen
+
 version 1.4.1
 
 -bug fix: fixed some bug in justified tiles view in mobile width

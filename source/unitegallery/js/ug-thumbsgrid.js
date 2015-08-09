@@ -80,7 +80,11 @@ function UGThumbsGrid(){
 			
 			g_thumbs = g_tilesDesign.getObjThumbs();
 		}else{
-			g_thumbs.init(gallery);
+			
+			//disable the dynamic size in thumbs
+			customOptions.thumb_fixed_size = true;
+			
+			g_thumbs.init(gallery, customOptions);
 		}
 		
 	}

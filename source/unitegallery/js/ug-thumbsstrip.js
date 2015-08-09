@@ -25,7 +25,9 @@ function UGThumbsStrip(){
 	
 	var g_temp = {
 		isRunOnce:false,
-		is_placed:false
+		is_placed:false,
+		isNotFixedThumbs: false,
+		handle: null
 	};
 	
 	var g_sizes = {
@@ -41,7 +43,8 @@ function UGThumbsStrip(){
 	
 	//the defaults for vertical align
 	var g_defaultsVertical = {
-		strip_thumbs_align: "top"
+		strip_thumbs_align: "top",
+		thumb_resize_by: "width"
 	}
 	
 	
@@ -64,9 +67,15 @@ function UGThumbsStrip(){
 		//put the thumbs to inner strip
 		g_thumbs.setHtmlThumbs(g_objStripInner);
 		
+		//hide thumbs on not fixed mode
+		if(g_temp.isNotFixedThumbs == true)
+			g_thumbs.hideThumbs();
+		
 	}
 
+	
 	function ___________GENERAL___________(){};
+	
 	
 	/**
 	 * init the strip
@@ -78,19 +87,33 @@ function UGThumbsStrip(){
 		g_objGallery = jQuery(gallery);
 		g_objWrapper = g_objects.g_objWrapper;
 		g_arrItems = g_objects.g_arrItems;
-		
+
 		g_options = jQuery.extend(g_options, customOptions);
-		
 		g_isVertical = g_options.strip_vertical_type;
 		
 		//set vertical defaults
 		if(g_isVertical == true){
 			g_options = jQuery.extend(g_options, g_defaultsVertical);
 			g_options = jQuery.extend(g_options, customOptions);
+			
+			customOptions.thumb_resize_by = "width";
 		}
 		
 		g_thumbs.init(gallery, customOptions);
 		
+		onAfterSetOptions();
+	}
+	
+	
+	/**
+	 * run this funcion after set options.
+	 */
+	function onAfterSetOptions(){
+
+		var thumbsOptions = g_thumbs.getOptions();
+		
+		g_temp.isNotFixedThumbs = (thumbsOptions.fixed_thumbs === false);
+		g_isVertical = g_options.strip_vertical_type;
 	}
 	
 	
@@ -98,32 +121,32 @@ function UGThumbsStrip(){
 	 * run the strip
 	 */
 	function runStrip(){
-				
+		
 		g_thumbs.setHtmlProperties();
 		
 		initSizeParams();
-		
+
 		fixSize();
-		
+
 		positionThumbs();
 		
 		//run only once
 		if(g_temp.isRunOnce == false){
-			
-			//init thumbs strip touch 
+
+			//init thumbs strip touch
 			if(g_options.strip_control_touch == true){
 				g_touchThumbsControl = new UGTouchThumbsControl();
 				g_touchThumbsControl.init(t);
 			}
-			
+
 			//init thumbs strip avia control
 			if(g_options.strip_control_avia == true){
 				g_aviaControl = new UGAviaControl();
 				g_aviaControl.init(t);
 			}
-		
+
 			checkControlsEnableDisable();
-			
+
 			g_thumbs.loadThumbsImages();
 			
 			initEvents();
@@ -131,7 +154,7 @@ function UGThumbsStrip(){
 		
 						
 		g_temp.isRunOnce = true;
-		
+
 	}
 	
 	
@@ -145,71 +168,52 @@ function UGThumbsStrip(){
 		var firstThumb = jQuery(arrThumbs[0]);
 		var thumbsRealWidth = firstThumb.outerWidth();
 		var thumbsRealHeight = firstThumb.outerHeight();
+		var thumbs_options = g_thumbs.getOptions();
 		
 		if(g_isVertical == false){			//horizontal
+			
 			g_sizes.thumbSize = thumbsRealWidth;
-			g_sizes.thumbSecondSize = thumbsRealHeight;
+		
+			if(thumbs_options.thumb_fixed_size == true){
+				g_sizes.thumbSecondSize = thumbsRealHeight;
+			} else {
+				g_sizes.thumbSecondSize = thumbs_options.thumb_height;
+			}
+			
 			g_sizes.stripSize = g_objStrip.width();
 			g_sizes.stripInnerSize = g_objStripInner.width();
+		
 		}else{		//vertical
 			g_sizes.thumbSize = thumbsRealHeight;
-			g_sizes.thumbSecondSize = thumbsRealWidth;
-			g_sizes.stripSize = g_objStrip.height();;
+			
+			if(thumbs_options.thumb_fixed_size == true){
+				g_sizes.thumbSecondSize = thumbsRealWidth;
+			} else {
+				g_sizes.thumbSecondSize = thumbs_options.thumb_width;
+			}
+			
+			g_sizes.stripSize = g_objStrip.height();
 			g_sizes.stripInnerSize = g_objStripInner.height();			
 		}
 		
 	}
 	
 	
+
 	
 	/**
-	 * position thumbnails in the thumbs panel horizontally
+	 * set size of inner strip according the orientation
 	 */
-	function positionThumbs_horizontal(){
-		var arrThumbs = g_objStripInner.children(".ug-thumb-wrapper");
-		
-		var posx = 0;
-		var posy = 0;
-		
-		for(i=0;i<arrThumbs.length;i++){
-			var objThumb = jQuery(arrThumbs[i]);
-			g_functions.placeElement(objThumb, posx, posy);
+	function setInnerStripSize(innerSize){
+
+		if(g_isVertical == false)
+			g_objStripInner.width(innerSize);
+		else
+			g_objStripInner.height(innerSize);
 			
-			posx += objThumb.outerWidth() + g_options.strip_space_between_thumbs;
-		}
+		g_sizes.stripInnerSize = innerSize;
 		
-		//set inner strip width
-		var innerStripWidth = posx - g_options.strip_space_between_thumbs;
-		
-		g_objStripInner.width(innerStripWidth);
-		
-		g_sizes.stripInnerSize = innerStripWidth;
-	}
-	
-	
-	/**
-	 * position the thumbnails vertically
-	 */
-	function positionThumbs_vertical(){
-				
-		var arrThumbs = g_objStripInner.children(".ug-thumb-wrapper");
-		
-		var posy = 0;
-		var posx = 0;
-			
-		for(i=0;i<arrThumbs.length;i++){
-			var objThumb = jQuery(arrThumbs[i]);
-			g_functions.placeElement(objThumb, posx, posy);
-			
-			posy += objThumb.outerHeight() + g_options.strip_space_between_thumbs;
-		}
-		
-		//set inner strip width
-		var innerStripHeight = posy - g_options.strip_space_between_thumbs;
-		
-		g_objStripInner.height(innerStripHeight);
-		
-		g_sizes.stripInnerSize = innerStripHeight;		
+		checkControlsEnableDisable();
 	}
 	
 	
@@ -217,13 +221,43 @@ function UGThumbsStrip(){
 	 * position thumbnails in the thumbs panel
 	 */
 	function positionThumbs(){
+
+		var arrThumbs = g_objStripInner.children(".ug-thumb-wrapper");
 		
+		var posx = 0;
+		var posy = 0;
+
+		for (i = 0; i < arrThumbs.length; i++) {
+			
+			var objThumb = jQuery(arrThumbs[i]);
+			
+			//skip from placing if not loaded yet on non fixed mode
+			if(g_temp.isNotFixedThumbs == true){
+				objItem = g_thumbs.getItemByThumb(objThumb);
+				if(objItem.isLoaded == false)
+					continue;
+				
+				//the thumb is hidden if not placed
+				objThumb.show();
+			}
+			
+			g_functions.placeElement(objThumb, posx, posy);
+			
+			if(g_isVertical == false)
+				posx += objThumb.outerWidth() + g_options.strip_space_between_thumbs;
+			else
+				posy += objThumb.outerHeight() + g_options.strip_space_between_thumbs;
+		}
+		
+		//set strip size, width or height
 		if(g_isVertical == false)
-			positionThumbs_horizontal();
+			var innerStripSize = posx - g_options.strip_space_between_thumbs;
 		else
-			positionThumbs_vertical();	
-				 		
+			var innerStripSize = posy - g_options.strip_space_between_thumbs;
+			
+		setInnerStripSize(innerStripSize);
 	}
+
 	
 	
 	/**
@@ -236,24 +270,24 @@ function UGThumbsStrip(){
 			var height = g_sizes.thumbSecondSize;
 			
 			 var objCssStrip = {};
-			 objCssStrip["height"] = height+"px";		 
+			 objCssStrip["height"] = height+"px";
 			 		 
 			 //set inner strip params
 			 var objCssInner = {};
-			 objCssInner["height"] = height+"px";		
-			 
+			 objCssInner["height"] = height+"px";
+
 		}else{	//fix vertical
 			
 			var width = g_sizes.thumbSecondSize;
 			
 			 var objCssStrip = {};
-			 objCssStrip["width"] = width+"px";		 
+			 objCssStrip["width"] = width+"px";
 			 		 
 			 //set inner strip params
 			 var objCssInner = {};
 			 objCssInner["width"] = width+"px";
 			 
-		}		
+		}
 		 
 		g_objStrip.css(objCssStrip);
 		g_objStripInner.css(objCssInner);				
@@ -281,11 +315,11 @@ function UGThumbsStrip(){
 	 */
 	function scrollToThumbMin(objThumb){
 		
-		var objThumbPos = getThumbPos(objThumb);		
-		
+		var objThumbPos = getThumbPos(objThumb);
+
 		var scrollPos = objThumbPos.min * -1;
 		scrollPos = t.fixInnerStripLimits(scrollPos);
-		
+
 		t.positionInnerStrip(scrollPos, true);
 	}
 	
@@ -356,7 +390,6 @@ function UGThumbsStrip(){
 	 * check that the inner strip off the limits position, and reposition it if there is a need
 	 */
 	function checkAndRepositionInnerStrip(){
-		
 		if(isStripMovingEnabled() == false)
 			return(false);
 		
@@ -374,7 +407,9 @@ function UGThumbsStrip(){
 	 */
 	function checkControlsEnableDisable(){
 		
-		if(isStripMovingEnabled() == true){
+		var isMovingEndbled = isStripMovingEnabled();
+		
+		if(isMovingEndbled == true){
 			
 			if(g_aviaControl)
 				g_aviaControl.enable();
@@ -416,19 +451,36 @@ function UGThumbsStrip(){
 	 * on thumb click event. Select the thumb
 	 */
 	function onThumbClick(objThumb){
-				
+
 		//cancel click event only if passed significant movement
 		if(t.isTouchMotionActive()){
-			
+
 			var isSignificantPassed = g_touchThumbsControl.isSignificantPassed();
 			if(isSignificantPassed == true)
 				return(true);
 		}
-				
+
 		//run select item operation
 		var objItem = g_thumbs.getItemByThumb(objThumb);
+
+		g_gallery.selectItem(objItem);
+	}
+	
+	
+	/**
+	 * on some thumb placed, run the resize, but with time passed
+	 */
+	function onThumbPlaced(){
 		
-		g_gallery.selectItem(objItem);		
+		clearTimeout(g_temp.handle);
+		
+		g_temp.handle = setTimeout(function(){
+			
+			positionThumbs();
+			
+		},50);
+			
+		
 	}
 	
 	
@@ -438,7 +490,7 @@ function UGThumbsStrip(){
 	function initEvents(){
 		
 		g_thumbs.initEvents();
-		
+
 		var objThumbs = g_objStrip.find(".ug-thumb-wrapper");
 				
 		objThumbs.on("click touchend", function(event){
@@ -453,8 +505,17 @@ function UGThumbsStrip(){
 			g_thumbs.setThumbSelected(objItem.objThumbWrapper);
 			scrollToThumb(objItem.objThumbWrapper);
 		});
+
+		
+		//position thumbs after each load on non fixed mode
+		if(g_temp.isNotFixedThumbs){
+			
+			jQuery(g_thumbs).on(g_thumbs.events.AFTERPLACEIMAGE, onThumbPlaced);
+			
+		}
 		
 	}
+	
 	
 	/**
 	 * destroy the strip panel events
@@ -466,6 +527,8 @@ function UGThumbsStrip(){
 		objThumbs.off("click");
 		objThumbs.off("touchend");
 		g_objGallery.off(g_gallery.events.ITEM_CHANGE);
+
+		jQuery(g_thumbs).off(g_thumbs.events.AFTERPLACEIMAGE);
 		
 		if(g_touchThumbsControl)
 			g_touchThumbsControl.destroy();
@@ -484,7 +547,7 @@ function UGThumbsStrip(){
 	 * check if the inner width is more then strip width
 	 */
 	function isStripMovingEnabled(){
-			
+		
 		if(g_isVertical == false){		//for horizontal
 			
 			if(g_objStripInner.width() > g_objStrip.width())
@@ -563,7 +626,6 @@ function UGThumbsStrip(){
 	 * fix inner position by check boundaries limit
 	 */
 	this.fixInnerStripLimits = function(distPos){
-		
 		var maxPos = 0, minPos;
 		if(g_isVertical == false)
 			minPos = -(g_objStripInner.width() - g_objStrip.width());
@@ -575,7 +637,6 @@ function UGThumbsStrip(){
 		
 		if(distPos < minPos)
 			distPos = minPos;
-		
 		return(distPos);
 	}
 	
@@ -584,7 +645,6 @@ function UGThumbsStrip(){
 	* position inner strip on some pos according the orientation
 	*/
 	this.positionInnerStrip = function(pos, isAnimate){
-				
 		if(isAnimate === undefined)
 			var isAnimate = false;
 		
@@ -613,8 +673,7 @@ function UGThumbsStrip(){
 		}
 		
 	}
-	
-	
+
 	/**
 	 * trigger event - on strip move
 	 */
@@ -700,7 +759,6 @@ function UGThumbsStrip(){
 	 * scroll left or down
 	 */
 	this.scrollForeward = function(){
-				
 		scrollBy(-g_sizes.stripSize);
 	}
 	
@@ -725,6 +783,8 @@ function UGThumbsStrip(){
 		g_options = jQuery.extend(g_options, objOptions);
 		
 		g_thumbs.setOptions(objOptions);
+		
+		onAfterSetOptions();
 	}
 	
 	
@@ -848,6 +908,8 @@ function UGThumbsStrip(){
 	}
 	
 	
+	
+	
 	this.________EXTERNAL_GETTERS___________ = function(){};
 	
 	/**
@@ -941,5 +1003,5 @@ function UGThumbsStrip(){
 		var isEnabled = isStripMovingEnabled();
 		return(isEnabled);
 	}
-	
+
 }

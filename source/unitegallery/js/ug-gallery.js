@@ -48,9 +48,9 @@ function UniteGalleryMain(){
 	var t = this;
 	var g_galleryID;
 	var g_objGallery = jQuery(t), g_objWrapper;
-	var g_objThumbs, g_objSlider, g_functions = new UGFunctions();
+	var g_objThumbs, g_objSlider, g_functions = new UGFunctions(), g_objTabs;
 	var g_arrItems = [], g_numItems, g_selectedItem = null, g_selectedItemIndex = -1;
-	var g_objTheme;
+	var g_objTheme, g_objCache = {};
 	
 	this.events = {
 			ITEM_CHANGE: "item_change",
@@ -64,7 +64,8 @@ function UniteGalleryMain(){
 			SLIDER_ACTION_START: "slider_action_start",
 			SLIDER_ACTION_END: "slider_action_end",
 			ITEM_IMAGE_UPDATED: "item_image_updated",
-			GALLERY_KEYPRESS: "gallery_keypress"
+			GALLERY_KEYPRESS: "gallery_keypress",
+			GALLERY_BEFORE_REQUEST_ITEMS: "gallery_before_request_items"	//before ajax load items
 	};
 	
 	
@@ -93,12 +94,16 @@ function UniteGalleryMain(){
 			gallery_carousel:true,						//true,false - next button on last image goes to first image.
 			
 			gallery_preserve_ratio: true,				//true, false - preserver ratio when on window resize
+			gallery_background_color: "",				//set custom background color. If not set it will be taken from css.
 			gallery_debug_errors:false,					//show error message when there is some error on the gallery area.
-			gallery_background_color: ""				//set custom background color. If not set it will be taken from css.
+			gallery_shuffle:false,						//randomise position of items at start.
+			gallery_urlajax:null,						//ajax url for requesting new items etc.
+			gallery_enable_tabs: false,					//enable/disable category tabs
+			gallery_enable_cache: true,					//enable caching items
+			gallery_initial_catid: ""					//initial category id (for caching)
 	};
 	
 	//gallery_control_thumbs_mousewheel
-	
 	
 	var g_temp = {					//temp variables
 		objCustomOptions:{},
@@ -145,11 +150,11 @@ function UniteGalleryMain(){
 	/**
 	 * init the theme
 	 */
-	function initTheme(objParams){
-		 		
+	function initTheme(objCustomOptions){
+		 
 		//set theme function:
-		 if(objParams.hasOwnProperty("gallery_theme"))
-			 g_options.gallery_theme = objParams.gallery_theme;
+		 if(objCustomOptions.hasOwnProperty("gallery_theme"))
+			 g_options.gallery_theme = objCustomOptions.gallery_theme;
 		 else{
 			 var defaultTheme = g_options.gallery_theme;
 			 if(g_ugFunctions.isThemeRegistered(defaultTheme) == false)
@@ -167,19 +172,8 @@ function UniteGalleryMain(){
 		 g_options.gallery_theme = eval(themeFunction);
 		 
 		 //init the theme
-		 
-		 //destroy last theme if exists
-		 if(g_objTheme && typeof g_objTheme.destroy == "function"){
-			
-			 g_objTheme.destroy();
-	    	 g_objWrapper.html("");
-		 }
-		 
-		// trace(g_options.tile_enable_textpanel);
-		 
 		 g_objTheme = new g_options.gallery_theme();
-		 g_objTheme.init(t, g_temp.objCustomOptions);
-		 
+		 g_objTheme.init(t, objCustomOptions);
 	}
 	
 	
@@ -201,10 +195,13 @@ function UniteGalleryMain(){
 	/**
 	 *  the gallery
 	 */
-	function runGallery(galleryID, objCustomOptions){
+	function runGallery(galleryID, objCustomOptions, htmlItems, cacheID){
 			 
-		     g_temp.objCustomOptions = objCustomOptions;
-			 
+			var isCustomOptions = (typeof objCustomOptions == "object");
+			
+			if(isCustomOptions)
+		      g_temp.objCustomOptions = objCustomOptions;
+			 			 
 		     if(g_temp.isRunFirstTime == true){
 		    	 
 		    	 g_galleryID = galleryID;
@@ -216,32 +213,83 @@ function UniteGalleryMain(){
 				 
 				 g_temp.originalOptions = jQuery.extend({}, g_options);
 				 
-				 //fill arrItems
-				 var arrItems = g_objWrapper.children();
+				 //merge options
+				 if(isCustomOptions)
+					 g_options = jQuery.extend(g_options, objCustomOptions);
 				 
-				 fillItemsArray(arrItems);
-				 			 
+				 //cache items
+				 if(g_options.gallery_enable_cache == true && g_options.gallery_initial_catid)
+					 cacheItems(g_options.gallery_initial_catid);
+				 
+				 //fill arrItems
+				 var objItems = g_objWrapper.children();
+				 
+				 fillItemsArray(objItems);
 				 loadAPIs();
 				 
 				 //hide images:
-				 g_objWrapper.children("img").fadeTo(0,0).hide();
+				 g_objWrapper.find("img").fadeTo(0,0).hide();
 				 g_objWrapper.show();
 		
 				 clearInitData();
 		    	 
-		     }else{		//reset options
+		     }else{		//reset options - not first time run
+		    	 
+		    	 t.destroy();
+		    	 
 		    	 resetOptions();
+
+		    	 g_options = jQuery.extend(g_options, g_temp.objCustomOptions);
+	    		 
+		    	 if(htmlItems){
+		    		 
+		    		 //cache items
+		    		 if(cacheID && g_options.gallery_enable_cache == true)
+		    			 cacheItems(cacheID, htmlItems);
+		    		 
+		    		 if(htmlItems == "noitems"){
+		    			 showErrorMessage("No items in this category","");
+		    			 return(false);
+			    	 }
+		    		 
+		    		 g_objWrapper.html(htmlItems);
+		    		 
+		    		 var objItems = g_objWrapper.children();
+		    		 fillItemsArray(objItems);
+					 
+		    		 loadAPIs();
+					 
+					 g_objWrapper.children().fadeTo(0,0).hide();
+					 
+					 g_objWrapper.show();
+					 clearInitData();
+		    	 }
+		     
 		     }
 			 
-		     //extend params with defaults from user
-			 g_options = jQuery.extend(g_options, objCustomOptions);
+			 
+			 //init tabs
+			 if(g_temp.isRunFirstTime == true && g_options.gallery_enable_tabs == true){
+				 g_objTabs = new UGTabs();
+				 g_objTabs.init(t, g_options);
+			 }
 			 
 			 //modify and verify the params
-			 modifyInitParams(objCustomOptions);
+			 if(isCustomOptions)
+				 modifyInitParams(g_temp.objCustomOptions);
+			 			 
 			 validateParams();
-
+			 
+			 //shuffle items
+			 if(g_options.gallery_shuffle == true){
+				g_arrItems = g_functions.arrayShuffle(g_arrItems);
+				
+				for(var index in g_arrItems)		//fix index
+					g_arrItems[index].index = parseInt(index);
+			 }
+			 			 
 			 //init the theme
-			 initTheme(objCustomOptions);
+			 initTheme(g_temp.objCustomOptions);
 			 			 				 
 			 //set gallery html elements
 			 setGalleryHtml();
@@ -273,7 +321,10 @@ function UniteGalleryMain(){
 		 }
 		 
 		 g_objTheme.run();
-		 	 
+		 
+		 if(g_objTabs)
+			 g_objTabs.run();
+		 
 		 preloadBigImages();
 		 
 		 initEvents();
@@ -281,6 +332,7 @@ function UniteGalleryMain(){
 		 //select first item
 		 if(g_numItems > 0) 
 			 t.selectItem(0);
+		 
 		 
 		 //set autoplay
 		 if(g_options.gallery_autoplay == true)
@@ -295,18 +347,16 @@ function UniteGalleryMain(){
 	 * 
 	 * show error message
 	 */
-	function showErrorMessage(message){
+	function showErrorMessage(message, prefix){
+
+		if(typeof prefix == "undefined")
+			var prefix = "<b>Gallery Error: </b>";
+				
+		message = prefix + message;
 		
-		message = "<b>Gallery Error: </b>" + message;
-		
-		var html = "<div class='ug-error-message'>" + message + "</div>";
+		var html = "<div class='ug-error-message-wrapper'><div class='ug-error-message'>" + message + "</div></div>";
 		
 		g_objWrapper.children().remove();
-		
-		g_objWrapper.width(g_options.gallery_width);
-		g_objWrapper.height(g_options.gallery_height);
-		
-		g_objWrapper.css("border","1px solid black");
 		
 		g_objWrapper.html(html);
 		g_objWrapper.show();		
@@ -317,22 +367,21 @@ function UniteGalleryMain(){
 	 * 
 	 * @param objParams
 	 */
-	 function modifyInitParams(inputParams){
+	 function modifyInitParams(){
 		 
 		 //set default for preloading
 		 if(!g_options.gallery_images_preload_type)
 			 g_options.gallery_images_preload_type = "minimal";
 		 
 		 //normalize gallery min height and width
-		 if(inputParams.gallery_min_height == undefined && g_options.gallery_height < g_options.gallery_min_height){
+		 if(g_options.gallery_min_height == undefined || g_options.gallery_height < g_options.gallery_min_height){
 			 g_options.gallery_min_height = 0;
 		 }
 		 
-		 if(inputParams.gallery_min_width == undefined && g_options.gallery_width < g_options.gallery_min_width){
+		 if(g_options.gallery_min_width == undefined || g_options.gallery_width < g_options.gallery_min_width){
 			 g_options.gallery_min_width = 0;
 		 }
 		 
-			 
 	 }
 
 	
@@ -367,8 +416,11 @@ function UniteGalleryMain(){
 		 //add classes and divs
 		 g_objWrapper.addClass("ug-gallery-wrapper");
 		 
+		 g_objWrapper.append("<div class='ug-overlay-disabled' style='display:none'></div>");
+		 
 		 t.setSizeClass();
 	}
+	
 	
 	/**
 	 * if the thumbs panel don't exists, delete initial images from dom
@@ -448,7 +500,8 @@ function UniteGalleryMain(){
 	 */
 	function fillItemsArray(arrChildren){
 		
-		 
+		g_arrItems = [];
+		
 		 var numIndex = 0;
 		 
 		 for(var i=0;i<arrChildren.length;i++){
@@ -487,7 +540,11 @@ function UniteGalleryMain(){
 			 
 			 
 			 objItem.link = itemLink;
-			 objItem.description = objChild.data("description");
+			 
+			 //get description:
+			 objItem.description = objChild.attr("title");
+			 if(!objItem.description)				 
+				 objItem.description = objChild.data("description");
 			 
 			 if(!objItem.description)
 				 objItem.description = "";
@@ -556,6 +613,7 @@ function UniteGalleryMain(){
 			 if(objItem.objThumbImage){
 				 objItem.objThumbImage.removeAttr("data-description", "");
 				 objItem.objThumbImage.removeAttr("data-image", "");				 
+				 objItem.objThumbImage.removeAttr("title", "");				 
 			 }
 			 
 			 objItem.index = numIndex;
@@ -724,6 +782,7 @@ function UniteGalleryMain(){
 		
 		objItem.isBigImageLoaded = true;
 		
+		//get size with fallback function
 		var objSize = g_functions.getImageOriginalSize(objImage);
 		
 		objItem.imageWidth = objSize.width;
@@ -862,7 +921,7 @@ function UniteGalleryMain(){
 	/**
 	 * on gallery mousewheel event handler, advance the thumbs
 	 */
-	function onGalleryMouseWheel(event, delta, deltaX, deltaY){
+	this.onGalleryMouseWheel = function(event, delta, deltaX, deltaY){
 		
 		event.preventDefault();
 		
@@ -870,8 +929,8 @@ function UniteGalleryMain(){
 			t.prevItem();
 		else
 			t.nextItem();
-			
 	}
+	
 	
 	/**
 	 * on mouse enter event
@@ -888,8 +947,13 @@ function UniteGalleryMain(){
 	 */
 	function onSliderMouseLeave(event){
 		
-		if(g_options.gallery_pause_on_mouseover == true && g_temp.isPlayMode == true && g_objSlider && g_objSlider.isSlideActionActive() == false)
-			t.continuePlaying();
+		if(g_options.gallery_pause_on_mouseover == true && g_temp.isPlayMode == true && g_objSlider && g_objSlider.isSlideActionActive() == false){
+			
+			var isStillLoading = g_objSlider.isCurrentSlideLoadingImage();
+			
+			if(isStillLoading == false)
+				t.continuePlaying();
+		}
 		
 	}
 	
@@ -920,6 +984,11 @@ function UniteGalleryMain(){
 	 * check that the gallery resized, if do, trigger onresize event
 	 */
 	function onGalleryResized(){
+		
+		var objSize = t.getSize();
+		
+		if(objSize.width == 0)	//fix hidden gallery change
+			return(true);
 		
 		t.setSizeClass();
 		
@@ -955,10 +1024,16 @@ function UniteGalleryMain(){
 	 * on full screen change event
 	 */
 	function onFullScreenChange(){
-		 
+		
 		var isFullscreen = g_functions.isFullScreen();
 		 var event = isFullscreen ? t.events.ENTER_FULLSCREEN:t.events.EXIT_FULLSCREEN; 
 		 
+		 var fullscreenID = g_functions.getGlobalData("fullscreenID");
+		 
+		 //check if this gallery was affected
+		 if(g_galleryID !== fullscreenID)
+			 return(true);
+		 		 
 		 //add classes for the gallery
 		 if(isFullscreen){
 			 g_objWrapper.addClass("ug-fullscreen");
@@ -978,6 +1053,15 @@ function UniteGalleryMain(){
 		
 		var objItem = t.getItem(index);		
 		checkPreloadItemImage(objItem);		
+	}
+	
+	/**
+	 * on current slide image load end. If playing mode, begin playing again
+	 */
+	function onCurrentSlideImageLoadEnd(){
+		
+		if(t.isPlayMode() == true)
+			t.continuePlaying();
 	}
 	
 	
@@ -1007,8 +1091,8 @@ function UniteGalleryMain(){
 		}
 		
 		//init mouse wheel
-		if(g_options.gallery_mousewheel_role == "advance")
-			g_objWrapper.on("mousewheel",onGalleryMouseWheel);
+		if(g_options.gallery_mousewheel_role == "advance" && g_temp.isFreestyleMode == false)
+			g_objWrapper.on("mousewheel", t.onGalleryMouseWheel);
 		
 		 //on resize event
 		 storeLastSize();
@@ -1047,14 +1131,72 @@ function UniteGalleryMain(){
 			 retriggerEvent(g_objSlider, g_objSlider.events.ACTION_START, t.events.SLIDER_ACTION_START);
 			 retriggerEvent(g_objSlider, g_objSlider.events.ACTION_END, t.events.SLIDER_ACTION_END);
 			 
+			 jQuery(g_objSlider).on(g_objSlider.events.CURRENTSLIDE_LOAD_END, onCurrentSlideImageLoadEnd);
+		 
 		 }
-		 		 
+		  
 		 //add keyboard events
 		 if(g_options.gallery_control_keyboard == true)
 			 jQuery(document).keydown(onKeyPress);
 		 		 
 	}
+	
+	
+	/**
+	 * destroy all gallery events
+	 */
+	this.destroy = function(){
 		
+		g_objWrapper.off("dragstart");
+		g_objGallery.off(t.events.ITEM_IMAGE_UPDATED);
+		
+		//init custom event on strip moving
+		if(g_objThumbs){
+			switch(g_temp.thumbsType){
+				case "strip":
+					jQuery(g_objThumbs).off(g_objThumbs.events.STRIP_MOVE);
+				break;
+				case "grid":
+					jQuery(g_objThumbs).off(g_objThumbs.events.PANE_CHANGE);
+				break;
+			}
+		}
+		
+		 g_objWrapper.off("mousewheel");
+		
+		 jQuery(window).off("resize");
+		 
+		 //fullscreen:
+		 g_functions.destroyFullScreenChangeEvent();
+		 
+		 //on slider item changed event
+		 if(g_objSlider){
+			 
+			 jQuery(g_objSlider).off(g_objSlider.events.ITEM_CHANGED);
+			 
+			 //add slider onmousemove event
+			 var sliderElement = g_objSlider.getElement();
+			 sliderElement.off("mouseenter");
+			 sliderElement.off("mouseleave");
+			 
+			 g_objGallery.off(t.events.ENTER_FULLSCREEN);
+			 jQuery(g_objSlider).off(g_objSlider.events.ACTION_START);
+			 jQuery(g_objSlider).off(g_objSlider.events.ACTION_END);
+			 jQuery(g_objSlider).off(g_objSlider.events.CURRENTSLIDE_LOAD_END);
+		 }
+		 		 
+		 //add keyboard events
+		 if(g_options.gallery_control_keyboard == true)
+			 jQuery(document).off("keydown");
+		
+		 //destroy theme
+		 if(g_objTheme && typeof g_objTheme.destroy == "function"){
+			 g_objTheme.destroy();
+		 }
+
+		 g_objWrapper.html("");
+	}
+	
 	
 	function __________GENERAL_______(){};
 	
@@ -1334,7 +1476,7 @@ function UniteGalleryMain(){
 		g_functions.setButtonOnClick(objButton, t.togglePlayMode);
 		
 		g_objGallery.on(t.events.START_PLAY,function(){
-			objButton.addClass("ug-stop-mode");			
+			objButton.addClass("ug-stop-mode");
 		});
 		
 		g_objGallery.on(t.events.STOP_PLAY, function(){
@@ -1376,8 +1518,39 @@ function UniteGalleryMain(){
 		
 	}
 	
+	/**
+	 * show overlay disabled
+	 */
+	this.showDisabledOverlay = function(){
+		g_objWrapper.children(".ug-overlay-disabled").show();
+	}
+
+	/**
+	 * show overlay disabled
+	 */
+	this.hideDisabledOverlay = function(){
+		g_objWrapper.children(".ug-overlay-disabled").hide();
+	}
 	
 	this.___________END_SET_CONTROLS___________ = function(){}
+
+	
+	/**
+	 * cache items, put to cache array by id
+	 * the items must be unprocessed yet
+	 */
+	function cacheItems(cacheID, htmlItemsArg){
+			
+		if(htmlItemsArg){
+			var htmlItems = htmlItemsArg;
+			if(htmlItems != "noitems")
+				htmlItems = jQuery(htmlItemsArg).clone();
+		}else{
+			var htmlItems = g_objWrapper.children().clone();
+		}
+		
+		g_objCache[cacheID] = htmlItems;
+	}
 	
 	
 	/**
@@ -1437,10 +1610,12 @@ function UniteGalleryMain(){
 	
 	this.___________PLAY_MODE___________ = function(){}
 	
+	
 	/**
 	 * start play mode
 	 */
 	this.startPlayMode = function(){
+		
 		g_temp.isPlayMode = true;
 		g_temp.isPlayModePaused = false;
 		
@@ -1457,6 +1632,12 @@ function UniteGalleryMain(){
 		}
 		
 		g_objGallery.trigger(t.events.START_PLAY);
+		
+		//check if there is a need to pause
+		if(g_objSlider && g_objSlider.isCurrentSlideLoadingImage() == true){
+			t.pausePlaying();
+		}
+		
 	}
 	
 	
@@ -1542,7 +1723,7 @@ function UniteGalleryMain(){
 			t.stopPlayMode();
 	}
 	
-	this.___________END_PLAY_MODE___________ = function(){}
+	this.___________GENERAL_EXTERNAL___________ = function(){}
 	
 	
 	/**
@@ -1565,7 +1746,7 @@ function UniteGalleryMain(){
 	 * set main gallery params, extend current params
 	 */
 	this.setOptions = function(customOptions){
-		
+				
 		g_options = jQuery.extend(g_options, customOptions);		
 	}
 	
@@ -1589,11 +1770,16 @@ function UniteGalleryMain(){
 		g_selectedItem = objItem;		
 		g_selectedItemIndex = itemIndex;
 		
-		//reset playback, if playing
-		if(g_temp.isPlayMode == true)
-			t.resetPlaying();
-		
 		g_objGallery.trigger(t.events.ITEM_CHANGE, objItem);
+
+		//reset playback, if playing
+		if(g_temp.isPlayMode == true){
+				t.resetPlaying();
+			
+			var stillLoading = g_objSlider.isCurrentSlideLoadingImage();
+			if(stillLoading == true)
+				t.pausePlaying();
+		}
 				
 	}
 	
@@ -1702,12 +1888,13 @@ function UniteGalleryMain(){
 	 * go to fullscreen mode
 	 */
 	this.toFullScreen = function(){
-				
+		
+		g_functions.setGlobalData("fullscreenID", g_galleryID);
+		
 		var divGallery = g_objWrapper.get(0);
 		
 		var isSupported = g_functions.toFullscreen(divGallery);
-		
-		//trace(isSupported);
+				
 		if(isSupported == false)
 			toFakeFullScreen();
 		
@@ -1804,8 +1991,122 @@ function UniteGalleryMain(){
 	}
 	
 	
-	function __________END_GENERAL_______(){};
+	/**
+	 * change gallery items
+	 */
+	this.changeItems = function(itemsContent, cacheID){
 		
+		if(!itemsContent)
+			var itemsContent = "noitems";
+		
+		runGallery(g_galleryID, "nochange", itemsContent, cacheID);
+	}
+	
+	
+	this.__________AJAX_REQUEST_______ = function(){};
+	
+	
+	/**
+	 * ajax request
+	 */
+	this.ajaxRequest = function(action, data, isJSON, successFunction){
+		
+		var dataType = "html";
+		if(isJSON == true)
+			dataType = "json";
+				
+		if(!successFunction || typeof successFunction != "function")
+			throw new Error("ajaxRequest error: success function should be passed");
+
+		var urlAjax = g_options.gallery_urlajax;
+		if(urlAjax == "")
+			throw new Error("ajaxRequest error: Ajax url don't passed");
+		
+		if(typeof data == "undefined")
+			var data = {};
+
+		//add galleryID to data
+		var objData = {
+				action:"unitegallery_ajax_action",
+				client_action:action,
+				galleryID: g_galleryID,
+				data:data
+		};
+		
+		jQuery.ajax({
+			type:"post",
+			url:g_options.gallery_urlajax,
+			dataType: 'json',
+			data:objData,
+			success:function(response){
+				
+				if(!response){
+					showErrorMessage("Empty ajax response!", "Ajax Error");
+					return(false);					
+				}
+
+				if(response == -1 || response === 0){
+					showErrorMessage("ajax error!!!");
+					return(false);
+				}
+
+				if(typeof response.success == "undefined"){
+					showErrorMessage("The 'success' param is a must!");
+					return(false);
+				}
+				
+				if(response.success == false){
+					showErrorMessage(response.message);
+					return(false);
+				}
+				
+				successFunction(response);
+			},		 	
+			error:function(jqXHR, textStatus, errorThrown){
+				console.log("Ajax Error!!! " + textStatus);
+			}
+		});
+		
+	}
+	
+	
+	/**
+	 * request new items
+	 * isForce - don't take from cache
+	 */
+	this.requestNewItems = function(catID, isForce, cacheID){
+		
+		var checkCache = g_options.gallery_enable_cache;
+		
+		if(!cacheID)
+			cacheID = catID;
+		
+		if(isForce == true)
+			checkCache = false;
+		
+		//get items from cache
+		if(checkCache == true && g_objCache.hasOwnProperty(cacheID)){
+			
+			var htmlItems = g_objCache[cacheID];
+			
+			t.changeItems(htmlItems, cacheID);
+			
+		}else{
+			
+			g_objGallery.trigger(t.events.GALLERY_BEFORE_REQUEST_ITEMS);
+			
+			t.ajaxRequest("front_get_cat_items",{catid:catID}, true, function(response){
+				
+				var htmlItems = response.html;
+								
+				t.changeItems(htmlItems, cacheID);
+				
+			});
+			
+		}
+		
+	}
+	
 	
 	/**
 	 * run the gallery

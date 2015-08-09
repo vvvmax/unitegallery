@@ -195,16 +195,16 @@ function UGCarousel(){
 			positionTiles(true);		//set heights at first time
 			
 			if(g_options.carousel_autoplay == true)
-				startAutoplay();
+				t.startAutoplay();
 		}else{
 			
 			if(g_options.carousel_autoplay == true)
-				pauseAutoplay();
+				t.pauseAutoplay();
 			
 			scrollToTile(0, false);
 			
 			if(g_options.carousel_autoplay == true)
-				startAutoplay();
+				t.startAutoplay();
 		}
 		
 		positionElements();
@@ -650,7 +650,7 @@ function UGCarousel(){
 	/**
 	 * start autoplay
 	 */
-	function startAutoplay(){
+	this.startAutoplay = function(){
 		
 		g_temp.isPlayMode = true;
 		g_temp.isPaused = false;
@@ -664,10 +664,11 @@ function UGCarousel(){
 		
 	}
 	
+	
 	/**
 	 * unpause autoplay after pause
 	 */
-	function unpauseAutoplay(){
+	this.unpauseAutoplay = function(){
 		
 		if(g_temp.isPlayMode == false)
 			return(true);
@@ -675,13 +676,14 @@ function UGCarousel(){
 		if(g_temp.isPaused == false)
 			return(true);
 		
-		startAutoplay();
+		t.startAutoplay();
 	}
+	
 	
 	/**
 	 * pause the autoplay
 	 */
-	function pauseAutoplay(){
+	this.pauseAutoplay = function(){
 
 		if(g_temp.isPlayMode == false)
 			return(true);
@@ -699,7 +701,8 @@ function UGCarousel(){
 	/**
 	 * stop autoplay
 	 */
-	function stopAutoplay(){
+	this.stopAutoplay = function(){
+		
 		if(g_temp.isPlayMode == false)
 			return(true);
 		
@@ -739,7 +742,7 @@ function UGCarousel(){
 		
 		g_temp.touchActive = true;
 		
-		pauseAutoplay();
+		t.pauseAutoplay();
 		
 		g_temp.startTime = jQuery.now();	
 		g_temp.startMousePos = getMousePos(event);
@@ -805,7 +808,7 @@ function UGCarousel(){
 		
 		scrollToNeerestTile();
 		
-		unpauseAutoplay();
+		t.unpauseAutoplay();
 	}
 	
 	/**
@@ -817,7 +820,7 @@ function UGCarousel(){
 			return(true);
 		
 		if(g_temp.isPlayMode == true && g_temp.isPaused == false)
-			pauseAutoplay();
+			t.pauseAutoplay();
 	}
 	
 	/**
@@ -828,7 +831,7 @@ function UGCarousel(){
 		if(g_options.carousel_autoplay_pause_onhover == false)
 			return(true);
 		
-		unpauseAutoplay();
+		t.unpauseAutoplay();
 	}
 	
 	
@@ -836,11 +839,10 @@ function UGCarousel(){
 	 * init panel events
 	 */
 	function initEvents(){
-			
+				
 		g_objTileDesign.initEvents();
 		
 		//touch drag events
-		
 		//slider mouse down - drag start
 		g_objCarouselWrapper.bind("mousedown touchstart",onTouchStart);
 		
@@ -1023,9 +1025,9 @@ function UGCarousel(){
 		g_functions.setButtonOnClick(objButton, function(){
 				
 				if(g_temp.isPlayMode == false || g_temp.isPaused == true)					
-					startAutoplay();
+					t.startAutoplay();
 				else
-					stopAutoplay();
+					t.stopAutoplay();
 				
 		});
 	}

@@ -92,6 +92,7 @@ function UG_API(gallery){
 		g_gallery.startPlayMode();		
 	}
 	
+	
 	/**
 	 * stop playing
 	 */
@@ -234,5 +235,12 @@ function UG_API(gallery){
 		g_gallery.run(null, customOptions);
 	}
 	
+	
+	/**
+	 * destroy the gallery
+	 */
+	this.destroy = function(){
+		g_gallery.destroy();
+	}
 	
 }

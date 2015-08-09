@@ -69,6 +69,7 @@ function UGLightbox(){
 			lightbox_slider_scale_mode: "down",
 			lightbox_slider_loader_type: 3,
 			lightbox_slider_loader_color: "black",
+			lightbox_slider_transition: "fade",
 			
 			lightbox_slider_image_padding_top: g_temp.topPanelHeight,
 			lightbox_slider_image_padding_bottom: 10,
@@ -90,7 +91,8 @@ function UGLightbox(){
 			
 			video_enable_closebutton: false,
 			lightbox_slider_video_enable_closebutton: false,
-			video_youtube_showinfo: false
+			video_youtube_showinfo: false,
+			lightbox_slider_enable_links:false
 	};
 	
 	var g_defaultsCompact = {
@@ -146,7 +148,6 @@ function UGLightbox(){
 			g_objSlider = null;
 		}
 		
-			
 		if(g_options.lightbox_show_textpanel == true){
 			g_objTextPanel.init(g_gallery, g_options, "lightbox");
 		}
@@ -195,6 +196,8 @@ function UGLightbox(){
 		if(g_temp.isCompact == false)
 			html += "<div class='ug-lightbox-top-panel'>";
 				
+		html += 	"<div class='ug-lightbox-top-panel-overlay'></div>";
+		
 		html += 	"<div class='ug-lightbox-button-close'></div>";
 		
 		if(g_options.lightbox_show_numbers)
@@ -217,8 +220,9 @@ function UGLightbox(){
 		
 		g_objOverlay = g_objWrapper.children(".ug-lightbox-overlay");
 		
-		if(g_temp.isCompact == false)
+		if(g_temp.isCompact == false){
 			g_objTopPanel = g_objWrapper.children(".ug-lightbox-top-panel");
+		}
 		
 		g_objButtonClose = g_objWrapper.find(".ug-lightbox-button-close");
 		
@@ -249,9 +253,10 @@ function UGLightbox(){
 		if(g_options.lightbox_overlay_opacity !== null)
 			g_objOverlay.fadeTo(0, g_options.lightbox_overlay_opacity);
 		
-		if(g_objTopPanel && g_options.lightbox_top_panel_opacity !== null)
-			g_objTopPanel.css("background-color","rgb(0,0,0,"+g_options.lightbox_top_panel_opacity+")");
-		
+		if(g_objTopPanel && g_options.lightbox_top_panel_opacity !== null){
+			g_objTopPanel.children(".ug-lightbox-top-panel-overlay").fadeTo(0, g_options.lightbox_top_panel_opacity);
+		}
+			
 		//set numbers properties
 		if(g_objNumbers){
 			var cssNumbers = {};
@@ -1200,14 +1205,38 @@ function UGLightbox(){
 		 }
 		 
 	}
+
+	
+	/**
+	 * on mouse wheel
+	 */
+	function onMouseWheel(event, delta, deltaX, deltaY){
+		
+		if(g_temp.isOpened == false)
+			return(true);
+		
+		switch(g_options.gallery_mousewheel_role){
+			default:
+			case "zoom":
+				var slideType = g_objSlider.getSlideType();
+				if(slideType != "image")
+					event.preventDefault();
+			break;
+			case "none":
+				event.preventDefault();
+			break;
+			case "advance":
+				g_gallery.onGalleryMouseWheel(event, delta, deltaX, deltaY);
+			break;
+		}
+		
+	}
 	
 	
 	/**
 	 * init events
 	 */
 	function initEvents(){
-		
-		//g_objOverlay.on("click touchstart", onOverlayClick);
 		
 		g_objOverlay.on("touchstart", function(event){
 			event.preventDefault();
@@ -1278,20 +1307,13 @@ function UGLightbox(){
 		 }
 		
 		//on mouse wheel - disable functionality if video
-		g_objWrapper.on("mousewheel", function(event){
-			
-			var slideType = g_objSlider.getSlideType();
-			if(slideType != "image" && g_options.gallery_mousewheel_role != "advance"){
-				event.preventDefault();
-			}
-						
-		});
+		g_objWrapper.on("mousewheel", onMouseWheel);
 
 	}
 
 	
 	/**
-	 * destroy the lightbox events
+	 * destroy the lightbox events and the html it created
 	 */
 	this.destroy = function(){
 		
@@ -1324,6 +1346,9 @@ function UGLightbox(){
 		g_objGallery.off(g_gallery.events.GALLERY_KEYPRESS, onKeyPress);
 		
 		g_objWrapper.off("mousewheel");
+		
+		//remove the html
+		g_objWrapper.remove();
 	}
 	
 	

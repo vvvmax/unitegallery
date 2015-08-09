@@ -43,6 +43,7 @@ function UGTileDesign(){
 			
 			tile_enable_icons: true,				//enable icons in mouseover mode
 			tile_show_link_icon: false,				//show link icon (if the tile has a link). In case of tile_as_link this option not enabled
+			tile_videoplay_icon_always_on: false,	//always show video play icon
 			tile_space_between_icons: 26,			//initial space between icons, (on small tiles it may change)
 			
 			tile_enable_image_effect:false,			//enable tile image effect
@@ -69,7 +70,8 @@ function UGTileDesign(){
 	var g_temp = {
 		isFixedMode:false,
 		eventSizeChange: "thumb_size_change",
-		funcParentApproveClick: null
+		funcParentApproveClick: null,
+		isSaparateIcons: false
 	};
 	
 	
@@ -103,6 +105,9 @@ function UGTileDesign(){
 		//get thumb default options too:
 		var thumbOptions = g_thumbs.getOptions();
 		g_options = jQuery.extend(g_options, thumbOptions);
+		
+		//check if saparate icons
+		g_temp.isSaparateIcons = !g_functions.isRgbaSupported();
 	}
 	
 	
@@ -116,7 +121,7 @@ function UGTileDesign(){
 			
 			g_options.thumb_overlay_opacity = g_options.tile_overlay_opacity;
 			g_options.thumb_overlay_color = g_options.tile_overlay_color;
-			
+		
 		}else if(g_options.tile_enable_icons == false){		//if nothing on overlay - turn it off
 			g_options.thumb_color_overlay_effect = false;		
 		}else{											//if icons enabled - make it transparent
@@ -200,7 +205,7 @@ function UGTileDesign(){
 				if(objItem.type != "image")
 					iconPlayClass = "ug-button-play ug-icon-play";
 				
-				htmlAdd += "<div class='ug-tile-icon " + iconPlayClass + "'></div>";
+				htmlAdd += "<div class='ug-tile-icon " + iconPlayClass + "' style='display:none'></div>";
 			}
 			
 			//add link icon
@@ -213,12 +218,19 @@ function UGTileDesign(){
 					
 					htmlAdd += "<a href='"+objItem.link+"'"+linkTarget+" class='ug-tile-icon ug-icon-link'></a>";					
 				}else{
-					htmlAdd += "<div class='ug-tile-icon ug-icon-link'></div>";					
+					htmlAdd += "<div class='ug-tile-icon ug-icon-link' style='display:none'></div>";					
 				}
 				
 			}
-						
-		var objOverlay = objThumbWrapper.children(".ug-thumb-overlay");
+		
+		var toSaparateIcon = g_temp.isSaparateIcons;
+		if(toSaparateIcon == false && objItem.type != "image" && g_options.tile_videoplay_icon_always_on == true)
+			toSaparateIcon = true;
+		
+		if(toSaparateIcon)		//put the icons on the thumb
+			var objOverlay = objThumbWrapper;
+		else
+			var objOverlay = objThumbWrapper.children(".ug-thumb-overlay");
 		
 		objOverlay.append(htmlAdd);		
 		
@@ -294,19 +306,11 @@ function UGTileDesign(){
 	
 	
 	/**
-	 * get item from tile
-	 */
-	this.getItemByTile = function(objTile){
-		return g_thumbs.getItemByThumb(objTile);
-	}
-	
-	
-	/**
 	 * load tile image, place the image on load
 	 */
 	this.loadTileImage = function(objTile){
 		
-		var objImage = getTileImage(objTile);
+		var objImage = t.getTileImage(objTile);
 			
 		g_functions.checkImagesLoaded(objImage, null, function(objImage,isError){
 			onPlaceImage(null, objTile, jQuery(objImage));
@@ -316,13 +320,6 @@ function UGTileDesign(){
 	
 	function _________________GETTERS________________(){};
 	
-	/**
-	 * get tile image
-	 */
-	function getTileImage(objTile){
-		var objImage = objTile.children("img.ug-thumb-image");
-		return(objImage);
-	}
 	
 	
 	/**
@@ -429,7 +426,7 @@ function UGTileDesign(){
 		var sizeTile = g_functions.getElementSize(objTile);
 		
 		var objImageOverlay = getTileOverlayImage(objTile)
-		var objThumbImage = getTileImage(objTile);
+		var objThumbImage = t.getTileImage(objTile);
 		var objImageEffect = getTileImageEffect(objTile);
 		
 		//set image overlay size
@@ -541,7 +538,7 @@ function UGTileDesign(){
 		
 		if(g_options.tile_image_effect_reverse == false){
 			
-			var objThumbImage = getTileImage(objTile);
+			var objThumbImage = t.getTileImage(objTile);
 			
 			if(isActive){
 				objThumbImage.fadeTo(1,1);			
@@ -611,6 +608,27 @@ function UGTileDesign(){
 		
 	}
 	
+
+	/**
+	 * set thumb border effect
+	 */
+	function setIconsEffect(objTile, isActive, noAnimation){
+		
+		var animationDuration = g_options.thumb_transition_duration;
+		if(noAnimation && noAnimation === true)
+			animationDuration = 0;
+		
+		var g_objIconZoom = getButtonZoom(objTile);
+		var g_objIconLink = getButtonLink(objTile);
+		var opacity = isActive?1:0;
+		
+		if(g_objIconZoom)
+			g_objIconZoom.stop(true).fadeTo(animationDuration, opacity);
+		if(g_objIconLink)
+			g_objIconLink.stop(true).fadeTo(animationDuration, opacity);
+		
+	}
+	
 	
 	/**
 	 * set tile over style
@@ -621,14 +639,22 @@ function UGTileDesign(){
 				
 		if(g_options.tile_enable_image_effect)
 			setImageOverlayEffect(objTile, true);
-		
-		var objImageOverlay = objTile.children(".ug-tile-image-overlay");			
-		objImageOverlay.show();
 
 		if(g_options.tile_enable_textpanel == true && g_options.tile_textpanel_always_on == false)
 			setTextpanelEffect(objTile, true);
 		
+		//show/hide icons - if saparate (if not, they are part of the overlay)
+		//if the type is video and icon always on - the icon should stay
+		if(g_temp.isSaparateIcons && g_options.tile_enable_icons == true){
+			var isSet = (g_options.thumb_overlay_reverse == true);
+			
+			var objItem = t.getItemByTile(objTile);
+			if( !(g_options.tile_videoplay_icon_always_on == true && objItem.type != "image"))
+				setIconsEffect(objTile, isSet, false);
+		}
+		
 	}
+	
 	
 	
 	/**
@@ -637,12 +663,18 @@ function UGTileDesign(){
 	function setNormalStyle(data, objTile){
 				
 		objTile = jQuery(objTile);
-				
+		
 		if(g_options.tile_enable_image_effect)
 			setImageOverlayEffect(objTile, false);
 				
 		if(g_options.tile_enable_textpanel == true && g_options.tile_textpanel_always_on == false)
 			setTextpanelEffect(objTile, false);
+		
+		//show/hide icons - if saparate (if not, they are part of the overlay)
+		if(g_temp.isSaparateIcons && g_options.tile_enable_icons == true){
+			var isSet = (g_options.thumb_overlay_reverse == true)?false:true;
+			setIconsEffect(objTile, isSet, false);
+		}
 		
 	}
 	
@@ -811,6 +843,7 @@ function UGTileDesign(){
 		g_objParentWrapper.delegate(".ug-tile .ug-icon-link", "click", onLinkButtonClick);
 	}
 	
+	
 	/**
 	 * destroy the element events
 	 */
@@ -821,17 +854,17 @@ function UGTileDesign(){
 		jQuery(g_thumbs).off(g_thumbs.events.PLACEIMAGE);
 		g_objWrapper.off(g_temp.eventSizeChange);
 		
-		
 		if(g_options.tile_enable_textpanel == true){
 			var objThumbs = g_thumbs.getThumbs();
-			jQuery.each(objThumbs, function(index, thumb){
+			jQuery.each(objThumbs, function(index, thumb){				
 				var textPanel = getTextPanel(jQuery(thumb));
-				textPanel.destroy();
+				if(textPanel)
+					textPanel.destroy();
 			});
 		}
 		
 		g_thumbs.destroy();
-					
+
 	}
 	
 	
@@ -857,41 +890,6 @@ function UGTileDesign(){
 	 */
 	this.setApproveClickFunction = function(funcApprove){
 		g_temp.funcParentApproveClick = funcApprove;
-	}
-	
-	/**
-	 * run the tile design
-	 */
-	this.run = function(){
-		
-		//return(false);
-		
-		var objThumbs = g_thumbs.getThumbs();
-		
-		//hide original image if image effect active
-		if(g_options.tile_enable_image_effect == true && g_options.tile_image_effect_reverse == false)
-			objThumbs.children(".ug-thumb-image").fadeTo(0,0);
-		
-		g_thumbs.setHtmlProperties();
-		
-		if(g_temp.isFixedMode == true){
-			objThumbs.children(".ug-thumb-image").fadeTo(0,0);			
-			g_thumbs.loadThumbsImages();
-		}
-	}
-	
-	/**
-	 * get thumbs general option
-	 */
-	this.getObjThumbs = function(){
-		return g_thumbs;
-	}
-	
-	/**
-	 * get options
-	 */
-	this.getOptions = function(){
-		return g_options;
 	}
 	
 	/**
@@ -937,5 +935,60 @@ function UGTileDesign(){
 		g_options = jQuery.extend(g_options, newOptions);
 		g_thumbs.setOptions(newOptions);
 	}
+	
+	
+	/**
+	 * run the tile design
+	 */
+	this.run = function(){
+		
+		//return(false);
+		
+		var objThumbs = g_thumbs.getThumbs();
+		
+		//hide original image if image effect active
+		if(g_options.tile_enable_image_effect == true && g_options.tile_image_effect_reverse == false)
+			objThumbs.children(".ug-thumb-image").fadeTo(0,0);
+		
+		g_thumbs.setHtmlProperties();
+		
+		if(g_temp.isFixedMode == true){
+			objThumbs.children(".ug-thumb-image").fadeTo(0,0);			
+			g_thumbs.loadThumbsImages();
+		}
+	}
+
+	this._____________EXTERNAL_GETTERS____________=function(){};
+	
+	/**
+	 * get thumbs general option
+	 */
+	this.getObjThumbs = function(){
+		return g_thumbs;
+	}
+	
+	/**
+	 * get options
+	 */
+	this.getOptions = function(){
+		return g_options;
+	}
+
+	/**
+	 * get tile image
+	 */
+	this.getTileImage = function(objTile){
+		var objImage = objTile.children("img.ug-thumb-image");
+		return(objImage);
+	}
+
+	
+	/**
+	 * get item from tile
+	 */
+	this.getItemByTile = function(objTile){
+		return g_thumbs.getItemByThumb(objTile);
+	}
+	
 	
 }

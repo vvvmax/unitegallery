@@ -27,12 +27,14 @@ function UGSlider(){
 		AFTER_DRAG_CHANGE: "after_drag_change",		//after finish drag chagne transition
 		ACTION_START: "action_start",				//on slide action start
 		ACTION_END: "action_end",					//on slide action stop
-		CLICK: "click",								//on click event
+		CLICK: "slider_click",						//on click event
 		TRANSITION_START:"slider_transition_start",	//before transition start event
 		TRANSITION_END:"slider_transition_end",		//on transition end event
 		AFTER_PUT_IMAGE: "after_put_image",			//after put slide image
 		IMAGE_MOUSEENTER: "slider_image_mouseenter", //on slide image mouseonter
-		IMAGE_MOUSELEAVE: "slider_image_mouseleave"	 //on slide image mouseleave
+		IMAGE_MOUSELEAVE: "slider_image_mouseleave",	 		//on slide image mouseleave
+		CURRENTSLIDE_LOAD_START: "slider_current_loadstart",	//on current slide load image start
+		CURRENTSLIDE_LOAD_END: "slider_current_loadend",		//on finish load current slide image
 	}
 	
 	var g_options = {
@@ -84,6 +86,8 @@ function UGSlider(){
 		  slider_vertical_scroll_ondrag: false,			//vertical scroll on slider area drag					  
 		  slider_loader_type: 1,						//shape of the loader (1-7)
 		  slider_loader_color:"white",					//color of the loader: (black , white)
+		  slider_enable_links: true,					//enable slide as link functionality
+		  slider_links_newpage: false,					//open the slide link in new page
 		  
 		  slider_enable_bullets: false,					//enable the bullets onslider element
 		  slider_bullets_skin: "",						//skin of the bullets, if empty inherit from gallery skin
@@ -239,13 +243,12 @@ function UGSlider(){
 		g_temp.isRunOnce = true;
 		
 		//set background color
-	   
 	   if(g_options.slider_background_color){	   		
 		   var bgColor = g_options.slider_background_color;
 		   
 		   if(g_options.slider_background_opacity != 1)
 			   bgColor = g_functions.convertHexToRGB(bgColor, g_options.slider_background_opacity);
-			  
+		   
 		   g_objSlider.css("background-color", bgColor);
 	   
 	   }else if(g_options.slider_background_opacity != 1){	//set opacity with default color
@@ -490,11 +493,15 @@ function UGSlider(){
 	 * position elements
 	 */
 	function positionElements(){
-				
+		
 		//place bullets
 		if(g_objBullets){
 			objBullets = g_objBullets.getElement();
+			
+			//strange bug fix (bullets width: 20) by double placing
 			g_functions.placeElement(objBullets, g_options.slider_bullets_align_hor, g_options.slider_bullets_align_vert, g_options.slider_bullets_offset_hor, g_options.slider_bullets_offset_vert);
+			g_functions.placeElement(objBullets, g_options.slider_bullets_align_hor, g_options.slider_bullets_align_vert, g_options.slider_bullets_offset_hor, g_options.slider_bullets_offset_vert);
+			
 		}
 		
 		//place arrows
@@ -844,6 +851,7 @@ function UGSlider(){
 		objImage.css(css);
 	}
 	
+	
 	/**
 	 * scale image constant size (for video items)
 	 */
@@ -878,7 +886,8 @@ function UGSlider(){
 		var slideType = t.getSlideType(objSlide);
 		
 		objPadding = t.getObjImagePadding();
-				
+		
+		
 		if(currentImage == urlImage && isForce !== true){
 			
 			var objImage = objItemWrapper.children("img");
@@ -891,6 +900,7 @@ function UGSlider(){
 				scaleImageConstantSize(objImage, objItem);
 			else
 				g_functions.scaleImageFitParent(objImage, objItem.imageWidth, objItem.imageHeight, scaleMode, objPadding);
+
 			
 			g_objThis.trigger(t.events.AFTER_PUT_IMAGE, objSlide);
 			
@@ -912,6 +922,10 @@ function UGSlider(){
 			else{		//if the image not loaded, load the image and show it after.
 				objImage.fadeTo(0,0);
 				showPreloader(objPreloader);
+				objSlide.data("isLoading", true);
+				
+				if(t.isSlideCurrent(objSlide))
+					g_objThis.trigger(t.events.CURRENTSLIDE_LOAD_START);
 				
 				objImage.data("itemIndex", objItem.index);
 				objImage.on("load",function(){
@@ -930,6 +944,10 @@ function UGSlider(){
 					var scaleMode = t.getScaleMode(objSlide);
 					
 					hidePreloader(objPreloader);
+					objSlide.data("isLoading", false);
+					
+					if(t.isSlideCurrent(objSlide))
+						g_objThis.trigger(t.events.CURRENTSLIDE_LOAD_END);
 					
 					g_gallery.onItemBigImageLoaded(null, objImage);
 					
@@ -979,6 +997,15 @@ function UGSlider(){
 			
 			objSlide.data("index",objItem.index);
 			objSlide.data("type", objItem.type);
+			
+			//set link class
+			if(g_options.slider_enable_links == true && objItem.type == "image"){
+				
+				if(objItem.link)
+					objSlide.addClass("ug-slide-clickable");
+				else
+					objSlide.removeClass("ug-slide-clickable");
+			}
 			
 			setImageToSlide(objSlide, objItem);
 			
@@ -1306,7 +1333,6 @@ function UGSlider(){
 		g_gallery.selectItem(bulletIndex);		
 	}
 	
-	//function isP
 	
 	/**
 	 * on touch end
@@ -1314,26 +1340,49 @@ function UGSlider(){
 	 */
 	function onClick(event){
 		
-		//TODO: prevent double touch end
-		//debugLine("slider touchend",true,true);
-				
-		if(!g_objTouchSlider || g_objTouchSlider.isTapEventOccured(event) == true){
-						
-			g_objThis.trigger(t.events.CLICK, event);
+		//double tap action
+		if(g_objTouchSlider && g_objTouchSlider.isTapEventOccured(event) == false)
+			return(true);
+		
+		g_objThis.trigger(t.events.CLICK, event);
 			
-			if(g_options.slider_controls_always_on == false && 
-			   g_options.slider_controls_appear_ontap == true && t.isCurrentSlideType("image") == false){
-				
-				toggleControls();
-				
-				//show text panel if hidden
-				if(g_objTextPanel && g_options.slider_textpanel_always_on == true && t.isCurrentSlideType("image") && t.isCurrentSlideImageFit())
-					showTextPanel();
-				
+		
+	}
+
+	
+	/**
+	 * on actual click event
+	 */
+	function onActualClick(){
+
+		//check link
+		var currentSlide = t.getCurrentSlide();
+		var isClickable = currentSlide.hasClass("ug-slide-clickable");
+		var objItem = t.getCurrentItem();
+		
+		if(isClickable){
+			
+			//redirect to link
+			if(g_options.slider_links_newpage == false){
+				location.href = objItem.link;
+			}else{
+				window.open(objItem.link, '_blank');			
 			}
-						
 			
+			return(true);
 		}
+		
+		//check toggle controls
+		if(g_options.slider_controls_always_on == false && 
+		   g_options.slider_controls_appear_ontap == true && t.isCurrentSlideType("image") == true){
+			
+			toggleControls();
+			
+			//show text panel if hidden
+			if(g_objTextPanel && g_options.slider_textpanel_always_on == true && t.isCurrentSlideType("image") && t.isCurrentSlideImageFit())
+				showTextPanel();
+		}
+		
 		
 	}
 	
@@ -1497,10 +1546,11 @@ function UGSlider(){
 		}
 		
 		//touch events appear on tap event
-		//if(g_options.slider_controls_appear_ontap == true)
-		
 		g_objSlider.on("touchend click", onClick);
-
+		
+		//actual click event
+		g_objThis.on(t.events.CLICK, onActualClick);
+		
 		//show / hide text panel, if it's saparate from controls
 		if(g_objTextPanel && g_temp.isTextPanelSaparateHover == true){
 			g_objSlider.hover(showTextPanel, hideTextPanel);
@@ -1578,6 +1628,7 @@ function UGSlider(){
 		
 		g_objSlider.off("touchend");
 		g_objSlider.off("click");
+		g_objThis.off(t.events.CLICK);
 		
 		if(g_objZoomSlider)
 			g_objThis.off(t.events.ZOOM_CHANGE);
@@ -1921,6 +1972,20 @@ function UGSlider(){
 		
 		return(false);
 	}
+	
+	
+	/**
+	 * check if current slide is loading image
+	 */
+	this.isCurrentSlideLoadingImage = function(){
+		var currentSlide = t.getCurrentSlide();
+		var isLoading = currentSlide.data("isLoading");
+		if(isLoading === true)
+			return(true);
+		
+		return(false);
+	}
+	
 	
 	/**
 	 * change the slider to some item content

@@ -1,6 +1,8 @@
 
-if(g_ugFunctions)
+if(typeof g_ugFunctions != "undefined")
 	g_ugFunctions.registerTheme("video");
+else 
+	jQuery(document).ready(function(){g_ugFunctions.registerTheme("video")});
 
 
 /**
@@ -122,7 +124,7 @@ function UGTheme_video(){
 	 * set gallery html elements
 	 */
 	function setHtml(){
-		
+				
 		//add html elements
 		g_objWrapper.addClass("ug-theme-video ug-videoskin-"+g_options.theme_skin);
 		
@@ -153,7 +155,7 @@ function UGTheme_video(){
 	 * custom function foe drawing thumb
 	 */
 	function setHtmlThumb(objThumbWrapper, objItem){
-		
+
 		var showDesc = true;
 		var showIcon = false;
 		
@@ -324,6 +326,23 @@ function UGTheme_video(){
 						
 		}
 		
+	}
+	
+	/**
+	 * destroy the theme
+	 */
+	this.destroy = function(){
+		
+		g_objGallery.off(g_gallery.events.SIZE_CHANGE);
+		g_objGallery.off(g_gallery.events.ITEM_CHANGE);
+		g_objPlayer.destroy();
+		if(g_objButtonsPanel){
+			g_functions.destroyButton(g_buttonPrev);
+			g_functions.destroyButton(g_buttonNext);
+		}
+		
+		if(g_objPanel)
+			g_objPanel.destroy();
 	}
 	
 	
