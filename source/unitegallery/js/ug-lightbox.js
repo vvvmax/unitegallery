@@ -451,7 +451,7 @@ function UGLightbox(){
 		}
 		
 		g_temp.textPanelTop = objImageSize.bottom;
-		
+				
 		if(positionPanel === true)
 			g_objTextPanel.positionPanel(g_temp.textPanelTop, g_temp.textPanelLeft);
 	}
@@ -464,7 +464,7 @@ function UGLightbox(){
 	 * position numbers as well
 	 */
 	function handleCompactTextpanelSizes(showTextpanel){
-		
+			
 		var wrapperSize = g_functions.getElementSize(g_objWrapper);
 		var objImage = g_objSlider.getSlideImage();
 		var objImageSize = g_functions.getElementSize(objImage);
@@ -472,9 +472,10 @@ function UGLightbox(){
 		if(objImageSize.width == 0)
 			return(false);
 		
+		
 		g_temp.textPanelLeft = objImageSize.left;
 		g_temp.textPanelTop = objImageSize.bottom;
-		
+
 		var textPanelWidth = objImageSize.width;
 		
 		if(g_objNumbers){
@@ -488,6 +489,7 @@ function UGLightbox(){
 		}
 			
 		if(g_objTextPanel){
+			g_objTextPanel.show();
 			g_objTextPanel.refresh(true, true, textPanelWidth);
 			setCompactTextpanelTop(objImageSize);
 		}
@@ -681,6 +683,29 @@ function UGLightbox(){
 		if(g_temp.isArrowsInside == true)
 			hideArrows();
 	}
+
+	
+	/**
+	 * actual hide all compact type elements
+	 */
+	function actualHideCompactElements(){
+		
+		if(g_objButtonClose)
+			g_objButtonClose.hide();
+		
+		if(g_objArrowLeft && g_temp.isArrowsInside == true){
+			g_objArrowLeft.hide();
+			g_objArrowRight.hide();
+		}
+		
+		if(g_objNumbers)
+			g_objNumbers.hide();
+		
+		if(g_objTextPanel)
+			g_objTextPanel.hide();
+		
+	}
+	
 	
 	function __________COMMON_________(){};
 	
@@ -1010,6 +1035,7 @@ function UGLightbox(){
 		positionCloseButton(true);
 		
 		positionArrowsInside(true);
+		
 		
 		handleCompactTextpanelSizes();
 	}
@@ -1353,28 +1379,6 @@ function UGLightbox(){
 	
 	
 	/**
-	 * actual hide all compacy type elements
-	 */
-	function actualHideCompactElements(){
-		
-		if(g_objButtonClose)
-			g_objButtonClose.hide();
-		
-		if(g_objArrowLeft && g_temp.isArrowsInside == true){
-			g_objArrowLeft.hide();
-			g_objArrowRight.hide();
-		}
-		
-		if(g_objNumbers)
-			g_objNumbers.hide();
-		
-		if(g_objTextPanel)
-			g_objTextPanel.hide();
-		
-	}
-
-	
-	/**
 	 * open the lightbox with some item index
 	 */
 	this.open = function(index){
@@ -1384,16 +1388,18 @@ function UGLightbox(){
 		g_temp.isOpened = true;
 		
 		if(g_objSlider){
-			g_objSlider.setItem(objItem, "fade");
+			g_objSlider.setItem(objItem, "lightbox_open");
 		}
 		
-		if(g_objTextPanel)
+		if(g_objTextPanel){
 			g_objTextPanel.setTextPlain(objItem.title, objItem.description);
+		}
 		
 		g_objOverlay.stop().fadeTo(0,0);
 		g_objWrapper.show();
 		g_objWrapper.fadeTo(0,1);
 		
+		//show the overlay
 		g_objOverlay.stop().fadeTo(g_temp.fadeDuration, g_options.lightbox_overlay_opacity);
 		
 		positionElements();

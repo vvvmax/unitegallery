@@ -50,7 +50,7 @@ function UGTextPanel(){
 	 * position elements from top
 	 */
 	function positionElementsTop(animateHeight, startY){
-	
+		
 		if(!startY)
 			var startY = g_options.textpanel_padding_top;
 		
@@ -67,7 +67,6 @@ function UGTextPanel(){
 			var maxy = objTitleSize.bottom;			
 		}
 		
-			
 		//place description
 		var textDesc = "";
 		if(g_objDesc)
@@ -84,7 +83,6 @@ function UGTextPanel(){
 			var objDescSize = g_functions.getElementSize(g_objDesc);		
 			maxy = objDescSize.bottom;
 		}
-		
 		
 		//change panel height
 		if(!g_options.textpanel_height){
@@ -152,13 +150,16 @@ function UGTextPanel(){
 	 * position elements inside the panel
 	 */
 	this.positionElements = function(animateHeight){
+
+		//if(g_objPanel.is(":visible") == false)
+			//trace("the text panel is hidden. can't position elements")
 		
 		//if height not set, position only top
 		if(!g_options.textpanel_height || g_options.textpanel_text_valign == "top"){
 			positionElementsTop(animateHeight);
 			return(false);
 		}
-				
+		
 		switch(g_options.textpanel_text_valign){
 			default:
 			case "top":
@@ -180,7 +181,7 @@ function UGTextPanel(){
 	 * set new panel height
 	 */
 	function setHeight(height, animateHeight){
-		
+						
 		if(!animateHeight)
 			var animateHeight = false;
 		
@@ -563,7 +564,7 @@ function UGTextPanel(){
 		t.positionElements(false);
 		
 		if(noPosition !== true)
-			t.positionPanel();				
+			t.positionPanel();
 		
 		if(toShow === true)
 			t.show();		
@@ -574,6 +575,7 @@ function UGTextPanel(){
 	 * hide the panel
 	 */
 	this.hide = function(){
+		
 		g_objPanel.hide();
 	}
 	

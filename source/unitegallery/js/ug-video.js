@@ -1037,7 +1037,8 @@ function UGYoutubeAPI(){
 	
 }
 
-/** -------------- Video Playe Class ---------------------*/
+/** -------------- Video Player Class ---------------------*/
+
 
 function UGVideoPlayer(){
 	
@@ -1045,6 +1046,7 @@ function UGVideoPlayer(){
 	var g_youtubeAPI = new UGYoutubeAPI(), g_vimeoAPI = new UGVimeoAPI();
 	var g_html5API = new UGHtml5MediaAPI(), g_soundCloudAPI = new UGSoundCloudAPI(), g_wistiaAPI = new UGWistiaAPI();
 	var g_objPlayer, g_objYoutube, g_objVimeo, g_objHtml5, g_objButtonClose, g_objSoundCloud, g_objWistia;
+	var g_activePlayerType = null;
 	
 	var g_options = {
 			video_enable_closebutton: true
@@ -1217,6 +1219,7 @@ function UGVideoPlayer(){
 		jQuery(g_wistiaAPI).off(g_wistiaAPI.events.START_PLAYING, onPlayStart);
 		jQuery(g_wistiaAPI).off(g_wistiaAPI.events.STOP_PLAYING, onPlayStop);
 		
+		g_activePlayerType = null;
 	}
 	
 	
@@ -1267,6 +1270,8 @@ function UGVideoPlayer(){
 		
 		g_objPlayer.show();
 		
+		g_objPlayer.fadeTo(0,1);
+		
 		if(g_objButtonClose)
 			g_objButtonClose.show();
 				
@@ -1284,11 +1289,57 @@ function UGVideoPlayer(){
 		
 		//pause all players
 		stopAndHidePlayers();
+		
+		g_activePlayerType = null;
+		
 		g_objPlayer.hide();
 		
 		g_objThis.trigger(t.events.HIDE);
 	}
-
+	
+	
+	/**
+	 * get active player
+	 */
+	this.getActiveAPI = function(){
+		
+		switch(g_activePlayerType){
+			case "youtube":
+				return g_youtubeAPI;
+			break;
+			case "vimeo":
+				return g_vimeoAPI;
+			break;
+			case "wistia":
+				return g_wistiaAPI;
+			break;
+			case "soundcloud":
+				return g_soundCloudAPI;
+			break;
+			case "html5":
+				return g_html5API;
+			break;
+			default:
+				return null;
+			break;
+		}
+	}
+	
+	
+	/**
+	 * pause active player if playing
+	 */
+	this.pause = function(){
+		
+		var activeAPI = t.getActiveAPI();
+		if(activeAPI == null)
+			return(false);
+		
+		if(typeof activeAPI.pause == "function")
+			activeAPI.pause();
+			
+	}
+	
 	
 	/**
 	 * return if the player is visible
@@ -1297,6 +1348,7 @@ function UGVideoPlayer(){
 		
 		return g_objPlayer.is(":visible");
 	}
+	
 	
 	/**
 	 * stop and hide other elements except some
@@ -1311,6 +1363,7 @@ function UGVideoPlayer(){
 			switch(player){
 				case "youtube":					
 					g_youtubeAPI.pause();
+					g_youtubeAPI.destroy();	
 					g_objYoutube.hide();
 				break;
 				case "vimeo":
@@ -1341,12 +1394,12 @@ function UGVideoPlayer(){
 	 * play youtube inside the video, isAutoplay - true by default
 	 */
 	this.playYoutube = function(videoID, isAutoplay){
-			
+				
 		if(typeof isAutoplay == "undefined")
 			var isAutoplay = true;
-				
-		stopAndHidePlayers("youtube");
 		
+		stopAndHidePlayers("youtube");
+
 		g_objYoutube.show();
 		
 		var objYoutubeInner = g_objYoutube.children("#"+g_temp.youtubeInnerID);
@@ -1359,6 +1412,8 @@ function UGVideoPlayer(){
 		else{
 			g_youtubeAPI.putVideo(g_temp.youtubeInnerID, videoID, "100%", "100%", isAutoplay);
 		}
+		
+		g_activePlayerType = "youtube";
 	}
 	
 	
@@ -1378,6 +1433,8 @@ function UGVideoPlayer(){
 			g_vimeoAPI.changeVideo(videoID, isAutoplay);
 		else
 			g_vimeoAPI.putVideo(g_temp.vimeoPlayerID, videoID, "100%", "100%", isAutoplay);
+
+		g_activePlayerType = "vimeo";
 
 	}
 	
@@ -1405,6 +1462,8 @@ function UGVideoPlayer(){
 		
 		g_html5API.putVideo(g_temp.html5PlayerID, data, "100%", "100%", isAutoplay);
 		
+		g_activePlayerType = "html5";
+
 	}
 
 	/**
@@ -1420,6 +1479,9 @@ function UGVideoPlayer(){
 		g_objSoundCloud.show();
 		
 		g_soundCloudAPI.putSound(g_temp.soundCloudPlayerID, trackID, "100%", "100%", isAutoplay);
+
+		g_activePlayerType = "soundcloud";
+	
 	}
 	
 	
@@ -1437,6 +1499,8 @@ function UGVideoPlayer(){
 		
 		g_wistiaAPI.putVideo(g_temp.wistiaPlayerID, videoID, "100%", "100%", isAutoplay);
 	
+		g_activePlayerType = "wistia";
+
 	}
 	
 }

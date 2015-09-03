@@ -14,13 +14,14 @@ function UGThumbsGeneral(){
 		SETNORMALSTYLE: "thumbmouseout",
 		PLACEIMAGE: "thumbplaceimage",
 		AFTERPLACEIMAGE: "thumb_after_place_image",
-		IMAGELOADERROR: "thumbimageloaderror"
+		IMAGELOADERROR: "thumbimageloaderror",
+		THUMB_IMAGE_LOADED: "thumb_image_loaded"
 	};
 	
 	var g_options = {
 			thumb_width:88,								//thumb width
 			thumb_height:50,							//thumb height
-			thumb_fixed_size: true,					//true,false - fixed/auto thumbnail width
+			thumb_fixed_size: true,						//true,false - fixed/dynamic thumbnail width
 			thumb_resize_by: "height",					//set resize by width or height of the image in case of non fixed size, 
 			
 			thumb_border_effect:true,					//true, false - specify if the thumb has border
@@ -41,8 +42,6 @@ function UGThumbsGeneral(){
 			thumb_image_overlay_effect: false,			//true,false - images orverlay effect on normal state only
 			thumb_image_overlay_type: "bw",				//bw , blur, sepia - the type of image effect overlay, black and white, sepia and blur.
 			
-			thumb_text_overlay: false,					//turn on text overlay
-			
 			thumb_transition_duration: 200,				//thumb effect transition duration
 			thumb_transition_easing: "easeOutQuad",		//thumb effect transition easing
 			
@@ -61,9 +60,11 @@ function UGThumbsGeneral(){
 			isEffectBorder: false,
 			isEffectOverlay: false,
 			isEffectImage: false,
-			colorOverlayOpacity: 1
+			colorOverlayOpacity: 1,
+			thumbInnerReduce: 0
 		};
 		
+	
 		var g_serviceParams = {			//service variables	
 			timeout_thumb_check:100,
 			thumb_max_check_times:600,	//60 seconds
@@ -197,6 +198,12 @@ function UGThumbsGeneral(){
 				height: height+"px"
 			};
 			
+			var objCssInner = {
+					width: width-g_temp.thumbInnerReduce+"px",
+					height: height-g_temp.thumbInnerReduce+"px"
+				};
+			
+			
 			var selectorsString = ".ug-thumb-loader, .ug-thumb-error, .ug-thumb-border-overlay, .ug-thumb-overlay";
 			
 			//set thumb size
@@ -204,11 +211,11 @@ function UGThumbsGeneral(){
 				if(innerOnly !== true)
 					objThumb.css(objCss);
 				
-				objThumb.children(selectorsString).css(objCss);
+				objThumb.children(selectorsString).css(objCssInner);
 			}
-			else{	
+			else{	//set to all items
 				g_objParent.children(".ug-thumb-wrapper").css(objCss);
-				g_objParent.find(selectorsString).css(objCss);
+				g_objParent.find(selectorsString).css(objCssInner);
 			}
 			
 		}
@@ -571,6 +578,104 @@ function UGThumbsGeneral(){
 
 		
 		function _______________EVENTS______________(){};
+		/**
+		 * on thumb size change - triggered by parent on custom thumbs type
+		 */
+		function onThumbSizeChange(temp, objThumb){
+					
+			objThumb = jQuery(objThumb);
+			var objItem = t.getItemByThumb(objThumb);
+			
+			var objSize = g_functions.getElementSize(objThumb);
+			
+			setThumbSize(objSize.width, objSize.height, objThumb, true);
+			
+			t.setThumbNormalStyle(objThumb, true);
+		}
+		
+		
+		/**
+		 * on thumb mouse over
+		 */
+		function onMouseOver(objThumb){
+			
+			//if touch enabled unbind event
+			if(g_temp.touchEnabled == true){
+				objThumbs.off("mouseenter").off("mouseleave");
+				return(true);
+			}
+			
+			if(isThumbSelected(objThumb) == false)
+				t.setThumbOverStyle(objThumb);
+			
+		}
+		
+		
+		/**
+		 * on thumb mouse out
+		 */
+		function onMouseOut(objThumb){
+			
+			if(g_temp.touchEnabled == true)
+				return(true);
+							
+			if(isThumbSelected(objThumb) == false)
+				t.setThumbNormalStyle(objThumb);
+		}
+		
+		
+		/**
+		 * on image loaded event
+		 */
+		function onImageLoaded(image, isForce){
+
+			if(!isForce)
+				var isForce = false;
+			
+			var objImage = jQuery(image);
+			var objThumb = objImage.parent();
+			
+			if(objThumb.parent().length == 0)		//don't treat detached thumbs
+				return(false);
+						
+			objItem = t.getItemByThumb(objThumb);
+			
+			if(objItem.isLoaded == true && isForce === false)
+				return(false);
+			
+			t.triggerImageLoadedEvent(objThumb, objImage);
+			
+			if(g_temp.customThumbs == true){
+			
+				g_objThis.trigger(t.events.PLACEIMAGE, [objThumb, objImage]);
+			
+			}else{
+				
+				placeThumbImage(objThumb, objImage, objItem);
+				
+			}
+			
+		}
+		
+		
+		/**
+		 * on image loaded - set appropriete item vars
+		 */
+		function onThumbImageLoaded(data, objThumb, objImage){
+			
+			objItem = t.getItemByThumb(objThumb);
+			
+			objItem.isLoaded = true;
+			objItem.isThumbImageLoaded = true;
+			
+			var objSize = g_functions.getImageOriginalSize(objImage);
+			
+			objItem.thumbWidth = objSize.width;
+			objItem.thumbHeight = objSize.height;
+			objItem.thumbRatioByWidth = objSize.width / objSize.height;
+			objItem.thumbRatioByHeight = objSize.height / objSize.width;
+			
+		}
 
 		
 		/**
@@ -667,6 +772,15 @@ function UGThumbsGeneral(){
 		
 		
 		/**
+		 * set thumb inner reduce - reduce this number when resizing thumb inner
+		 */
+		this.setThumbInnerReduce = function(innerReduce){
+			
+			g_temp.thumbInnerReduce = innerReduce;
+			
+		}
+		
+		/**
 		 * set custom thumbs
 		 * allowedEffects - border, overlay, image
 		 */
@@ -691,86 +805,9 @@ function UGThumbsGeneral(){
 		
 		
 		
-		/**
-		 * on thumb size change - triggered by parent on custom thumbs type
-		 */
-		function onThumbSizeChange(temp, objThumb){
-					
-			objThumb = jQuery(objThumb);
-			var objItem = t.getItemByThumb(objThumb);
-			
-			var objSize = g_functions.getElementSize(objThumb);
-			
-			setThumbSize(objSize.width, objSize.height, objThumb, true);
-			
-			t.setThumbNormalStyle(objThumb, true);
-		}
 		
 		
-		/**
-		 * on thumb mouse over
-		 */
-		function onMouseOver(objThumb){
-			
-			//if touch enabled unbind event
-			if(g_temp.touchEnabled == true){
-				objThumbs.off("mouseenter").off("mouseleave");
-				return(true);
-			}
-			
-			if(isThumbSelected(objThumb) == false)
-				t.setThumbOverStyle(objThumb);
-			
-		}
 		
-		
-		/**
-		 * on thumb mouse out
-		 */
-		function onMouseOut(objThumb){
-			
-			if(g_temp.touchEnabled == true)
-				return(true);
-							
-			if(isThumbSelected(objThumb) == false)
-				t.setThumbNormalStyle(objThumb);
-		}
-		
-		/**
-		 * on image loaded event
-		 */
-		function onImageLoaded(image, isForce){
-
-			if(!isForce)
-				var isForce = false;
-			
-			var objImage = jQuery(image);
-			var objThumb = objImage.parent();
-			
-			if(objThumb.parent().length == 0)		//don't treat detached thumbs
-				return(false);
-						
-			objItem = t.getItemByThumb(objThumb);
-
-			if(objItem.isLoaded == true && isForce === false)
-				return(false);
-
-			objItem.isLoaded = true;
-			objItem.isThumbImageLoaded = true;
-
-			if(g_temp.customThumbs == true){
-			
-				g_objThis.trigger(t.events.PLACEIMAGE, [objThumb, objImage]);
-			
-			}else{
-				
-				placeThumbImage(objThumb, objImage, objItem);
-				
-			}
-			
-		}
-		
-
 		this._____________EXTERNAL_GETTERS__________ = function(){};
 
 		/**
@@ -800,6 +837,22 @@ function UGThumbsGeneral(){
 			return(objImage);
 		}
 		
+		
+		/**
+		 * get thumbs by index
+		 */
+		this.getThumbByIndex = function(index){
+			var objThumbs = t.getThumbs();
+			
+			if(index >= objThumbs.length || index < 0)
+				throw new Error("Wrong thumb index");
+			
+			var objThumb = jQuery(objThumbs[index]);
+			
+			return(objThumb);
+		}
+		
+		
 		/**
 		 * get all thumbs jquery object
 		 */
@@ -821,6 +874,17 @@ function UGThumbsGeneral(){
 		}
 		
 		
+		/**
+		 * is thumb loaded
+		 */
+		this.isThumbLoaded = function(objThumb){
+			
+			var objItem = t.getItemByThumb(objThumb);
+			
+			return(objItem.isLoaded);			
+		}
+		
+		
 		this._____________EXTERNAL_OTHERS__________ = function(){};
 
 
@@ -839,7 +903,6 @@ function UGThumbsGeneral(){
 			
 			g_objWrapper.on(g_serviceParams.eventSizeChange, onThumbSizeChange);
 			
-			
 			objThumbs.hover(function(event){		//on mouse enter
 				var objThumb = jQuery(this);
 				onMouseOver(objThumb);
@@ -847,8 +910,13 @@ function UGThumbsGeneral(){
 				var objThumb = jQuery(this);
 				onMouseOut(objThumb);
 			});
-				
+			
+			
+			//on image loaded event - for setting the image sizes
+			g_objThis.on(t.events.THUMB_IMAGE_LOADED, onThumbImageLoaded);
+			
 		}
+		
 		
 		/**
 		 * destroy the thumb element
@@ -859,7 +927,7 @@ function UGThumbsGeneral(){
 			g_objWrapper.off(g_serviceParams.eventSizeChange);
 			objThumbs.off("mouseenter");
 			objThumbs.off("mouseleave");
-			
+			g_objThis.off(t.events.THUMB_IMAGE_LOADED);
 		}
 		
 		
@@ -880,6 +948,17 @@ function UGThumbsGeneral(){
 				}
 			});
 		}
+		
+		
+		/**
+		 * trigger image loaded event
+		 */
+		this.triggerImageLoadedEvent = function(objThumb, objImage){
+
+			g_objThis.trigger(t.events.THUMB_IMAGE_LOADED, [objThumb, objImage]);
+
+		}
+		
 		
 		/**
 		 * hide thumbs

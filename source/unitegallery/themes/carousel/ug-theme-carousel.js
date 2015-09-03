@@ -1,6 +1,8 @@
 
-if(g_ugFunctions)
+if(typeof g_ugFunctions != "undefined")
 	g_ugFunctions.registerTheme("carousel");
+else 
+	jQuery(document).ready(function(){g_ugFunctions.registerTheme("carousel")});
 
 
 /**
@@ -12,7 +14,7 @@ function UGTheme_carousel(){
 	var g_gallery = new UniteGalleryMain(), g_objGallery, g_objects, g_objWrapper;
 	var g_lightbox = new UGLightbox(), g_carousel = new UGCarousel();
 	var g_functions = new UGFunctions(), g_objTileDesign = new UGTileDesign();;
-	var g_objNavWrapper, g_objButtonLeft, g_objButtonRight, g_objButtonPlay;
+	var g_objNavWrapper, g_objButtonLeft, g_objButtonRight, g_objButtonPlay, g_objPreloader;
 	
 	var g_options = {
 			theme_gallery_padding: 0,				//the padding of the gallery wrapper
@@ -115,8 +117,13 @@ function UGTheme_carousel(){
 			
 		}
 		
-		
 		g_lightbox.putHtml();
+
+		//add preloader
+		g_objWrapper.append("<div class='ug-tiles-preloader ug-preloader-trans'></div>");
+		g_objPreloader = g_objWrapper.children(".ug-tiles-preloader");
+		g_objPreloader.fadeTo(0,0);
+		
 	}
 
 	/**
@@ -182,20 +189,30 @@ function UGTheme_carousel(){
 		
 		var carouselElement = g_carousel.getElement();
 		var sizeCar = g_functions.getElementSize(carouselElement);
-		var sizeNav = g_functions.getElementSize(g_objNavWrapper);
+
+		var navHeight = 0;
 		
-		var galleryHeight = sizeCar.height + g_options.theme_navigation_margin + sizeNav.height;
+		if(g_objNavWrapper){
+			var sizeNav = g_functions.getElementSize(g_objNavWrapper);
+			navHeight = sizeNav.height;
+		}
+				
+		var galleryHeight = sizeCar.height + g_options.theme_navigation_margin + navHeight;
 		
 		//vars for bottom nav position
 		var carouselTop = 0;
-		var navTop = sizeCar.height + g_options.theme_navigation_margin;
 		
-		//change vars for top nav position
-		if(g_options.theme_navigation_position == "top"){
+		if(g_objNavWrapper){
 			
-			carouselTop = sizeNav.height + g_options.theme_navigation_margin;
-			navTop = 0;
-		}	
+			var navTop = sizeCar.height + g_options.theme_navigation_margin;
+			
+			//change vars for top nav position
+			if(g_options.theme_navigation_position == "top"){
+				
+				carouselTop = sizeNav.height + g_options.theme_navigation_margin;
+				navTop = 0;
+			}
+		}
 		
 		//align the carousel
 		g_functions.placeElement(carouselElement, g_options.theme_carousel_align, carouselTop, g_options.theme_carousel_offset, 0);
@@ -209,6 +226,10 @@ function UGTheme_carousel(){
 		}
 		
 		g_objWrapper.height(galleryHeight);		//temp height
+
+		//place preloader
+		g_functions.placeElement(g_objPreloader, "center", 50);
+	
 	}
 		
 	
@@ -237,8 +258,24 @@ function UGTheme_carousel(){
 			
 		positionElements();
 	}
+
+	/**
+	 * before items request: hide items, show preloader
+	 */
+	function onBeforeReqestItems(){
+		
+		g_carousel.stopAutoplay();
+		
+		g_carousel.getElement().hide();
+		
+		if(g_objNavWrapper)
+			g_objNavWrapper.hide();
+		
+		//show preloader:
+		g_objPreloader.fadeTo(0,1);
+	}
 	
-	
+
 	/**
 	 * init buttons functionality and events
 	 */
@@ -256,6 +293,7 @@ function UGTheme_carousel(){
 		}
 		
 		g_objGallery.on(g_gallery.events.SIZE_CHANGE, onSizeChange);
+		g_objGallery.on(g_gallery.events.GALLERY_BEFORE_REQUEST_ITEMS, onBeforeReqestItems);
 		
 		//on click events
 		jQuery(g_objTileDesign).on(g_objTileDesign.events.TILE_CLICK, onTileClick);
@@ -277,6 +315,7 @@ function UGTheme_carousel(){
 		
 		g_objGallery.off(g_gallery.events.SIZE_CHANGE);
 		jQuery(g_objTileDesign).off(g_objTileDesign.events.TILE_CLICK);
+		g_objGallery.off(g_gallery.events.GALLERY_BEFORE_REQUEST_ITEMS);
 		
 		g_carousel.destroy();
 		g_lightbox.destroy();

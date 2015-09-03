@@ -551,7 +551,7 @@ function UGFunctions(){
 
 	
 	/**
-	 * get image original size
+	 * get current image ratio from original size
 	 */
 	this.getimageRatio = function(objImage){
 		
@@ -909,7 +909,7 @@ function UGFunctions(){
 	 * set widht and height of the element
 	 */
 	this.setElementSize = function(element, width, height){
-			
+		
 	    var objCss = {
 			"width":width+"px",
 			"height":height+"px"
@@ -949,6 +949,7 @@ function UGFunctions(){
 		
 		t.setElementSizeAndPosition(objTarget, objSize.left, objSize.top, objSize.width, objSize.height);
 	}
+	
 	
 	
 	/**
@@ -1330,12 +1331,23 @@ function UGFunctions(){
 	/**
 	 * get number of items in space width gap
 	 * even item sizes
+	 * by lowest
 	 */
 	this.getNumItemsInSpace = function(spaceSize, itemsSize, gapSize){
 		var numItems = Math.floor((spaceSize + gapSize) / (itemsSize + gapSize));
 		return(numItems);
 	}
-	
+
+	/**
+	 * get number of items in space width gap
+	 * even item sizes
+	 * by Math.round
+	 */
+	this.getNumItemsInSpaceRound = function(spaceSize, itemsSize, gapSize){
+		var numItems = Math.round((spaceSize + gapSize) / (itemsSize + gapSize));
+		return(numItems);
+	}
+
 	/**
 	 * get space (width in carousel for example) by num items, item size, and gap size
 	 */
@@ -1362,6 +1374,53 @@ function UGFunctions(){
 		var col = index % numCols;
 		return(col);
 	}
+	
+	
+	/**
+	 * get col and row by index
+	 */
+	this.getColRowByIndex = function(index, numCols){
+		
+		var row = Math.floor(index / numCols);
+		var col = Math.floor(index % numCols);
+		
+		return({col:col,row:row});
+	}
+	
+	
+	/**
+	 * get index by row, col, numcols
+	 */
+	this.getIndexByRowCol = function(row, col, numCols){
+		
+		if(row < 0)
+			return(-1);
+		
+		if(col < 0)
+			return(-1);
+		
+		var index = row * numCols + col;
+		return(index);
+	}
+	
+	/**
+	 * get previous row item in the same column
+	 */
+	this.getPrevRowSameColIndex = function(index, numCols){
+		var obj = t.getColRowByIndex(index, numCols);
+		var prevIndex = t.getIndexByRowCol(obj.row-1, obj.col, numCols);
+		return(prevIndex);
+	}
+	
+	/**
+	 * get next row item in the same column
+	 */
+	this.getNextRowSameColIndex = function(index, numCols){
+		var obj = t.getColRowByIndex(index, numCols);
+		var nextIndex = t.getIndexByRowCol(obj.row+1, obj.col, numCols);
+		return(nextIndex);
+	}
+	
 	
 	this.z_________DATA_FUNCTIONS_______ = function(){}
 	
@@ -1642,6 +1701,23 @@ function UGFunctions(){
 	
 	this.z_________GENERAL_FUNCTIONS_______ = function(){}
 	
+	/**
+	 * check if current jquery version is more then minimal version
+	 * version can be "1.8.0" for example
+	 */
+	this.checkMinJqueryVersion = function(version){
+
+	  var $vrs = jQuery.fn.jquery.split('.'),
+      min  = version.split('.');
+	  
+	  for (var i=0, len=$vrs.length; i<len; i++) {			  
+	    if (min[i] && parseInt($vrs[i]) < parseInt(min[i])) {
+	      return false;
+	    }
+	  }
+	  
+	  return true;
+	}
 
 	
 	/**
@@ -2098,6 +2174,7 @@ function UGFunctions(){
 	    for(var j, x, i = arr.length; i; j = parseInt(Math.random() * i), x = arr[--i], arr[i] = arr[j], arr[j] = x);
 	    return arr;
 	}
+
 	
 	this.z_________END_GENERAL_FUNCTIONS_______ = function(){}
 	

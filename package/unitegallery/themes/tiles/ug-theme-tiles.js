@@ -19,7 +19,8 @@ function UGTheme_tiles(){
 			theme_enable_preloader: true,		//enable preloader circle
 			theme_preloading_height: 200,		//the height of the preloading div, it show before the gallery
 			theme_preloader_vertpos: 100,		//the vertical position of the preloader
-			theme_gallery_padding: 0			//the horizontal padding of the gallery from the sides
+			theme_gallery_padding: 0,			//the horizontal padding of the gallery from the sides
+			theme_appearance_order: "normal"	//normal, shuffle, keep - the appearance order of the tiles. applying only to columns type
 	};
 	
 	var g_defaults = {
@@ -49,7 +50,7 @@ function UGTheme_tiles(){
 		
 		//set gallery options
 		g_gallery.setOptions(g_options);
-				
+		
 		g_gallery.setFreestyleMode();
 		
 		g_objects = gallery.getObjects();
@@ -74,7 +75,19 @@ function UGTheme_tiles(){
 		
 		if(g_options.theme_enable_preloader == true)
 			g_temp.showPreloader = true;
-	
+		
+		switch(g_options.theme_appearance_order){
+			default:
+			case "normal":
+			break;
+			case "shuffle":
+				g_gallery.shuffleItems();
+			break;
+			case "keep":
+				g_options.tiles_keep_order = true;
+			break;
+		}
+		
 	}
 
 	

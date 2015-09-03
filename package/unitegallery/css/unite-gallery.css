@@ -25,6 +25,7 @@
 .ug-error-message{
 	text-align:center;
 	padding-top:30px;
+	padding-bottom:30px;
 	font-size:20px;
 	color:#F30D0D;
 }
@@ -607,7 +608,12 @@ img.ug-sepia-effect{
 }
 
 .ug-tiles-transit .ug-thumb-wrapper.ug-tile{
-	transition: left 0.7s ease 0s, top 0.7s ease 0s;
+	transition: left 0.7s ease 0s, top 0.7s ease 0s, width 0.7s ease 0s, height 0.7s ease 0s;
+}
+
+/* transit image overlay */
+.ug-tiles-transit-overlays .ug-thumb-wrapper.ug-tile .ug-tile-image-overlay{
+	transition: left 0.7s ease 0s, top 0.7s ease 0s, width 0.7s ease 0s, height 0.7s ease 0s;
 }
 
 .ug-thumb-wrapper.ug-tile.ug-tile-clickable{

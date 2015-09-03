@@ -1,6 +1,8 @@
 
-if(g_ugFunctions)
+if(typeof g_ugFunctions != "undefined")
 	g_ugFunctions.registerTheme("tiles");
+else 
+	jQuery(document).ready(function(){g_ugFunctions.registerTheme("tiles")});
 
 
 /**
@@ -17,7 +19,8 @@ function UGTheme_tiles(){
 			theme_enable_preloader: true,		//enable preloader circle
 			theme_preloading_height: 200,		//the height of the preloading div, it show before the gallery
 			theme_preloader_vertpos: 100,		//the vertical position of the preloader
-			theme_gallery_padding: 0			//the horizontal padding of the gallery from the sides
+			theme_gallery_padding: 0,			//the horizontal padding of the gallery from the sides
+			theme_appearance_order: "normal"	//normal, shuffle, keep - the appearance order of the tiles. applying only to columns type
 	};
 	
 	var g_defaults = {
@@ -47,7 +50,7 @@ function UGTheme_tiles(){
 		
 		//set gallery options
 		g_gallery.setOptions(g_options);
-				
+		
 		g_gallery.setFreestyleMode();
 		
 		g_objects = gallery.getObjects();
@@ -72,7 +75,19 @@ function UGTheme_tiles(){
 		
 		if(g_options.theme_enable_preloader == true)
 			g_temp.showPreloader = true;
-	
+		
+		switch(g_options.theme_appearance_order){
+			default:
+			case "normal":
+			break;
+			case "shuffle":
+				g_gallery.shuffleItems();
+			break;
+			case "keep":
+				g_options.tiles_keep_order = true;
+			break;
+		}
+		
 	}
 
 	
@@ -169,6 +184,22 @@ function UGTheme_tiles(){
 	}
 	
 	
+	/**
+	 * before items request: hide items, show preloader
+	 */
+	function onBeforeReqestItems(){
+				
+		g_objTilesWrapper.hide();
+		
+		if(g_objPreloader)
+			g_objPreloader.show();
+		
+		var preloaderSize = g_functions.getElementSize(g_objPreloader);
+		var galleryHeight = preloaderSize.bottom + 30;
+		
+		g_objWrapper.height(galleryHeight);
+	}
+	
 	
 	/**
 	 * init buttons functionality and events
@@ -185,7 +216,9 @@ function UGTheme_tiles(){
 		
 		jQuery(g_objTileDesign).on(g_objTileDesign.events.TILE_CLICK, onTileClick);
 		
+		g_objGallery.on(g_gallery.events.GALLERY_BEFORE_REQUEST_ITEMS, onBeforeReqestItems);
 	}
+	
 	
 	/**
 	 * destroy the theme
@@ -194,6 +227,8 @@ function UGTheme_tiles(){
 				
 		jQuery(g_objTileDesign).off(g_objTileDesign.events.TILE_CLICK);
 		jQuery(g_tiles).off(g_tiles.events.TILES_FIRST_PLACED);
+		
+		g_objGallery.off(g_gallery.events.GALLERY_BEFORE_REQUEST_ITEMS);
 		
 		g_tiles.destroy();
 		g_lightbox.destroy();

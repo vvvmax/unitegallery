@@ -356,16 +356,7 @@ function UGTouchSliderControl(){
 		
 		//check if video object need to be dragged
 		g_temp.isDragVideo = false;
-		
-		var objVideo = g_parent.getVideoObject();
-		if(objVideo.isVisible() == true){
-			g_temp.isDragVideo = true;
-			g_temp.videoObject = objVideo.getObject();
-			var videoSize = g_functions.getElementSize(g_temp.videoObject);
-			g_temp.videoStartX = videoSize.left;
-			
-		}
-			
+					
 		
 		g_functions.storeEventData(event, g_temp.storedEventID);
 	}

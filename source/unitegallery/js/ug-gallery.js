@@ -193,6 +193,24 @@ function UniteGalleryMain(){
 	
 	
 	/**
+	 * check for some errors and fire error if needed
+	 */
+	function checkForStartupErrors(){
+		
+		//protection agains old jquery version
+		var isMinJQuery = g_functions.checkMinJqueryVersion("1.8.0");
+		if(isMinJQuery == false)
+			throwErrorShowMessage("The gallery can run from jquery 1.8 You have jQuery "+jQuery.fn.jquery+" Please update your jQuery library.");
+		
+		//protection against some jquery ui function change
+	     if(typeof g_objWrapper.outerWidth() == "object")
+	    	 throwErrorShowMessage("You have some buggy script. most chances jquery-ui.js that destroy jquery outerWidth, outerHeight functions. The gallery can't run. Please update jquery-ui.js to latest version.");
+	     
+	}
+	
+	
+	
+	/**
 	 *  the gallery
 	 */
 	function runGallery(galleryID, objCustomOptions, htmlItems, cacheID){
@@ -267,7 +285,9 @@ function UniteGalleryMain(){
 		     
 		     }
 			 
-			 
+		     //check for some startup errors that may be
+		     checkForStartupErrors();
+		     
 			 //init tabs
 			 if(g_temp.isRunFirstTime == true && g_options.gallery_enable_tabs == true){
 				 g_objTabs = new UGTabs();
@@ -281,12 +301,8 @@ function UniteGalleryMain(){
 			 validateParams();
 			 
 			 //shuffle items
-			 if(g_options.gallery_shuffle == true){
-				g_arrItems = g_functions.arrayShuffle(g_arrItems);
-				
-				for(var index in g_arrItems)		//fix index
-					g_arrItems[index].index = parseInt(index);
-			 }
+			 if(g_options.gallery_shuffle == true)
+				 t.shuffleItems();
 			 			 
 			 //init the theme
 			 initTheme(g_temp.objCustomOptions);
@@ -298,7 +314,9 @@ function UniteGalleryMain(){
 			 setHtmlObjectsProperties();
 			 
 			 var galleryWidth = g_objWrapper.width();
-			 		 
+			 
+			 var parent = g_objWrapper.parent();
+			 
 			 if(galleryWidth == 0){
 				 g_functions.waitForWidth(g_objWrapper, runGalleryActually);
 			 }else
@@ -350,7 +368,7 @@ function UniteGalleryMain(){
 	function showErrorMessage(message, prefix){
 
 		if(typeof prefix == "undefined")
-			var prefix = "<b>Gallery Error: </b>";
+			var prefix = "<b>Unite Gallery Error: </b>";
 				
 		message = prefix + message;
 		
@@ -360,6 +378,14 @@ function UniteGalleryMain(){
 		
 		g_objWrapper.html(html);
 		g_objWrapper.show();		
+	}
+	
+	/**
+	 * show error message and throw error
+	 */
+	function throwErrorShowMessage(message){
+		showErrorMessage(message);
+		throw new Error(message);
 	}
 	
 	
@@ -558,6 +584,10 @@ function UniteGalleryMain(){
 			 objItem.isBigImageLoadError = false;			 
 			 objItem.imageWidth = 0;
 			 objItem.imageHeight = 0;
+			 objItem.thumbWidth = 0;
+			 objItem.thumbHeight = 0;
+			 objItem.thumbRatioByWidth = 0;
+			 objItem.thumbRatioByHeight = 0;
 			 
 			 var isImageMissing = (objItem.urlImage == undefined || objItem.urlImage == "");
 			 var isThumbMissing = (objItem.urlThumb == undefined || objItem.urlThumb == "");
@@ -1722,9 +1752,7 @@ function UniteGalleryMain(){
 		else
 			t.stopPlayMode();
 	}
-	
-	this.___________GENERAL_EXTERNAL___________ = function(){}
-	
+
 	
 	/**
 	 * unselect all items
@@ -1740,7 +1768,21 @@ function UniteGalleryMain(){
 		g_selectedItem = null;
 		g_selectedItemIndex = -1;
 	}	
+	
+	
+	this.___________GENERAL_EXTERNAL___________ = function(){}
+	
+	/**
+	 * shuffle items - usually before theme start
+	 */
+	this.shuffleItems = function(){
 
+		g_arrItems = g_functions.arrayShuffle(g_arrItems);
+		
+		for(var index in g_arrItems)		//fix index
+			g_arrItems[index].index = parseInt(index);
+		
+	}
 	
 	/**
 	 * set main gallery params, extend current params
@@ -2112,6 +2154,7 @@ function UniteGalleryMain(){
 	 * run the gallery
 	 */
 	 this.run = function(galleryID, objParams){
+		 
 		 
 		 var debug_errors = g_options.gallery_debug_errors;
 		 if(objParams && objParams.hasOwnProperty("gallery_debug_errors"))

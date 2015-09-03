@@ -1,3 +1,32 @@
+version 1.6.5
+
+-feature: added minimal version jquery validation
+-bug fix: fixed tiles text panel appear
+
+
+version 1.6.4
+
+-feature: keep order option in tiles columns
+-bug fix: text panel was blined on tiles resize
+
+version 1.6.3
+
+-bug fix: fixed text panel always on on tiles types
+
+version 1.6.2
+
+-bug fix: text panel was not hided on some of the cases
+-chagne: improved show/hide controls display
+
+version 1.6.1
+
+bug fix: fixed a small bug with tiles image effect
+
+version 1.6
+
+-feature: changed tiles view - make variable number of columns
+-change: improvement transition movement of tiles and justified types
+
 version 1.5.9
 
 -feature: added option thumb_fixed_size that alow to run dynamic size strips.

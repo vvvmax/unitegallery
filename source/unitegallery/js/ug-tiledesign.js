@@ -8,7 +8,6 @@ function UGTileDesign(){
 	var g_functions = new UGFunctions(), g_objParentWrapper, g_objWrapper;
 	var g_thumbs = new UGThumbsGeneral(), g_items;
 
-
 	this.events = {
 			TILE_CLICK: "tile_click"
 	};
@@ -60,7 +59,6 @@ function UGTileDesign(){
 			thumb_color_overlay_effect: true,
 			thumb_overlay_reverse: true,
 			thumb_image_overlay_effect: false,
-			thumb_text_overlay:true,
 			tile_textpanel_enable_description: false,
 			tile_textpanel_bg_opacity: 0.6,
 			tile_textpanel_padding_top:8,
@@ -71,7 +69,8 @@ function UGTileDesign(){
 		isFixedMode:false,
 		eventSizeChange: "thumb_size_change",
 		funcParentApproveClick: null,
-		isSaparateIcons: false
+		isSaparateIcons: false,
+		tileInnerReduce: 0		//how much reduce from the tile inner elements from border mostly
 	};
 	
 	
@@ -138,6 +137,14 @@ function UGTileDesign(){
 		if(g_options.tile_enable_outline == true && g_options.tile_enable_border == false)
 			g_options.tile_enable_outline = false;
 		
+		//set inner reduce value - in case of the border
+		g_temp.tileInnerReduce = 0;
+		if(g_options.tile_enable_border){
+			g_temp.tileInnerReduce = g_options.tile_border_width * 2;
+			g_thumbs.setThumbInnerReduce(g_temp.tileInnerReduce);
+		}
+	
+	
 	}
 	
 	
@@ -414,69 +421,71 @@ function UGTileDesign(){
 	
 	function _________________SETTERS________________(){};
 	
-	
+
 	/**
 	 * position the elements
 	 */
 	function positionElements(objTile){
-				
+		
 		var objItem = t.getItemByTile(objTile);
 		var objButtonZoom = getButtonZoom(objTile);
 		var objButtonLink = getButtonLink(objTile);
 		var sizeTile = g_functions.getElementSize(objTile);
-		
-		var objImageOverlay = getTileOverlayImage(objTile)
+
+		var objImageOverlay = getTileOverlayImage(objTile);
 		var objThumbImage = t.getTileImage(objTile);
 		var objImageEffect = getTileImageEffect(objTile);
-		
+
 		//set image overlay size
 		if(g_options.tile_enable_image_effect == true){
-				
-			g_functions.setElementSize(objImageOverlay, sizeTile.width, sizeTile.height);
-			g_functions.cloneElementSizeAndPos(objThumbImage, objImageEffect);
+			g_functions.setElementSize(objImageOverlay, sizeTile.width - g_temp.tileInnerReduce, sizeTile.height - g_temp.tileInnerReduce);
 		}
-		
+
 		
 		//scale images
 		if(g_temp.isFixedMode){
-						
+
 			if(g_options.tile_enable_image_effect == false){
-				
-				g_functions.scaleImageCoverParent(objThumbImage, objTile);					
+
+				g_functions.scaleImageCoverParent(objThumbImage, objTile);
 				
 			}else{	//width the effect
-				
-				g_functions.scaleImageCoverParent(objImageEffect, objImageOverlay);									
+
+				g_functions.scaleImageCoverParent(objImageEffect, objImageOverlay);
 				
 				g_functions.cloneElementSizeAndPos(objImageEffect, objThumbImage);
+				
 				setTimeout(function(){
 					g_functions.cloneElementSizeAndPos(objImageEffect, objThumbImage);
 				},500);
-				
 			}
 			
 		}
-		
+
 		var objTextPanel = getTextPanel(objTile);
 		
 		//set text panel:
 		if(g_options.tile_enable_textpanel == true){
-			
-			if(objTextPanel)
-				objTextPanel.refresh();
+
+			if(objTextPanel){
+				objTextPanel.refresh(false, true);
+				
+				if(g_options.tile_textpanel_always_on == true || g_options.tile_textpanel_appear_type == "fade")
+					objTextPanel.positionPanel();
+			}
 		}
 
 		//set vertical gap for icons
 		if(objButtonZoom || objButtonLink){
-						
+
 			var gapVert = 0;
 			if(g_options.tile_enable_textpanel == true){
 				var objTextPanelElement = getTextPanelElement(objTile);
 				var texPanelSize = g_functions.getElementSize(objTextPanelElement);
 				if(texPanelSize.height > 0)
-					gapVert = Math.floor((texPanelSize.height / 2) * -1);  
+					gapVert = Math.floor((texPanelSize.height / 2) * -1);
 			}
-			
+
 		}
 		
 		if(objButtonZoom && objButtonLink){
@@ -485,7 +494,7 @@ function UGTileDesign(){
 			var spaceBetween = g_options.tile_space_between_icons;
 			
 			var buttonsWidth = sizeZoom.width + spaceBetween + sizeLink.width;
-			var buttonsX = Math.floor((sizeTile.width - buttonsWidth) / 2); 
+			var buttonsX = Math.floor((sizeTile.width - buttonsWidth) / 2);
 			
 			//trace("X: "+buttonsX+" "+"space: " + spaceBetween);
 			
@@ -495,7 +504,7 @@ function UGTileDesign(){
 				buttonsWidth = sizeZoom.width + spaceBetween + sizeLink.width;
 				buttonsX = Math.floor((sizeTile.width - buttonsWidth) / 2);
 			}
-			
+
 			g_functions.placeElement(objButtonZoom, buttonsX, "middle", 0 ,gapVert);
 			g_functions.placeElement(objButtonLink, buttonsX + sizeZoom.width + spaceBetween, "middle", 0, gapVert);
 						
@@ -514,9 +523,8 @@ function UGTileDesign(){
 		
 		if(objButtonLink)
 			objButtonLink.show();
-		
 	}
-	
+
 	
 	/**
 	 * set tiles htmls
@@ -564,7 +572,7 @@ function UGTileDesign(){
 	 * set textpanel effect
 	 */
 	function setTextpanelEffect(objTile, isActive){
-						
+		
 		var animationDuration = g_options.thumb_transition_duration;
 		
 		var objTextPanel = getTextPanelElement(objTile);
@@ -579,11 +587,12 @@ function UGTileDesign(){
 			
 			var startPos = -panelSize.height;
 			var endPos = 0;
-						
+			
+			
 			if(isActive == true){
 								
 				objTextPanel.fadeTo(0,1);
-				
+									
 				if(objTextPanel.is(":animated") == false)
 					objTextPanel.css("bottom",startPos+"px");
 					
@@ -661,7 +670,7 @@ function UGTileDesign(){
 	 * set normal style
 	 */
 	function setNormalStyle(data, objTile){
-				
+			
 		objTile = jQuery(objTile);
 		
 		if(g_options.tile_enable_image_effect)
@@ -697,13 +706,14 @@ function UGTileDesign(){
 	 * on tile size change, place elements
 	 */
 	function onSizeChange(data, objTile, forcePosition){
-		
+
 		objTile = jQuery(objTile);
-				
+		
 		if(g_temp.isFixedMode == true && objTile.data("image_placed") !== true && forcePosition !== true)
 			return(true);
 		
-		positionElements(objTile);			
+		positionElements(objTile);
+
 	}
 	
 	
@@ -866,7 +876,7 @@ function UGTileDesign(){
 		g_thumbs.destroy();
 
 	}
-	
+
 	
 	/**
 	 * external init
@@ -892,26 +902,54 @@ function UGTileDesign(){
 		g_temp.funcParentApproveClick = funcApprove;
 	}
 	
+	
 	/**
 	 * resize tile. If no size given, resize to original size
 	 */
 	this.resizeTile = function(objTile, newWidth, newHeight){
 		
-		if(!newWidth){
-			var newWidth = g_options.tile_width;
-			var newHeight = g_options.tile_height;
+		if(g_temp.isFixedMode == true){
+			
+			if(!newWidth){
+				var newWidth = g_options.tile_width;
+				var newHeight = g_options.tile_height;
+			}else{
+				if(!newHeight)
+					var newHeight = g_options.tile_height / g_options.tile_width * newWidth;
+			}
+			g_functions.setElementSize(objTile, newWidth, newHeight);
+			
+			t.triggerSizeChangeEvent(objTile, true);
+			
 		}else{
-			if(!newHeight)
-				var newHeight = g_options.tile_height / g_options.tile_width * newWidth;
+			
+			var objCss = {};
+			var objInnerCSS = {};
+			
+			if(newWidth !== null){
+				objCss["width"] = newWidth+"px";
+				objInnerCSS["width"] = newWidth-g_temp.tileInnerReduce+"px";
+			}
+			
+			if(newHeight !== null){
+				objCss["height"] = newHeight+"px";
+				objInnerCSS["height"] = newHeight-g_temp.tileInnerReduce+"px";
+			}
+			
+			objTile.css(objCss);
+			
+			//resize text panel, if visible
+			if(g_options.tile_enable_textpanel == true && g_options.tile_textpanel_always_on == true && newWidth)
+					t.resizeTileTextPanel(objTile, newWidth-g_temp.tileInnerReduce);
+
+			//resize image effect
+			if(g_options.tile_enable_image_effect == true)
+				objTile.find(".ug-tile-image-overlay").css(objInnerCSS);
+			
 		}
 		
-		g_functions.setElementSize(objTile, newWidth, newHeight);
-		
-		g_objWrapper.trigger(g_temp.eventSizeChange, [objTile,true]);
-		
-		
 	}
-	
+
 	
 	/**
 	 * resize all thumbs
@@ -926,6 +964,125 @@ function UGTileDesign(){
 			t.resizeTile(jQuery(objTile), newWidth, newHeight);
 		});
 		
+	}
+	
+	
+	
+	/**
+	 * resize tile text panel to a new width
+	 */
+	this.resizeTileTextPanel = function(objTile, newWidth){
+		
+		var textPanel = getTextPanel(objTile);
+		if(!textPanel)
+			return(false);
+		
+		var tileSize = g_functions.getElementSize(objTile);
+		if(newWidth < tileSize.width)
+			return(false);
+		
+		textPanel.refresh(false, true, newWidth);
+	}
+	
+	
+	/**
+	 * set width of all tiles - for non fixed mode
+	 * set image overlay width also if available
+	 * set before position elements for the transition
+	 */
+	this.setAllTilesWidth = function(width){
+		
+		var objThumbs = g_thumbs.getThumbs();
+		
+		//resize all thumbs
+		objThumbs.css("width", width + "px");
+		
+		//width of the inner elements
+		var innerWidth = width - g_temp.tileInnerReduce;
+		
+		//resize text panel, if visible
+		if(g_options.tile_enable_textpanel == true && g_options.tile_textpanel_always_on == true){
+
+			for(var index = 0; index < objThumbs.length; index++){
+				var objTile = jQuery(objThumbs[index]);
+				t.resizeTileTextPanel(objTile, innerWidth);
+			}
+		}
+		
+		//set image overlay width and height
+		if(g_options.tile_enable_image_effect == true && g_options.tile_image_effect_reverse == false)
+			objThumbs.find(".ug-tile-image-overlay").css("width",innerWidth + "px");
+
+
+	}
+	
+	
+	/**
+	 * get tile height by width proportianally
+	 */
+	this.getTileHeightByWidth = function(objTile, width){
+
+		var objItem = t.getItemByTile(objTile);
+		var height =  width * objItem.thumbRatioByHeight;
+		height = Math.floor(height);
+		
+		return(height);
+	}
+	
+	
+	/**
+	 * trigger size change events
+	 * the force is only for fixed size mode
+	 */
+	this.triggerSizeChangeEvent = function(objTile, isForce){
+		
+		if(!objTile)
+			return(false);
+		
+		if(!isForce)
+			var isForce = false;
+		
+		g_objWrapper.trigger(g_temp.eventSizeChange, [objTile, isForce]);
+		
+	}
+	
+	
+	/**
+	 * trigger size change event to all tiles
+	 * the force is only for fixed mode
+	 */
+	this.triggerSizeChangeEventAllTiles = function(isForce){
+
+		var objThumbs = g_thumbs.getThumbs();
+
+		objThumbs.each(function(){
+			var objTile = jQuery(this);
+			
+			t.triggerSizeChangeEvent(objTile, isForce);
+			
+		});
+		
+	}
+	
+	
+	
+	
+	
+	/**
+	 * disable all events
+	 */
+	this.disableEvents = function(){
+		var objThumbs = g_thumbs.getThumbs();
+		objThumbs.css("pointer-events", "none");
+	}
+	
+	
+	/**
+	 * enable all events
+	 */
+	this.enableEvents = function(){
+		var objThumbs = g_thumbs.getThumbs();
+		objThumbs.css("pointer-events", "auto");
 	}
 	
 	/**
@@ -989,6 +1146,4 @@ function UGTileDesign(){
 	this.getItemByTile = function(objTile){
 		return g_thumbs.getItemByThumb(objTile);
 	}
-	
-	
 }

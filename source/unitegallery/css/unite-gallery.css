@@ -12,6 +12,10 @@
 
 .---------General_Styles--------{}
 
+.ug-rtl{
+	direction:rtl;
+}
+
 .ug-gallery-wrapper{
 	overflow:hidden;
 	position:relative;
@@ -21,10 +25,16 @@
 .ug-error-message{
 	text-align:center;
 	padding-top:30px;
+	padding-bottom:30px;
 	font-size:20px;
 	color:#F30D0D;
 }
 
+.ug-error-message-wrapper{
+	width:100%;
+	height:100%;
+	border:1px solid black;
+}
 
 .ug-gallery-wrapper .ug-canvas-pie{
 	position:absolute;
@@ -99,6 +109,10 @@
 
 .ug-slider-wrapper .ug-slide-wrapper{
 	position:absolute;
+}
+
+.ug-slide-wrapper.ug-slide-clickable{
+	cursor:pointer;
 }
 
 .ug-slider-wrapper .ug-slider-inner{
@@ -547,12 +561,14 @@ img.ug-sepia-effect{
 	cursor:pointer;
 }
 
-.ug-gallery-wrapper .ug-panel-disabled-overlay{
+.ug-gallery-wrapper .ug-overlay-disabled{
 	position:absolute;
 	z-index:100;
 	width:100%;
 	height:100%;
-	background-color:rgba(0,0,0,0.3);
+	background-color:#000000;
+	opacity: 0.3;
+    filter: alpha(opacity=30);	
 	background-image:url('../images/cover-grid.png');
 }
 
@@ -592,7 +608,12 @@ img.ug-sepia-effect{
 }
 
 .ug-tiles-transit .ug-thumb-wrapper.ug-tile{
-	transition: left 0.7s ease 0s, top 0.7s ease 0s;
+	transition: left 0.7s ease 0s, top 0.7s ease 0s, width 0.7s ease 0s, height 0.7s ease 0s;
+}
+
+/* transit image overlay */
+.ug-tiles-transit-overlays .ug-thumb-wrapper.ug-tile .ug-tile-image-overlay{
+	transition: left 0.7s ease 0s, top 0.7s ease 0s, width 0.7s ease 0s, height 0.7s ease 0s;
 }
 
 .ug-thumb-wrapper.ug-tile.ug-tile-clickable{
@@ -608,8 +629,8 @@ img.ug-sepia-effect{
 
 	display:block;	
 	border:none;
-	padding:0px;
-	margin:0px;
+	padding:0px !important;
+	margin:0px !important;
 	width:100%;
 }
 
@@ -730,7 +751,15 @@ img.ug-sepia-effect{
 .ug-lightbox .ug-lightbox-top-panel{
 	position:absolute;
 	z-index:2;
-	background-color:rgba(0,0,0,0.4);
+}
+
+.ug-lightbox .ug-lightbox-top-panel-overlay{
+	width:100%;
+	height:100%;
+	position:absolute;
+	background-color:#000000;
+	opacity:0.4;
+	filter: alpha(opacity=40);
 }
 
 
@@ -828,6 +857,46 @@ img.ug-sepia-effect{
 	color:#F3F3F3;
 	font-size: 16px;
 }
+
+.------------------CATEGORY_TABS---------------------{}
+
+	.ug-tabs-wrapper{
+		margin-top:0px;
+		margin-bottom:20px;
+		text-align:center;
+	}
+
+	.ug-tabs-wrapper a.ug-tab{
+	    display: inline-block;
+		cursor:pointer;
+		text-decoration:none;
+		color:#ffffff;
+		padding-left:8px;
+		padding-right:8px;
+		padding-top:6px;
+		padding-bottom:6px;
+		margin-left:5px;
+		background-color:#333333;
+		border-radius:3px;
+		font-size:12px;
+		font-weight:normal;
+		
+		border: 1px solid #969696;
+	}
+	
+	.ug-tabs-wrapper a.ug-tab:hover{
+		background-color: #707070 !important;
+	}
+
+	.ug-tabs-wrapper a.ug-tab.ug-tab-selected,
+	.ug-tabs-wrapper a.ug-tab.ug-tab-selected:hover{
+		background-color: #2077A2 !important;
+		cursor:default !important;
+	}
+
+	.ug-tabs-wrapper a.ug-tab:first-child{
+		margin-left:0px !important;
+	}
 
 
 .------------------DEFAULT_SKIN---------------------{}
