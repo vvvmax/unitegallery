@@ -1707,15 +1707,26 @@ function UGFunctions(){
 	 */
 	this.checkMinJqueryVersion = function(version){
 
-	  var $vrs = jQuery.fn.jquery.split('.'),
-      min  = version.split('.');
+	   var arrCurrent = jQuery.fn.jquery.split('.');
+       var arrMin = version.split('.');
 	  
-	  for (var i=0, len=$vrs.length; i<len; i++) {			  
-	    if (min[i] && parseInt($vrs[i]) < parseInt(min[i])) {
-	      return false;
-	    }
+	  for (var i=0, len=arrCurrent.length; i<len; i++) {
+		  
+		  var numCurrent = parseInt(arrCurrent[i]);
+	      var numMin = parseInt(arrMin[i]);
+
+	      if(typeof arrMin[i] == "undefined")
+	    	  return(true);
+	      
+	      if(numMin > numCurrent)
+	    	  return(false);
+	      
+	      if(numCurrent > numMin)
+	    	  return(true);
 	  }
 	  
+	  
+	  //if all equal then all ok
 	  return true;
 	}
 

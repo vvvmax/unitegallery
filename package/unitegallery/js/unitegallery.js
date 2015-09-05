@@ -1,4 +1,4 @@
-// Essential Grid, Version: 1.6.5, released 03 Sep 2015 
+// Unite Gallery, Version: 1.6.6, released 05 Sep 2015 
 
 
 /**
@@ -3328,15 +3328,26 @@ function UGFunctions(){
 	 */
 	this.checkMinJqueryVersion = function(version){
 
-	  var $vrs = jQuery.fn.jquery.split('.'),
-      min  = version.split('.');
+	   var arrCurrent = jQuery.fn.jquery.split('.');
+       var arrMin = version.split('.');
 	  
-	  for (var i=0, len=$vrs.length; i<len; i++) {			  
-	    if (min[i] && parseInt($vrs[i]) < parseInt(min[i])) {
-	      return false;
-	    }
+	  for (var i=0, len=arrCurrent.length; i<len; i++) {
+		  
+		  var numCurrent = parseInt(arrCurrent[i]);
+	      var numMin = parseInt(arrMin[i]);
+
+	      if(typeof arrMin[i] == "undefined")
+	    	  return(true);
+	      
+	      if(numMin > numCurrent)
+	    	  return(false);
+	      
+	      if(numCurrent > numMin)
+	    	  return(true);
 	  }
 	  
+	  
+	  //if all equal then all ok
 	  return true;
 	}
 
@@ -18106,7 +18117,7 @@ function UGTiles(){
 	
 	var g_options = {
 		 tiles_type: "columns",					//columns / justified - tiles layout type
-		 tiles_col_width: 250,					//column width
+		 tiles_col_width: 250,					//column width - exact or base according the settings
 		 tiles_align:"center",					//align of the tiles in the space
 		 tiles_exact_width: false,				//exact width of column - disables the min and max columns
 		 tiles_space_between_cols: 3,			//space between images

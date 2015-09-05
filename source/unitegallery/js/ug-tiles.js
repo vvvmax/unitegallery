@@ -10,7 +10,7 @@ function UGTiles(){
 	
 	var g_options = {
 		 tiles_type: "columns",					//columns / justified - tiles layout type
-		 tiles_col_width: 250,					//column width
+		 tiles_col_width: 250,					//column width - exact or base according the settings
 		 tiles_align:"center",					//align of the tiles in the space
 		 tiles_exact_width: false,				//exact width of column - disables the min and max columns
 		 tiles_space_between_cols: 3,			//space between images
