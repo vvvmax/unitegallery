@@ -34,7 +34,7 @@ function UGThumbsStrip(){
 		stripSize:0,		//set after position thumbs
 		stripInnerSize:0,	
 		thumbSize:0,
-		thumbSecondSize:0,	//size of the height and width of the strip			
+		thumbSecondSize:0	//size of the height and width of the strip
 	}
 	
 	this.events = {		//events variables
@@ -74,7 +74,7 @@ function UGThumbsStrip(){
 	}
 
 	
-	function ___________GENERAL___________(){};
+	/* ---------- _GENERAL ---------- */
 	
 	
 	/**
@@ -445,7 +445,7 @@ function UGThumbsStrip(){
 	}
 	
 	
-	function ___________EVENTS___________(){};
+	/* ---------- _EVENTS ---------- */
 	
 	/**
 	 * on thumb click event. Select the thumb
@@ -540,7 +540,7 @@ function UGThumbsStrip(){
 	}
 	
 	
-	function ____________GETTERS___________(){};
+	/* ---------- GETTERS ---------- */
 		
 
 	/**
@@ -603,7 +603,7 @@ function UGThumbsStrip(){
 	
 	
 	
-	this.________EXTERNAL_GENERAL___________ = function(){};
+	/* ---------- EXTERNAL_GENERAL ---------- */
 
 	/**
 	 * init function for avia controls
@@ -772,7 +772,7 @@ function UGThumbsStrip(){
 	}
 	
 	
-	this.________EXTERNAL_SETTERS___________ = function(){};
+	/* ---------- EXTERNAL_SETTERS ---------- */
 
 	
 	/**
@@ -910,7 +910,7 @@ function UGThumbsStrip(){
 	
 	
 	
-	this.________EXTERNAL_GETTERS___________ = function(){};
+	/* ---------- EXTERNAL_GETTERS ---------- */
 	
 	/**
 	 * get objects

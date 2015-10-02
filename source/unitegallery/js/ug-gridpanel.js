@@ -366,7 +366,7 @@ function UGGridPanel(){
 	
 	
 	
-	function __________EVENTS___________(){};
+	/* ---------- EVENTS ---------- */
 	
 	
 	
@@ -423,7 +423,7 @@ function UGGridPanel(){
 	}
 	
 	
-	function ______PLACE_ELEMENTS___________(){};
+	/* ---------- PLACE_ELEMENTS ---------- */
 	
 	
 	/**
@@ -853,8 +853,8 @@ function UGGridPanel(){
 		return(objSize);
 	}
 	
-	this.__________Functions_From_Base_____ = function() {}
-	
+	/* ---------- Functions_From_Base ---------- */
+
 	/**
 	 * tells if the panel is closed
 	 */

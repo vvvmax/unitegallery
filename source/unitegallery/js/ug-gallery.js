@@ -134,7 +134,7 @@ function UniteGalleryMain(){
 	
 	
 	
-	function __________INIT_GALLERY_______(){};
+	/* ---------- INIT_GALLERY ---------- */
 	
 	/**
 	 * get theme function from theme name
@@ -502,8 +502,8 @@ function UniteGalleryMain(){
 		   var objCss = {
 				    //"width":optionWidth,		//make it work within tabs
 				    "max-width":optionWidth,
-					"min-width":g_functions.getCssSizeParam(g_options.gallery_min_width),
-			};
+					"min-width":g_functions.getCssSizeParam(g_options.gallery_min_width)
+           };
 		   
 		   if(g_temp.isFreestyleMode == false){
 			   objCss["height"] = g_options.gallery_height+"px";			   
@@ -943,9 +943,9 @@ function UniteGalleryMain(){
 	}
 	
 	
-	function __________END_INIT_GALLERY_______(){};
+	/* ---------- END_INIT_GALLERY ---------- */
 	
-	function __________EVENTS_____________(){};
+	/* ---------- EVENTS ---------- */
 
 	
 	/**
@@ -1228,7 +1228,7 @@ function UniteGalleryMain(){
 	}
 	
 	
-	function __________GENERAL_______(){};
+	/* ---------- GENERAL ---------- */
 	
 	/**
 	 * get items array
@@ -1431,7 +1431,7 @@ function UniteGalleryMain(){
 	}
 	
 	
-	this.___________SET_CONTROLS___________ = function(){}
+	/* ---------- CONTROLS ---------- */
 	
 	/**
 	 * set next button element
@@ -1562,7 +1562,7 @@ function UniteGalleryMain(){
 		g_objWrapper.children(".ug-overlay-disabled").hide();
 	}
 	
-	this.___________END_SET_CONTROLS___________ = function(){}
+	/* ---------- CONTROLS ---------- */
 
 	
 	/**
@@ -1638,7 +1638,7 @@ function UniteGalleryMain(){
 		
 	}
 	
-	this.___________PLAY_MODE___________ = function(){}
+	/* ---------- MODE ---------- */
 	
 	
 	/**
@@ -1770,7 +1770,7 @@ function UniteGalleryMain(){
 	}	
 	
 	
-	this.___________GENERAL_EXTERNAL___________ = function(){}
+	/* ---------- EXTERNAL ---------- */
 	
 	/**
 	 * shuffle items - usually before theme start
@@ -2045,7 +2045,7 @@ function UniteGalleryMain(){
 	}
 	
 	
-	this.__________AJAX_REQUEST_______ = function(){};
+	/* ---------- AJAX_REQUEST ---------- */
 	
 	
 	/**

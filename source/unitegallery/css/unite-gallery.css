@@ -1,4 +1,4 @@
-.---------Protection--------{}
+/* ---------Protection-------- */
 
 .ug-gallery-wrapper, 
 .ug-gallery-wrapper *{
@@ -10,7 +10,7 @@
 	max-width:none;
 }
 
-.---------General_Styles--------{}
+/* ---------General_Styles-------- */
 
 .ug-rtl{
 	direction:rtl;
@@ -91,7 +91,7 @@
 }
 
 
-.--------------SLIDER------------------{}
+/* --------------SLIDER------------------ */
 
 .ug-gallery-wrapper .ug-slider-wrapper{
 	position:absolute;
@@ -266,7 +266,7 @@
 }
 
 
-.--------------VIDEO_PLAYER------------------{}
+/* --------------VIDEO_PLAYER------------------ */
 
 .ug-gallery-wrapper .ug-videoplayer{
 	position:absolute;
@@ -303,7 +303,7 @@
 	background-position: 0px -64px;
 }
 
-.--------------THUMBS_STRIP------------------{}
+/* --------------THUMBS_STRIP------------------ */
 
 
 .ug-gallery-wrapper .ug-thumbs-strip,
@@ -398,7 +398,7 @@ img.ug-bw-effect{
 	-webkit-filter: grayscale(1); 
 	-webkit-filter: grayscale(100%); 
 	-moz-filter: grayscale(100%);
-	filter: gray; 
+	filter: gray;
 	filter: grayscale(100%);
     filter: url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\'><filter id=\'grayscale\'><feColorMatrix type=\'matrix\' values=\'0.3333 0.3333 0.3333 0 0 0.3333 0.3333 0.3333 0 0 0.3333 0.3333 0.3333 0 0 0 0 0 1 0\'/></filter></svg>#grayscale"); /* Firefox 10+, Firefox on Android */	
 }
@@ -427,7 +427,7 @@ img.ug-sepia-effect{
 }
 
 
-.--------------BULLETS------------------{}
+/* --------------BULLETS------------------ */
 
 
 .ug-gallery-wrapper .ug-bullets{
@@ -451,7 +451,7 @@ img.ug-sepia-effect{
 }
 
 
-.--------------TEXT_PANEL------------------{}
+/* --------------TEXT_PANEL------------------ */
 
 .ug-gallery-wrapper .ug-textpanel{
 	position:absolute;
@@ -499,7 +499,7 @@ img.ug-sepia-effect{
 }
 
 
-.--------------ZOOM_PANEL------------------{}
+/* --------------ZOOM_PANEL------------------ */
 
 .ug-slider-wrapper .ug-zoompanel{
 	position:absolute;
@@ -514,7 +514,7 @@ img.ug-sepia-effect{
 }
 
 
-.--------------ZOOM_PANEL_BUTTONS------------------{}
+/* --------------ZOOM_PANEL_BUTTONS------------------ */
 
 .ug-gallery-wrapper .ug-arrow-left{
 	position:absolute;	
@@ -530,7 +530,7 @@ img.ug-sepia-effect{
 }
 
 
-.--------------GRID_PANEL_AND_ARROWS------------------{}
+/* --------------GRID_PANEL_AND_ARROWS------------------ */
 
 
 .ug-gallery-wrapper .ug-grid-panel{
@@ -573,7 +573,7 @@ img.ug-sepia-effect{
 }
 
 
-.--------------STRIP_PANEL------------------{}
+/* --------------STRIP_PANEL------------------ */
 
 .ug-gallery-wrapper .ug-strip-panel{
 	position:absolute;
@@ -595,7 +595,7 @@ img.ug-sepia-effect{
 	position:absolute;
 }
 
-.--------------TILES------------------{}
+/* --------------TILES------------------ */
 
 .ug-thumb-wrapper.ug-tile{
 	display:block;
@@ -717,7 +717,7 @@ img.ug-sepia-effect{
 	font-weight:bold;
 }
 
-.--------------CAROUSEL------------------{}
+/* --------------CAROUSEL------------------ */
 
 .ug-gallery-wrapper .ug-carousel-wrapper{
 	position:absolute;
@@ -729,7 +729,7 @@ img.ug-sepia-effect{
 }
 
 
-.------------------LIGHTBOX---------------------{}
+/* ------------------LIGHTBOX--------------------- */
 
 .ug-gallery-wrapper.ug-lightbox{
 	display: none;
@@ -858,7 +858,7 @@ img.ug-sepia-effect{
 	font-size: 16px;
 }
 
-.------------------CATEGORY_TABS---------------------{}
+/* ------------------CATEGORY_TABS--------------------- */
 
 	.ug-tabs-wrapper{
 		margin-top:0px;
@@ -899,7 +899,7 @@ img.ug-sepia-effect{
 	}
 
 
-.------------------DEFAULT_SKIN---------------------{}
+/* ------------------DEFAULT_SKIN--------------------- */
 
 /* --- arrows -- */
 

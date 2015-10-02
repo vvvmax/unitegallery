@@ -90,7 +90,7 @@ function UGThumbsGeneral(){
 		
 		}
 		
-		this._____________EXTERNAL_SETTERS__________ = function(){};
+		/* ---------- EXTERNAL_SETTERS ---------- */
 		
 		/**
 		 * append the thumbs html to some parent
@@ -184,7 +184,7 @@ function UGThumbsGeneral(){
 		}
 
 		
-		function _______________SETTERS______________(){};
+		/* ---------- SETTERS ---------- */
 
 		
 		/**
@@ -535,7 +535,7 @@ function UGThumbsGeneral(){
 		
 		
 		
-		function _______________GETTERS______________(){};
+		/* ---------- GETTERS ---------- */
 		
 		
 		/**
@@ -577,7 +577,7 @@ function UGThumbsGeneral(){
 		}
 
 		
-		function _______________EVENTS______________(){};
+		/* ---------- EVENTS ---------- */
 		/**
 		 * on thumb size change - triggered by parent on custom thumbs type
 		 */
@@ -808,7 +808,7 @@ function UGThumbsGeneral(){
 		
 		
 		
-		this._____________EXTERNAL_GETTERS__________ = function(){};
+		/* ---------- EXTERNAL_GETTERS ---------- */
 
 		/**
 		 * get the options object
@@ -885,7 +885,7 @@ function UGThumbsGeneral(){
 		}
 		
 		
-		this._____________EXTERNAL_OTHERS__________ = function(){};
+		/* ---------- EXTERNAL_OTHERS ---------- */
 
 
 		

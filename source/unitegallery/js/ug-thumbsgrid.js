@@ -49,7 +49,7 @@ function UGThumbsGrid(){
 		};
 	
 	
-	function __________GENERAL_________(){};
+	/* ---------- GENERAL ---------- */
 	
 	/**
 	 * init the gallery
@@ -683,7 +683,7 @@ function UGThumbsGrid(){
 	
 		
 	
-	function __________GETTERS_________(){};
+	/* ---------- GETTERS ---------- */
 	
 	/**
 	 * get inner object size according the orientation
@@ -841,7 +841,7 @@ function UGThumbsGrid(){
 	}
 	
 	
-	function __________EVENTS_______(){};
+	/* ---------- EVENTS ---------- */
 	
 	
 	/**
@@ -1066,7 +1066,7 @@ function UGThumbsGrid(){
 	
 	
 	
-	this.__________EXTERNAL_GENERAL_________ = function(){};
+	/* ---------- EXTERNAL_GENERAL ---------- */
 	
 	/**
 	 * set the thumb unselected state
@@ -1091,7 +1091,7 @@ function UGThumbsGrid(){
 	}
 	
 	
-	this.__________EXTERNAL_API_________ = function(){};
+	/* ---------- EXTERNAL_API ---------- */
 	
 	/**
 	 * get estimation of number of panes by the height of the grid.

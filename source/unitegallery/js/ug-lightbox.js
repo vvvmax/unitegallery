@@ -113,7 +113,7 @@ function UGLightbox(){
 	};
 	
 	
-	function __________GENERAL_________(){};
+	/* ---------- GENERAL ---------- */
 	
 	
 	/**
@@ -299,7 +299,7 @@ function UGLightbox(){
 	
 	}
 	
-	function __________WIDE_ONLY_________(){};
+	/* ---------- WIDE_ONLY ---------- */
 	
 	
 	/**
@@ -382,7 +382,7 @@ function UGLightbox(){
 	}
 	
 	
-	function __________COMPACT_ONLY_________(){};
+	/* ---------- COMPACT_ONLY ---------- */
 
 	/**
 	 * handle slider image height according the textpanel height
@@ -584,12 +584,12 @@ function UGLightbox(){
 			};
 			
 			g_objArrowLeft.stop().animate(objCssLeft,{
-				duration: g_temp.fadeDuration,
-			});
+				duration: g_temp.fadeDuration
+            });
 			
 			g_objArrowRight.stop().animate(objCssRight,{
-				duration: g_temp.fadeDuration,
-			});
+				duration: g_temp.fadeDuration
+            });
 			
 			
 		}else{
@@ -653,8 +653,8 @@ function UGLightbox(){
 			};
 			
 			g_objButtonClose.stop().animate(objCss,{
-				duration: g_temp.fadeDuration,
-			});
+				duration: g_temp.fadeDuration
+            });
 			
 		}else{
 			g_objButtonClose.stop();
@@ -707,7 +707,7 @@ function UGLightbox(){
 	}
 	
 	
-	function __________COMMON_________(){};
+	/* ---------- COMMON ---------- */
 	
 	
 	/**
@@ -949,7 +949,7 @@ function UGLightbox(){
 	}
 	
 	
-	function __________EVENTS_________(){};
+	/* ---------- EVENTS ---------- */
 	
 	
 	/**

@@ -388,9 +388,7 @@ function UGStripPanel() {
 
 
 
-	function __________EVENTS___________() {
-	}
-	;
+	/* ---------- EVENTS ---------- */
 
 	/**
 	 * on next button click
@@ -616,7 +614,7 @@ function UGStripPanel() {
 		placeElements();
 	}
 	
-	this.__________Functions_From_Base_____ = function() {}
+	/* ---------- Functions_From_Base ---------- */
 	
 	/**
 	 * tells if the panel is closed

@@ -325,7 +325,7 @@ function UGTileDesign(){
 		
 	}
 	
-	function _________________GETTERS________________(){};
+	/* ---------- GETTERS ---------- */
 	
 	
 	
@@ -419,7 +419,7 @@ function UGTileDesign(){
 	}
 	
 	
-	function _________________SETTERS________________(){};
+	/* ---------- SETTERS ---------- */
 	
 
 	/**
@@ -1115,7 +1115,7 @@ function UGTileDesign(){
 		}
 	}
 
-	this._____________EXTERNAL_GETTERS____________=function(){};
+	/* ---------- EXTERNAL_GETTERS ---------- */
 	
 	/**
 	 * get thumbs general option

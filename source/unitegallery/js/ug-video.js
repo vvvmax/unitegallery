@@ -1126,7 +1126,7 @@ function UGVideoPlayer(){
 	}
 
 	
-	function __________EVENTS___________(){};	
+	/* ---------- EVENTS ---------- */
 	
 	/**
 	 * on close button click event
