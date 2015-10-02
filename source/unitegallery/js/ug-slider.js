@@ -169,7 +169,7 @@ function UGSlider(){
 		currentControlsMode: "image"
 	};
 	
-	function __________GENERAL___________(){};
+	/* ---------- GENERAL ---------- */
 	
 	
 	/**
@@ -931,7 +931,7 @@ function UGSlider(){
 		return(true);
 	}
 	
-	function __________VIDEO_PLAYER_______(){};
+	/* ---------- VIDEO_PLAYER ---------- */
 
 	
 	
@@ -981,7 +981,7 @@ function UGSlider(){
 	}
 	
 	
-	function __________TRANSITION_______(){};
+	/* ---------- TRANSITION ---------- */
 
 	
 	
@@ -1202,7 +1202,7 @@ function UGSlider(){
 	
 	
 	
-	function __________CONTROLS_OBJECT_______(){};
+	/* ---------- CONTROLS_OBJECT ---------- */
 	
 	/**
 	 * modify the slider for mobile
@@ -1375,7 +1375,7 @@ function UGSlider(){
 	
 	
 	
-	function __________EVENTS___________(){};
+	/* ---------- EVENTS ---------- */
 
 	/**
 	 * on item change event
@@ -1718,7 +1718,7 @@ function UGSlider(){
 	}
 	
 	
-	function __________GETTERS___________(){};
+	/* ---------- GETTERS ---------- */
 	
 	/**
 	 * get loader class by loader type
@@ -1837,7 +1837,7 @@ function UGSlider(){
 	
 	
 	
-	this.________EXTERNAL_GENERAL___________ = function(){};
+	/* ---------- EXTERNAL_GENERAL ---------- */
 	
 	
 	/**
@@ -2127,7 +2127,7 @@ function UGSlider(){
 	
 	
 	
-	this.________EXTERNAL_API___________ = function(){};
+	/* ---------- EXTERNAL_API ---------- */
 	
 	
 	/**

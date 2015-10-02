@@ -89,7 +89,7 @@ function UGFunctions(){
 	
 	this.debugVar = "";
 
-	this.z__________FULL_SCREEN___________ = function(){}
+	/* ---------- FULL_SCREEN ---------- */
 	
 	/**
 	 * normalize the percent, return always between 0 and 1
@@ -210,9 +210,9 @@ function UGFunctions(){
 		return(isFullScreen);
 	}
 	
-	this.z__________END_FULL_SCREEN___________ = function(){}
+	/* ---------- END_FULL_SCREEN ---------- */
 	
-	this.z__________GET_PROPS___________ = function(){}
+	/* ---------- GET_PROPS ---------- */
 	
 	/**
 	 * get browser prefix, can be empty if not detected.
@@ -680,10 +680,10 @@ function UGFunctions(){
 	}
 	
 	
-	this.z__________END_GET_PROPS___________ = function(){}
+	/* ---------- END_GET_PROPS ---------- */
 	
 	
-	this.z_________SET_ELEMENT_PROPS_______ = function(){}
+	/* ---------- SET_ELEMENT_PROPS ---------- */
 		
 	
 	/**
@@ -1196,9 +1196,9 @@ function UGFunctions(){
 	}
 	
 	
-	this.z_________END_SET_ELEMENT_PROPS_______ = function(){}
+	/* ---------- END_SET_ELEMENT_PROPS ---------- */
 	
-	this.z_________GALLERY_RELATED_FUNCTIONS_______ = function(){}
+	/* ---------- GALLERY_RELATED_FUNCTIONS ---------- */
 	
 	/**
 	 * disable button
@@ -1265,9 +1265,9 @@ function UGFunctions(){
 	}
 	
 	
-	this.z_________END_GALLERY_RELATED_FUNCTIONS_______ = function(){}
+	/* ---------- END_GALLERY_RELATED_FUNCTIONS ---------- */
 
-	this.z_________MATH_FUNCTIONS_______ = function(){}
+	/* ---------- MATH_FUNCTIONS ---------- */
 	
 	/**
 	 * 
@@ -1422,7 +1422,7 @@ function UGFunctions(){
 	}
 	
 	
-	this.z_________DATA_FUNCTIONS_______ = function(){}
+	/* ---------- DATA_FUNCTIONS ---------- */
 	
 	/**
 	 * set data value
@@ -1443,7 +1443,7 @@ function UGFunctions(){
 		return(value);
 	}
 	
-	this.z_________EVENT_DATA_FUNCTIONS_______ = function(){}
+	/* ---------- EVENT_DATA_FUNCTIONS ---------- */
 
 	
 	/**
@@ -1622,7 +1622,7 @@ function UGFunctions(){
 		g_temp.dataCache[id] = null;
 	}
 
-	this.z_________CHECK_SUPPORT_FUNCTIONS_______ = function(){}
+	/* ---------- CHECK_SUPPORT_FUNCTIONS ---------- */
 	
 	
 	
@@ -1699,7 +1699,7 @@ function UGFunctions(){
 		return result;
 	}
 	
-	this.z_________GENERAL_FUNCTIONS_______ = function(){}
+	/* ---------- GENERAL_FUNCTIONS ---------- */
 	
 	/**
 	 * check if current jquery version is more then minimal version
@@ -2187,7 +2187,7 @@ function UGFunctions(){
 	}
 
 	
-	this.z_________END_GENERAL_FUNCTIONS_______ = function(){}
+	/* ---------- END_GENERAL_FUNCTIONS ---------- */
 	
 }
 

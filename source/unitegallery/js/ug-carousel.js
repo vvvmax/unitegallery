@@ -53,7 +53,7 @@ function UGCarousel(){
 	};
 
 	
-	function __________GENERAL_________(){};
+	/* ---------- GENERAL ---------- */
 	
 	/**
 	 * init the gallery
@@ -214,7 +214,7 @@ function UGCarousel(){
 	
 	
 	
-	function __________GETTERS_______(){};
+	/* ---------- GETTERS ---------- */
 	
 	/**
 	 * get inner position
@@ -372,7 +372,7 @@ function UGCarousel(){
 	}
 	
 	
-	function __________OTHER_METHODS_______(){};
+	/* ---------- OTHER_METHODS ---------- */
 	
 	
 	/**
@@ -645,7 +645,7 @@ function UGCarousel(){
 	
 	
 	
-	function __________AUTOPLAY_______(){};
+	/* ---------- AUTOPLAY ---------- */
 
 	/**
 	 * start autoplay
@@ -729,7 +729,7 @@ function UGCarousel(){
 		
 	}
 	
-	function __________EVENTS_______(){};
+	/* ---------- EVENTS ---------- */
 		
 	
 	/**

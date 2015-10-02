@@ -41,7 +41,7 @@ function UGTiles(){
 	};
 	
 	
-	function __________GENERAL_________(){};
+	/* ---------- GENERAL ---------- */
 	
 	
 	/**
@@ -178,7 +178,7 @@ function UGTiles(){
 	}
 
 	
-	function __________COLUMN_TYPE_RELATED_________(){};
+	/* ---------- COLUMN_TYPE_RELATED ---------- */
 	
 	/**
 	 * count width by number of columns
@@ -531,7 +531,7 @@ function UGTiles(){
 	}
 	
 	
-	function __________JUSTIFIED_TYPE_RELATED_________(){};
+	/* ---------- JUSTIFIED_TYPE_RELATED ---------- */
 
 	/**
 	 * ------------ JUSTIFIED TYPE RELATED FUNCTIONS ----------------
@@ -798,7 +798,7 @@ function UGTiles(){
 	
 		
 	
-	function __________EVENTS_______(){};
+	/* ---------- EVENTS ---------- */
 	
 	/**
 	 * on resize event

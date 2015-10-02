@@ -113,7 +113,7 @@ function UGLightbox(){
 	};
 	
 	
-	function __________GENERAL_________(){};
+	/* ---------- GENERAL ---------- */
 	
 	
 	/**
@@ -299,7 +299,7 @@ function UGLightbox(){
 	
 	}
 	
-	function __________WIDE_ONLY_________(){};
+	/* ---------- WIDE_ONLY ---------- */
 	
 	
 	/**
@@ -382,7 +382,7 @@ function UGLightbox(){
 	}
 	
 	
-	function __________COMPACT_ONLY_________(){};
+	/* ---------- COMPACT_ONLY ---------- */
 
 	/**
 	 * handle slider image height according the textpanel height
@@ -707,7 +707,7 @@ function UGLightbox(){
 	}
 	
 	
-	function __________COMMON_________(){};
+	/* ---------- COMMON ---------- */
 	
 	
 	/**
@@ -949,7 +949,7 @@ function UGLightbox(){
 	}
 	
 	
-	function __________EVENTS_________(){};
+	/* ---------- EVENTS ---------- */
 	
 	
 	/**

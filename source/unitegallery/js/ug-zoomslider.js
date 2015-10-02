@@ -147,7 +147,7 @@ function UGZoomSliderControl(){
 	}
 	
 	
-	function ____________PAN_____________(){};
+	/* ---------- PAN ---------- */
 	
 	
 	/**
@@ -380,9 +380,9 @@ function UGZoomSliderControl(){
 		return(false);
 	}
 	
-	function ____________END_PAN_____________(){};
+	/* ---------- END_PAN ---------- */
 	
-	function ________TOUCH_ZOOM_____________(){};
+	/* ---------- TOUCH_ZOOM ---------- */
 	
 	/**
 	 * start touch zoom
@@ -547,7 +547,7 @@ function UGZoomSliderControl(){
 	}
 	
 	
-	function ________END_TOUCH_ZOOM_____________(){};
+	/* ---------- END_TOUCH_ZOOM ---------- */
 	
 	
 	/**
@@ -759,7 +759,7 @@ function UGZoomSliderControl(){
 		
 	}
 	
-	this.________EXTERNAL_____________ = function(){};
+	/* ---------- EXTERNAL ---------- */
 	
 	/**
 	 * check if the image is zoomed, and there is a place for left panning
