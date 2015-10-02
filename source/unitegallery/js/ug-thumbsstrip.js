@@ -34,7 +34,7 @@ function UGThumbsStrip(){
 		stripSize:0,		//set after position thumbs
 		stripInnerSize:0,	
 		thumbSize:0,
-		thumbSecondSize:0,	//size of the height and width of the strip			
+		thumbSecondSize:0	//size of the height and width of the strip
 	}
 	
 	this.events = {		//events variables

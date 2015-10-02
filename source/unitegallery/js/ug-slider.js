@@ -33,7 +33,7 @@ function UGSlider(){
 		IMAGE_MOUSEENTER: "slider_image_mouseenter", //on slide image mouseonter
 		IMAGE_MOUSELEAVE: "slider_image_mouseleave",	 		//on slide image mouseleave
 		CURRENTSLIDE_LOAD_START: "slider_current_loadstart",	//on current slide load image start
-		CURRENTSLIDE_LOAD_END: "slider_current_loadend",		//on finish load current slide image
+		CURRENTSLIDE_LOAD_END: "slider_current_loadend"		//on finish load current slide image
 	}
 	
 	var g_options = {

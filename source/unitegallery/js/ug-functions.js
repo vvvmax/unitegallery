@@ -1526,8 +1526,8 @@ function UGFunctions(){
 				lastMouseClientY: mousePos.clientY,
 				
 				scrollTop: jQuery(document).scrollTop(),
-				scrollDir: null,
-		};
+				scrollDir: null
+        };
 		
 		if(addData)
 			obj = jQuery.extend(obj, addData);

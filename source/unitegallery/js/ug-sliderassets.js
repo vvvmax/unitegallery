@@ -38,7 +38,7 @@ function UGTextPanel(){
 			textpanel_desc_bold:null,					//textpanel description bold. if null - take from css
 			textpanel_css_description:{},				//textpanel additional css of the description
 			
-			textpanel_bg_css:{},						//textpanel background css
+			textpanel_bg_css:{}						//textpanel background css
 	};
 	
 	var g_temp = {

@@ -502,8 +502,8 @@ function UniteGalleryMain(){
 		   var objCss = {
 				    //"width":optionWidth,		//make it work within tabs
 				    "max-width":optionWidth,
-					"min-width":g_functions.getCssSizeParam(g_options.gallery_min_width),
-			};
+					"min-width":g_functions.getCssSizeParam(g_options.gallery_min_width)
+           };
 		   
 		   if(g_temp.isFreestyleMode == false){
 			   objCss["height"] = g_options.gallery_height+"px";			   

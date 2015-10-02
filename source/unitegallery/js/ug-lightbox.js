@@ -584,12 +584,12 @@ function UGLightbox(){
 			};
 			
 			g_objArrowLeft.stop().animate(objCssLeft,{
-				duration: g_temp.fadeDuration,
-			});
+				duration: g_temp.fadeDuration
+            });
 			
 			g_objArrowRight.stop().animate(objCssRight,{
-				duration: g_temp.fadeDuration,
-			});
+				duration: g_temp.fadeDuration
+            });
 			
 			
 		}else{
@@ -653,8 +653,8 @@ function UGLightbox(){
 			};
 			
 			g_objButtonClose.stop().animate(objCss,{
-				duration: g_temp.fadeDuration,
-			});
+				duration: g_temp.fadeDuration
+            });
 			
 		}else{
 			g_objButtonClose.stop();
