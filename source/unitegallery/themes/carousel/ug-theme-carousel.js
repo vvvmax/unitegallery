@@ -15,6 +15,7 @@ function UGTheme_carousel(){
 	var g_lightbox = new UGLightbox(), g_carousel = new UGCarousel();
 	var g_functions = new UGFunctions(), g_objTileDesign = new UGTileDesign();;
 	var g_objNavWrapper, g_objButtonLeft, g_objButtonRight, g_objButtonPlay, g_objPreloader;
+	var g_apiDefine = new UG_API();
 	
 	var g_options = {
 			theme_gallery_padding: 0,				//the padding of the gallery wrapper
@@ -275,7 +276,40 @@ function UGTheme_carousel(){
 		g_objPreloader.fadeTo(0,1);
 	}
 	
+	
+	/**
+	 * init api functions
+	 */
+	function initAPIFunctions(event, api){
+		
+		api.carouselStartAutoplay = function(){
+			g_carousel.startAutoplay();
+		}
+		
+		api.carouselStopAutoplay = function(){
+			g_carousel.stopAutoplay();
+		}
+		
+		api.carouselPause = function(){
+			g_carousel.pauseAutoplay();
+		}
+		
+		api.carouselUnpause = function(){
+			g_carousel.unpauseAutoplay();
+		}
+		
+		api.scrollLeft = function(numTiles){
+			g_carousel.scrollLeft(numTiles);
+		}	
+		
+		api.scrollRight = function(numTiles){
+			g_carousel.scrollRight(numTiles);
+		}
+		
+		
+	}
 
+	
 	/**
 	 * init buttons functionality and events
 	 */
@@ -298,7 +332,10 @@ function UGTheme_carousel(){
 		//on click events
 		jQuery(g_objTileDesign).on(g_objTileDesign.events.TILE_CLICK, onTileClick);
 		
+		//init api
+		g_objGallery.on(g_apiDefine.events.API_INIT_FUNCTIONS, initAPIFunctions);
 	}
+	
 	
 	/**
 	 * destroy the carousel events

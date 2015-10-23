@@ -120,19 +120,23 @@ function UGAviaControl(){
 	 * get inner y position according mouse y position on the strip
 	 */
 	function getInnerPosY(mouseY){
-		
+
+		var innerOffsetTop = g_options.strip_padding_top;
+		var innerOffsetBottom = g_options.strip_padding_bottom;
+
 		var stripHeight = g_objStrip.height();
 		var innerHeight = g_objStripInner.height();		
 		
-		
 		//if all thumbs visible, no need to move
 		if(stripHeight > innerHeight)
-			return(false);
+			return(null);
 		
 		//find y position inside the strip
 		var stripOffset = g_objStrip.offset();		
 		var offsetY = stripOffset.top;
-		var posy = mouseY - offsetY;
+		var posy = mouseY - offsetY - innerOffsetTop;
+		if(posy < 0)
+			return(null);
 		
 		//set measure line parameters
 		var mlineStart = g_options.thumb_height;
@@ -149,9 +153,8 @@ function UGAviaControl(){
 		//count the ratio of the position on the measure line
 		var ratio = (posy - mlineStart) / mLineSize;
 		var innerPosY = (innerHeight - stripHeight) * ratio;
-		innerPosY = Math.round(innerPosY);
-		innerPosY = innerPosY * -1;
-				
+		innerPosY = Math.round(innerPosY) * -1 + innerOffsetTop;
+		
 		return(innerPosY);
 	}
 
@@ -161,22 +164,25 @@ function UGAviaControl(){
 	 */
 	function getInnerPosX(mouseX){
 		
-		var stripWidth = g_objStrip.width();
-		var innerWidth = g_objStripInner.width();		
+		var innerOffsetLeft = g_options.strip_padding_left;
+		var innerOffsetRight = g_options.strip_padding_right;
+		
+		var stripWidth = g_objStrip.width() - innerOffsetLeft - innerOffsetRight;
+		var innerWidth = g_objStripInner.width();
 		
 		//if all thumbs visible, no need to move
 		if(stripWidth > innerWidth)
-			return(false);
+			return(null);
 		
 		var stripOffset = g_objStrip.offset();
 		var offsetX = stripOffset.left;
-		var posx = mouseX - offsetX;
+		var posx = mouseX - offsetX - innerOffsetLeft;
 		
 		//set measure line parameters
 		var mlineStart = g_options.thumb_width;
 		var mlineEnd = stripWidth - g_options.thumb_width;
 		var mLineSize = mlineEnd - mlineStart;
-				
+		
 		//fix position borders on the measure line
 		if(posx < mlineStart)
 			posx = mlineStart;
@@ -187,9 +193,8 @@ function UGAviaControl(){
 		//count the ratio of the position on the measure line
 		var ratio = (posx - mlineStart) / mLineSize;
 		var innerPosX = (innerWidth - stripWidth) * ratio;
-		innerPosX = Math.round(innerPosX);
-				
-		innerPosX = innerPosX * -1;
+		innerPosX = Math.round(innerPosX) * -1 + innerOffsetLeft;
+		
 		
 		return(innerPosX);
 	}
@@ -205,13 +210,13 @@ function UGAviaControl(){
 		}
 		
 		var innerPos = g_parent.getInnerStripPos();
-		
+				
 		if(Math.floor(innerPos) == Math.floor(g_temp.strip_finalPos)){
 			stopStripMovingLoop();
 		}
 		
 		//calc step
-		var diff = Math.abs(Math.abs(g_temp.strip_finalPos) - Math.abs(innerPos));
+		var diff = Math.abs(g_temp.strip_finalPos - innerPos);
 		
 		var dpos;
 		if(diff < 1){
@@ -226,7 +231,7 @@ function UGAviaControl(){
 		
 		if(g_temp.strip_finalPos < innerPos)
 			dpos = dpos * -1;
-			
+				
 		var newPos = innerPos + dpos;
 		
 		g_parent.positionInnerStrip(newPos);
@@ -279,6 +284,10 @@ function UGAviaControl(){
 	function moveStripToMousePosition(mousePos){		
 		
 		var innerPos = getInnerPos(mousePos);
+		
+		if(innerPos === null)
+			return(false);
+		
 		g_temp.is_strip_moving = true;
 		g_temp.strip_finalPos = innerPos;
 				

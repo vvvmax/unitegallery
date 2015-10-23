@@ -37,6 +37,7 @@ function UGLightbox(){
 	};
 	
 	this.events = {
+			LIGHTBOX_INIT: "lightbox_init"
 	};
 	
 	var g_temp = {
@@ -53,7 +54,8 @@ function UGLightbox(){
 			isArrowsOnHoverMode: false,
 			lastMouseX: null,
 			lastMouseY: null,
-			originalOptions: null
+			originalOptions: null,
+			isSliderChangedOnce:false
 	};
 	
 	var g_defaults = {
@@ -584,11 +586,11 @@ function UGLightbox(){
 			};
 			
 			g_objArrowLeft.stop().animate(objCssLeft,{
-				duration: g_temp.fadeDuration,
+				duration: g_temp.fadeDuration
 			});
 			
 			g_objArrowRight.stop().animate(objCssRight,{
-				duration: g_temp.fadeDuration,
+				duration: g_temp.fadeDuration
 			});
 			
 			
@@ -653,7 +655,7 @@ function UGLightbox(){
 			};
 			
 			g_objButtonClose.stop().animate(objCss,{
-				duration: g_temp.fadeDuration,
+				duration: g_temp.fadeDuration
 			});
 			
 		}else{
@@ -1089,7 +1091,7 @@ function UGLightbox(){
 	 */
 	function onItemChange(data, currentItem){
 		
-			
+		
 		if(g_temp.isCompact == false){	//wide mode
 			
 			if(g_objNumbers)
@@ -1114,6 +1116,13 @@ function UGLightbox(){
 					updateNumbersText(currentItem);
 			}
 		
+		}
+		
+		
+		//trigger lightbox init event
+		if(g_temp.isSliderChangedOnce == false){
+			g_temp.isSliderChangedOnce = true;
+			g_objThis.trigger(t.events.LIGHTBOX_INIT);
 		}
 		
 	}

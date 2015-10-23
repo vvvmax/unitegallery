@@ -510,6 +510,9 @@ function UGFunctions(){
 		
 		var htmlImage = objImage[0];
 		
+		if(typeof htmlImage == "undefined")
+			throw new Error("getImageOriginalSize error - Image not found");
+		
 		var output = {};
 		
 		if(typeof htmlImage.naturalWidth == "undefined"){
@@ -911,13 +914,15 @@ function UGFunctions(){
 	this.setElementSize = function(element, width, height){
 		
 	    var objCss = {
-			"width":width+"px",
-			"height":height+"px"
+			"width":width+"px"
 		}
-		
+	    
+	    if(height !== null && typeof height != "undefined")
+	    	objCss["height"] = height+"px"
+	    
 		element.css(objCss);	
-	
 	}
+	
 	
 	/**
 	 * clone element size and position
@@ -998,13 +1003,21 @@ function UGFunctions(){
 		return(objImage);
 	}
 	
+	
 	/**
 	 * scale image to fit parent, and place it into parent
+	 * parent can be width , height, or object
 	 */	
-	this.scaleImageCoverParent = function(objImage, objParent){
-	
-		var parentWidth = objParent.outerWidth();
-		var parentHeight = objParent.outerHeight();
+	this.scaleImageCoverParent = function(objImage, objParent, pHeight){
+		
+		
+		if(typeof objParent == "number"){
+			var parentWidth = objParent;
+			var parentHeight = pHeight;
+		}else{
+			var parentWidth = objParent.outerWidth();
+			var parentHeight = objParent.outerHeight();
+		}
 		
 		var objOriginalSize = t.getImageOriginalSize(objImage);
 
@@ -1356,6 +1369,17 @@ function UGFunctions(){
 		return(space);
 	}
 	
+
+	/**
+	 * get item size by space and gap
+	 */
+	this.getItemSizeInSpace = function(spaceSize, numItems, gapSize){
+		var itemSize = Math.floor((spaceSize - (numItems-1) * gapSize) / numItems);
+		
+		return(itemSize);
+	}
+	
+	
 	/**
 	 * get column x pos with even column sizes, start from 0
 	 */
@@ -1526,7 +1550,7 @@ function UGFunctions(){
 				lastMouseClientY: mousePos.clientY,
 				
 				scrollTop: jQuery(document).scrollTop(),
-				scrollDir: null,
+				scrollDir: null
 		};
 		
 		if(addData)
@@ -2186,6 +2210,17 @@ function UGFunctions(){
 	    return arr;
 	}
 
+	
+	/**
+	 * get object length
+	 */
+	this.getObjectLength = function(object){
+		var num = 0;
+		for(var item in object)
+			num++;
+		return num;
+	}
+	
 	
 	this.z_________END_GENERAL_FUNCTIONS_______ = function(){}
 	

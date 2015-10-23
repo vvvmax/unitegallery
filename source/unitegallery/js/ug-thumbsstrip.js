@@ -20,7 +20,11 @@ function UGThumbsStrip(){
 		strip_scroll_to_thumb_duration:500,			//duration of scrolling to thumb
 		strip_scroll_to_thumb_easing:"easeOutCubic",		//easing of scrolling to thumb animation
 		strip_control_avia:true,					//avia control - move the strip according strip moseover position
-		strip_control_touch:true					//touch control - move the strip by dragging it
+		strip_control_touch:true,					//touch control - move the strip by dragging it
+		strip_padding_top: 0,						//add some space from the top					
+		strip_padding_bottom: 0,					//add some space from the bottom
+		strip_padding_left: 0,						//add some space from left
+		strip_padding_right: 0						//add some space from right
 	}
 	
 	var g_temp = {
@@ -32,9 +36,10 @@ function UGThumbsStrip(){
 	
 	var g_sizes = {
 		stripSize:0,		//set after position thumbs
+		stripActiveSize:0,	//strip size without the padding
 		stripInnerSize:0,	
 		thumbSize:0,
-		thumbSecondSize:0,	//size of the height and width of the strip			
+		thumbSecondSize:0	//size of the height and width of the strip
 	}
 	
 	this.events = {		//events variables
@@ -84,6 +89,9 @@ function UGThumbsStrip(){
 		
 		g_objects = gallery.getObjects();
 		g_gallery = gallery;
+		
+		g_gallery.attachThumbsPanel("strip", t);
+		
 		g_objGallery = jQuery(gallery);
 		g_objWrapper = g_objects.g_objWrapper;
 		g_arrItems = g_objects.g_arrItems;
@@ -159,6 +167,25 @@ function UGThumbsStrip(){
 	
 	
 	/**
+	 * store strip size and strip active size in vars
+	 * do after all strip size change
+	 */
+	function storeStripSize(size){
+		
+		g_sizes.stripSize = size;
+
+		if(g_isVertical == false)
+			g_sizes.stripActiveSize = g_sizes.stripSize - g_options.strip_padding_left - g_options.strip_padding_right;
+		else
+			g_sizes.stripActiveSize = g_sizes.stripSize - g_options.strip_padding_top - g_options.strip_padding_bottom;
+			
+		if(g_sizes.stripActiveSize < 0)
+			g_sizes.stripActiveSize = 0;
+
+	}
+	
+	
+	/**
 	 * init some size parameters, before size init and after position thumbs
 	 */
 	function initSizeParams(){
@@ -180,7 +207,7 @@ function UGThumbsStrip(){
 				g_sizes.thumbSecondSize = thumbs_options.thumb_height;
 			}
 			
-			g_sizes.stripSize = g_objStrip.width();
+			storeStripSize(g_objStrip.width());
 			g_sizes.stripInnerSize = g_objStripInner.width();
 		
 		}else{		//vertical
@@ -192,9 +219,11 @@ function UGThumbsStrip(){
 				g_sizes.thumbSecondSize = thumbs_options.thumb_width;
 			}
 			
-			g_sizes.stripSize = g_objStrip.height();
+			storeStripSize(g_objStrip.height());
+
 			g_sizes.stripInnerSize = g_objStripInner.height();			
 		}
+
 		
 	}
 	
@@ -221,12 +250,15 @@ function UGThumbsStrip(){
 	 * position thumbnails in the thumbs panel
 	 */
 	function positionThumbs(){
-
+		
 		var arrThumbs = g_objStripInner.children(".ug-thumb-wrapper");
 		
 		var posx = 0;
 		var posy = 0;
-
+		
+		if(g_isVertical == false)
+			posy = g_options.strip_padding_top;
+		
 		for (i = 0; i < arrThumbs.length; i++) {
 			
 			var objThumb = jQuery(arrThumbs[i]);
@@ -316,7 +348,7 @@ function UGThumbsStrip(){
 	function scrollToThumbMin(objThumb){
 		
 		var objThumbPos = getThumbPos(objThumb);
-
+		
 		var scrollPos = objThumbPos.min * -1;
 		scrollPos = t.fixInnerStripLimits(scrollPos);
 
@@ -347,6 +379,7 @@ function UGThumbsStrip(){
 			return(false);
 		
 		var objBounds = getThumbsInsideBounds();
+		
 		var objThumbPos = getThumbPos(objThumb);
 		
 		if(objThumbPos.min < objBounds.minPosThumbs){			
@@ -483,6 +516,16 @@ function UGThumbsStrip(){
 		
 	}
 	
+	/**
+	 * on item change
+	 */
+	function onItemChange(){
+
+		var objItem = g_gallery.getSelectedItem();
+		g_thumbs.setThumbSelected(objItem.objThumbWrapper);
+		scrollToThumb(objItem.objThumbWrapper);
+	}
+	
 	
 	/**
 	 * init panel events
@@ -500,11 +543,7 @@ function UGThumbsStrip(){
 		});
 		
 		//on item change, make the thumb selected
-		g_objGallery.on(g_gallery.events.ITEM_CHANGE, function(){
-			var objItem = g_gallery.getSelectedItem();
-			g_thumbs.setThumbSelected(objItem.objThumbWrapper);
-			scrollToThumb(objItem.objThumbWrapper);
-		});
+		g_objGallery.on(g_gallery.events.ITEM_CHANGE, onItemChange);
 
 		
 		//position thumbs after each load on non fixed mode
@@ -548,19 +587,10 @@ function UGThumbsStrip(){
 	 */
 	function isStripMovingEnabled(){
 		
-		if(g_isVertical == false){		//for horizontal
-			
-			if(g_objStripInner.width() > g_objStrip.width())
-				return(true);		
+		if(g_sizes.stripInnerSize > g_sizes.stripActiveSize)
+			return(true);
+		else
 			return(false);
-			
-		}else{		//for vertical
-			
-			if(g_objStripInner.height() > g_objStrip.height())
-				return(true);		
-			return(false);
-			
-		}	
 		
 	}
 	
@@ -585,6 +615,7 @@ function UGThumbsStrip(){
 	 * get thumb position according the orientation in the inner strip
 	 */
 	function getThumbPos(objThumb){
+		
 		var objReturn = {};
 		
 		var objPos = objThumb.position();
@@ -596,7 +627,8 @@ function UGThumbsStrip(){
 			objReturn.min = objPos.top;
 			objReturn.max = objPos.top + g_sizes.thumbSize;
 		}
-				
+
+		
 		return(objReturn);
 	}
 	
@@ -622,29 +654,13 @@ function UGThumbsStrip(){
 	}
 	
 	
-	/**
-	 * fix inner position by check boundaries limit
-	 */
-	this.fixInnerStripLimits = function(distPos){
-		var maxPos = 0, minPos;
-		if(g_isVertical == false)
-			minPos = -(g_objStripInner.width() - g_objStrip.width());
-		else
-			minPos = -(g_objStripInner.height() - g_objStrip.height());	
-		
-		if(distPos > maxPos)
-			distPos = maxPos;
-		
-		if(distPos < minPos)
-			distPos = minPos;
-		return(distPos);
-	}
 	
 	
 	/**
 	* position inner strip on some pos according the orientation
 	*/
 	this.positionInnerStrip = function(pos, isAnimate){
+		
 		if(isAnimate === undefined)
 			var isAnimate = false;
 		
@@ -710,11 +726,11 @@ function UGThumbsStrip(){
 		var posMin = t.getInnerStripPos() * -1;
 		
 		if(g_isVertical == false){
-			var posMax = posMin + g_objStrip.width();
+			var posMax = posMin + g_sizes.stripSize;
 			var thumbPosMin = thumbPos.left;
 			var thumbPosMax = thumbPos.left + objThumb.width();			
 		}else{
-			var posMax = posMin + g_objStrip.height();
+			var posMax = posMin + g_sizes.stripSize;
 			var thumbPosMin = thumbPos.top;
 			var thumbPosMax = thumbPos.top + objThumb.height();			
 		}
@@ -744,15 +760,38 @@ function UGThumbsStrip(){
 	this.getInnerStripLimits = function(){
 		
 		var output = {};
-		output.maxPos = 0;
 		
 		if(g_isVertical == false)
-			output.minPos = -(g_objStripInner.width() - g_objStrip.width());
+			output.maxPos = g_options.strip_padding_left;
 		else
-			output.minPos = -(g_objStripInner.height() - g_objStrip.height());
+			output.maxPos = g_options.strip_padding_top;
+		
+		//debugLine(g_sizes.stripActiveSize);
+		
+		output.minPos = -(g_sizes.stripInnerSize - g_sizes.stripActiveSize);
 		
 		return(output);
 	}
+
+	
+	/**
+	 * fix inner position by check boundaries limit
+	 */
+	this.fixInnerStripLimits = function(distPos){
+		
+		var minPos;
+		
+		var objLimits = t.getInnerStripLimits();
+		
+		if(distPos > objLimits.maxPos)
+			distPos = objLimits.maxPos;
+		
+		if(distPos < objLimits.minPos)
+			distPos = objLimits.minPos;
+		
+		return(distPos);
+	}
+	
 	
 	
 	/**
@@ -806,6 +845,8 @@ function UGThumbsStrip(){
 		 objCssStrip["height"] = height+"px";
 		 
 		 g_objStrip.css(objCssStrip);
+
+		 storeStripSize(height);
 		 
 		 //set inner strip params
 		 var objCssInner = {};
@@ -826,24 +867,28 @@ function UGThumbsStrip(){
 	 * the height size is set automatically from options
 	 */
 	this.setSizeHorizontal = function(width){
-		
-		 if(g_isVertical == false){
+				
+		 if(g_isVertical == true){
 			 throw new Error("setSizeHorizontal error, the strip size is not horizontal");
 			 return(false);
 		 }
 		
-		var height = g_sizes.thumbSecondSize;
+		var height = g_sizes.thumbSecondSize + g_options.strip_padding_top + g_options.strip_padding_bottom;
 		
-		 var objCssStrip = {};
-		 objCssStrip["width"] = width+"px";
-		 objCssStrip["height"] = height+"px";
+		var objCssStrip = {};
+		objCssStrip["width"] = width+"px";
+		objCssStrip["height"] = height+"px";
 		 
-		 g_objStrip.css(objCssStrip);
-		 		 
+		g_objStrip.css(objCssStrip);
+		
+		storeStripSize(width);
+		
+		var innerLeft = g_options.strip_padding_left;
+		
 		 //set inner strip params
 		 var objCssInner = {};
 		 objCssInner["height"] = height+"px";
-		 objCssInner["left"] = "0px";
+		 objCssInner["left"] = innerLeft + "px";
 		 objCssInner["top"] = "0px";
 		 
 		 g_objStripInner.css(objCssInner);
@@ -866,17 +911,18 @@ function UGThumbsStrip(){
 	 * resize the panel according the orientation
 	 */
 	this.resize = function(newSize){
-		
+				
 		if(g_isVertical == false){
 			
 			g_objStrip.width(newSize);
-			
+			g_sizes.stripActiveSize = newSize - g_options.strip_padding_left - g_options.strip_padding_right;
+
 		}else{
-			
 			g_objStrip.height(newSize);
+			g_sizes.stripActiveSize = newSize - g_options.strip_padding_top - g_options.strip_padding_bottom;
 		}
 		
-		g_sizes.stripSize = newSize;
+		storeStripSize(newSize);
 		
 		checkControlsEnableDisable();
 		
@@ -930,12 +976,34 @@ function UGThumbsStrip(){
 			g_aviaControl:g_aviaControl,
 			g_touchThumbsControl:g_touchThumbsControl,
 			isVertical: g_isVertical,
-			g_options: commonOpitions
+			g_options: commonOpitions,
+			g_thumbs: g_thumbs
 		};
 		
 		return(obj);
 	}
 	
+	
+	/**
+	 * get thumbs onject
+	 */
+	this.getObjThumbs = function(){
+		
+		return(g_thumbs);
+	}
+	
+	
+	/**
+	 * get selected thumb
+	 */
+	this.getSelectedThumb = function(){
+		
+		var selectedIndex = g_gallery.getSelectedItemIndex();
+		if(selectedIndex == -1)
+			return(null);
+		
+		return g_thumbs.getThumbByIndex(selectedIndex);
+	}
 	
 	
 	/**

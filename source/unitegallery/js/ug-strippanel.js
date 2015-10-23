@@ -105,11 +105,8 @@ function UGStripPanel() {
 		g_panelBase.init(g_gallery, g_temp, t, g_options, g_objThis);
 		
 		//init thumbs strip
-		g_gallery.initThumbsPanel("strip", g_options);
-
-		// get the grid object
-		var objects = g_gallery.getObjects();
-		g_objStrip = objects.g_objThumbs;
+		g_objStrip = new UGThumbsStrip();
+		g_objStrip.init(g_gallery, g_options);
 		
 	}
 
@@ -257,13 +254,11 @@ function UGStripPanel() {
 		g_temp.panelHeight = panelHeight;
 
 		// set strip size
-		var stripWidth = panelWidth - g_options.strippanel_padding_left
-				- g_options.strippanel_padding_right;
+		var stripWidth = panelWidth - g_options.strippanel_padding_left	- g_options.strippanel_padding_right;
 
 		if (g_objButtonNext) {
 			var buttonWidth = g_objButtonNext.outerWidth();
-			stripWidth = stripWidth - buttonWidth * 2
-					- g_options.strippanel_padding_buttons * 2;
+			stripWidth = stripWidth - buttonWidth * 2 - g_options.strippanel_padding_buttons * 2;
 		}
 
 		g_objStrip.resize(stripWidth);

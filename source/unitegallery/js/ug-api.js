@@ -10,6 +10,10 @@ function UG_API(gallery){
 	g_gallery = gallery;
 	g_objGallery = jQuery(gallery);
 	
+	this.events = {
+			API_INIT_FUNCTIONS:"api_init",
+			API_ON_EVENT:"api_on_event"
+	}
 	
 	/**
 	 * get item data for output
@@ -83,7 +87,9 @@ function UG_API(gallery){
 			break;
 		}
 		
+		g_objGallery.trigger(t.events.API_ON_EVENT, [event, handlerFunction]);
 	}
+	
 	
 	/**
 	 * start playing 
@@ -242,5 +248,8 @@ function UG_API(gallery){
 	this.destroy = function(){
 		g_gallery.destroy();
 	}
+	
+	//trigger api on init event
+	g_objGallery.trigger(t.events.API_INIT_FUNCTIONS, t);
 	
 }

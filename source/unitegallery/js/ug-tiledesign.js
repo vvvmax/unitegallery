@@ -7,7 +7,20 @@ function UGTileDesign(){
 	var g_gallery = new UniteGalleryMain(), g_objGallery;
 	var g_functions = new UGFunctions(), g_objParentWrapper, g_objWrapper;
 	var g_thumbs = new UGThumbsGeneral(), g_items;
-
+	
+	this.resizemode = {			//modes constants for resize tile
+		FULL: "full",
+		WRAPPER_ONLY: "wrapper_only",
+		VISIBLE_ELEMENTS: "visible_elements"
+	};
+	
+	this.sizeby = {				//sizeby option constants
+		GLOBAL_RATIO: "global_ratio",
+		TILE_RATIO: "tile_ratio",
+		IMAGE_RATIO: "image_ratio",
+		CUSTOM: "custom"
+	};
+	
 	this.events = {
 			TILE_CLICK: "tile_click"
 	};
@@ -16,6 +29,8 @@ function UGTileDesign(){
 						
 			tile_width: 250,						//in case of fixed size: tile width
 			tile_height: 200,						//in case of fixed size: tile height
+			tile_size_by:t.sizeby.IMAGE_RATIO,		//image ratio, tile ratio , global_ratio - decide by what parameter resize the tile
+			tile_visible_before_image:false,		//tile visible before image load
 			
 			tile_enable_border:false,				//enable border of the tile
 			tile_border_width:3,					//tile border width
@@ -66,8 +81,11 @@ function UGTileDesign(){
 	};
 	
 	var g_temp = {
-		isFixedMode:false,
+		ratioByHeight:0,
+		ratioByWidth:0,
 		eventSizeChange: "thumb_size_change",
+		funcCustomTileHtml: null,
+		funcCustomPositionElements: null,
 		funcParentApproveClick: null,
 		isSaparateIcons: false,
 		tileInnerReduce: 0		//how much reduce from the tile inner elements from border mostly
@@ -98,8 +116,12 @@ function UGTileDesign(){
 		g_thumbs.init(gallery, g_options);	
 		
 		var objCustomOptions = {};	
-				
-		g_thumbs.setCustomThumbs(setHtmlThumb,["overlay"], objCustomOptions);
+		var customThumbsAdd = ["overlay"];
+		
+		if(g_temp.funcCustomTileHtml)
+			customThumbsAdd = [];
+		
+		g_thumbs.setCustomThumbs(setHtmlThumb, customThumbsAdd, objCustomOptions);
 		
 		//get thumb default options too:
 		var thumbOptions = g_thumbs.getOptions();
@@ -107,6 +129,11 @@ function UGTileDesign(){
 		
 		//check if saparate icons
 		g_temp.isSaparateIcons = !g_functions.isRgbaSupported();
+		
+		//set ratios of fixed mode
+		g_temp.ratioByWidth = g_options.tile_width / g_options.tile_height;
+		g_temp.ratioByHeight = g_options.tile_height / g_options.tile_width;
+		
 	}
 	
 	
@@ -153,19 +180,32 @@ function UGTileDesign(){
 	 * set thumb html
 	 */
 	function setHtmlThumb(objThumbWrapper, objItem){
-				
-		var html = "<img src='"+objItem.urlThumb+"' alt='"+objItem.title+"' class='ug-thumb-image'>";
-		objThumbWrapper.append(html);
+		
 		objThumbWrapper.addClass("ug-tile");
+		
+		if(g_temp.funcCustomTileHtml){
+			g_temp.funcCustomTileHtml(objThumbWrapper, objItem);
+			return(false);
+		}
+		
+		//add thumb image:
+		var classImage = "ug-thumb-image";
+
+		if(g_options.tile_enable_image_effect == false || g_options.tile_image_effect_reverse == true)
+			classImage += " ug-trans-enabled";
+		
+		
+		var html = "<img src='"+objItem.urlThumb+"' alt='"+objItem.title+"' class='"+classImage+"'>";
+		objThumbWrapper.append(html);
 		
 		var objThumbImage = objThumbWrapper.children(".ug-thumb-image");
 		
-		if(g_temp.isFixedMode == true){
+		if(g_options.tile_size_by == t.sizeby.GLOBAL_RATIO){
 			objThumbWrapper.fadeTo(0,0);		//turn on in thumbsGeneral
 			
 			g_functions.setElementSize(objThumbWrapper, g_options.tile_width, g_options.tile_height);
-			objThumbWrapper.addClass("ug-tile-fixed");
 		}
+		
 		
 		//---- set thumb styles ---- 
 		
@@ -269,10 +309,15 @@ function UGTileDesign(){
 		
 		//add image overlay
 		if(g_options.tile_enable_image_effect == true){
-			var imageOverlayHtml = "<div class='ug-tile-image-overlay' style='display:none'>";
+			
+			var imageEffectClassAdd = "";
+			if(g_options.tile_image_effect_reverse == false)
+				imageEffectClassAdd = " ug-trans-enabled";
+			
+			var imageOverlayHtml = "<div class='ug-tile-image-overlay"+imageEffectClassAdd+"' style='display:none'>";
 			var imageEffectClass = " ug-"+g_options.tile_image_effect_type+"-effect";
 			
-			imageOverlayHtml += "<img src='"+objItem.urlThumb+"' alt='"+objItem.title+"' class='"+imageEffectClass+"'>";
+			imageOverlayHtml += "<img src='"+objItem.urlThumb+"' alt='"+objItem.title+"' class='"+imageEffectClass + imageEffectClassAdd+"'>";
 			imageOverlayHtml += "</div>";
 			
 			objThumbWrapper.append(imageOverlayHtml);
@@ -308,6 +353,10 @@ function UGTileDesign(){
 						
 			objThumbWrapper.data("objTextPanel", objTextPanel);
 		}
+		
+		//add additional html
+		if(objItem.addHtml !== null)
+			objThumbWrapper.append(objItem.addHtml);
 		
 	}
 	
@@ -384,6 +433,46 @@ function UGTileDesign(){
 		
 		return objButton;
 	}
+
+	
+	/**
+	 * get tile ratio
+	 */
+	function getTileRatio(objTile){
+		
+		//global ratio
+		var ratio = g_temp.ratioByHeight;
+		
+		switch(g_options.tile_size_by){
+			default:		//global ratio
+				ratio = g_temp.ratioByHeight
+			break;
+			case t.sizeby.IMAGE_RATIO:
+
+				if(!objTile)
+					throw new Error("tile should be given for tile ratio");
+				
+				var item = t.getItemByTile(objTile);
+				
+				if(typeof item.thumbRatioByHeight != "undefined"){
+				
+					if(item.thumbRatioByHeight == 0){
+						throw new Error("the item ratio not inited yet");
+					}
+				
+					ratio = item.thumbRatioByHeight;
+				}
+			
+			break;
+			case t.sizeby.CUSTOM:
+				return null;
+			break;
+		}
+		
+		
+		return(ratio);
+	}
+	
 	
 	/**
 	 * get button zoom
@@ -421,46 +510,56 @@ function UGTileDesign(){
 	
 	function _________________SETTERS________________(){};
 	
+	
+	/**
+	 * position tile images elements
+	 * width, height - tile width height
+	 */
+	function positionElements_images(objTile, width, height){
 
+		var objImageOverlay = getTileOverlayImage(objTile);
+		var objThumbImage = t.getTileImage(objTile);
+		var objImageEffect = getTileImageEffect(objTile);
+		
+		width -= g_temp.tileInnerReduce;
+		height -= g_temp.tileInnerReduce;
+		
+		//scale image
+		if(g_options.tile_enable_image_effect == false){
+
+			g_functions.scaleImageCoverParent(objThumbImage, width, height);
+						
+		}else{	//width the effect
+			g_functions.setElementSize(objImageOverlay, width - g_temp.tileInnerReduce, height - g_temp.tileInnerReduce);
+
+			g_functions.scaleImageCoverParent(objImageEffect, width, height);
+			
+			g_functions.cloneElementSizeAndPos(objImageEffect, objThumbImage);
+			
+			setTimeout(function(){
+				g_functions.cloneElementSizeAndPos(objImageEffect, objThumbImage);
+			},500);
+			
+		}
+		
+	}
+
+	
 	/**
 	 * position the elements
 	 */
 	function positionElements(objTile){
+		
+		if(objTile.index() == 0){
+			//debugLine("position", true);
+		}
 		
 		var objItem = t.getItemByTile(objTile);
 		var objButtonZoom = getButtonZoom(objTile);
 		var objButtonLink = getButtonLink(objTile);
 		var sizeTile = g_functions.getElementSize(objTile);
 
-		var objImageOverlay = getTileOverlayImage(objTile);
-		var objThumbImage = t.getTileImage(objTile);
-		var objImageEffect = getTileImageEffect(objTile);
-
-		//set image overlay size
-		if(g_options.tile_enable_image_effect == true){
-			g_functions.setElementSize(objImageOverlay, sizeTile.width - g_temp.tileInnerReduce, sizeTile.height - g_temp.tileInnerReduce);
-		}
-
-		
-		//scale images
-		if(g_temp.isFixedMode){
-
-			if(g_options.tile_enable_image_effect == false){
-
-				g_functions.scaleImageCoverParent(objThumbImage, objTile);
-				
-			}else{	//width the effect
-
-				g_functions.scaleImageCoverParent(objImageEffect, objImageOverlay);
-				
-				g_functions.cloneElementSizeAndPos(objImageEffect, objThumbImage);
-				
-				setTimeout(function(){
-					g_functions.cloneElementSizeAndPos(objImageEffect, objThumbImage);
-				},500);
-			}
-			
-		}
+		positionElements_images(objTile, sizeTile.width, sizeTile.height);
 
 		var objTextPanel = getTextPanel(objTile);
 		
@@ -588,7 +687,6 @@ function UGTileDesign(){
 			var startPos = -panelSize.height;
 			var endPos = 0;
 			
-			
 			if(isActive == true){
 								
 				objTextPanel.fadeTo(0,1);
@@ -700,6 +798,24 @@ function UGTileDesign(){
 		
 	}
 	
+	/**
+	 * resize tile text panel to a new width
+	 */
+	function resizeTileTextPanel(objTile, newWidth){
+		
+		var textPanel = getTextPanel(objTile);
+		if(!textPanel)
+			return(false);
+		
+		var tileSize = g_functions.getElementSize(objTile);
+		if(newWidth < tileSize.width)
+			return(false);
+		
+		textPanel.refresh(false, true, newWidth);
+	}
+
+	
+	function _________________EVENTS________________(){};
 	
 	
 	/**
@@ -709,11 +825,11 @@ function UGTileDesign(){
 
 		objTile = jQuery(objTile);
 		
-		if(g_temp.isFixedMode == true && objTile.data("image_placed") !== true && forcePosition !== true)
+		//position elements only if the image loaded (placed)
+		if(g_options.tile_visible_before_image == true && objTile.data("image_placed") !== true && forcePosition !== true)
 			return(true);
-		
-		positionElements(objTile);
 
+		positionElements(objTile);
 	}
 	
 	
@@ -721,7 +837,7 @@ function UGTileDesign(){
 	 * on place image event after images loaded
 	 */
 	function onPlaceImage(data, objTile, objImage){
-				
+		
 		positionElements(objTile);
 		objImage.fadeTo(0,1);
 		
@@ -891,9 +1007,10 @@ function UGTileDesign(){
 	 */
 	this.setFixedMode = function(){
 		
-		g_temp.isFixedMode = true;
-	
+		g_options.tile_size_by = t.sizeby.GLOBAL_RATIO;
+		g_options.tile_visible_before_image = true;
 	}
+	
 	
 	/**
 	 * set parent approve click function
@@ -903,130 +1020,70 @@ function UGTileDesign(){
 	}
 	
 	
+	
+	
 	/**
 	 * resize tile. If no size given, resize to original size
+	 * the resize mode taken from resize modes constants, default is full
 	 */
-	this.resizeTile = function(objTile, newWidth, newHeight){
-		
-		if(g_temp.isFixedMode == true){
+	this.resizeTile = function(objTile, newWidth, newHeight, resizeMode){
 			
 			if(!newWidth){
+				
 				var newWidth = g_options.tile_width;
 				var newHeight = g_options.tile_height;
-			}else{
-				if(!newHeight)
-					var newHeight = g_options.tile_height / g_options.tile_width * newWidth;
+				
+			}else{		//only height is missing
+				if(!newHeight){
+					var newHeight = t.getTileHeightByWidth(newWidth, objTile);
+				}
 			}
+			
 			g_functions.setElementSize(objTile, newWidth, newHeight);
 			
-			t.triggerSizeChangeEvent(objTile, true);
-			
-		}else{
-			
-			var objCss = {};
-			var objInnerCSS = {};
-			
-			if(newWidth !== null){
-				objCss["width"] = newWidth+"px";
-				objInnerCSS["width"] = newWidth-g_temp.tileInnerReduce+"px";
+			switch(resizeMode){
+				default:
+				case t.resizemode.FULL:
+					t.triggerSizeChangeEvent(objTile, true);
+				break;
+				case t.resizemode.WRAPPER_ONLY:
+					return(true);
+				break;
+				case t.resizemode.VISIBLE_ELEMENTS:
+					
+					if(g_temp.funcCustomTileHtml){
+						t.triggerSizeChangeEvent(objTile, true);
+						return(true);
+					}
+					
+					//resize images
+					positionElements_images(objTile, newWidth, newHeight);
+					
+					//resize text panel, if visible
+					if(g_options.tile_enable_textpanel == true && g_options.tile_textpanel_always_on == true && newWidth)
+							resizeTileTextPanel(objTile, newWidth-g_temp.tileInnerReduce);
+					
+				break;
 			}
-			
-			if(newHeight !== null){
-				objCss["height"] = newHeight+"px";
-				objInnerCSS["height"] = newHeight-g_temp.tileInnerReduce+"px";
-			}
-			
-			objTile.css(objCss);
-			
-			//resize text panel, if visible
-			if(g_options.tile_enable_textpanel == true && g_options.tile_textpanel_always_on == true && newWidth)
-					t.resizeTileTextPanel(objTile, newWidth-g_temp.tileInnerReduce);
-
-			//resize image effect
-			if(g_options.tile_enable_image_effect == true)
-				objTile.find(".ug-tile-image-overlay").css(objInnerCSS);
-			
-		}
 		
 	}
 
 	
 	/**
-	 * resize all thumbs
+	 * resize all tiles 
 	 */
-	this.resizeAllTiles = function(newWidth, newHeight){
+	this.resizeAllTiles = function(newWidth, resizeMode){
 		
-		if(!newHeight)
-			var newHeight = g_options.tile_height / g_options.tile_width * newWidth;
-
+		var newHeight = null;
+			
+		if(g_options.tile_size_by == t.sizeby.GLOBAL_RATIO)
+			newHeight = t.getTileHeightByWidth(newWidth);
+		
 		var objTiles = g_thumbs.getThumbs();
 		objTiles.each(function(index, objTile){
-			t.resizeTile(jQuery(objTile), newWidth, newHeight);
+			t.resizeTile(jQuery(objTile), newWidth, newHeight, resizeMode);
 		});
 		
-	}
-	
-	
-	
-	/**
-	 * resize tile text panel to a new width
-	 */
-	this.resizeTileTextPanel = function(objTile, newWidth){
-		
-		var textPanel = getTextPanel(objTile);
-		if(!textPanel)
-			return(false);
-		
-		var tileSize = g_functions.getElementSize(objTile);
-		if(newWidth < tileSize.width)
-			return(false);
-		
-		textPanel.refresh(false, true, newWidth);
-	}
-	
-	
-	/**
-	 * set width of all tiles - for non fixed mode
-	 * set image overlay width also if available
-	 * set before position elements for the transition
-	 */
-	this.setAllTilesWidth = function(width){
-		
-		var objThumbs = g_thumbs.getThumbs();
-		
-		//resize all thumbs
-		objThumbs.css("width", width + "px");
-		
-		//width of the inner elements
-		var innerWidth = width - g_temp.tileInnerReduce;
-		
-		//resize text panel, if visible
-		if(g_options.tile_enable_textpanel == true && g_options.tile_textpanel_always_on == true){
-
-			for(var index = 0; index < objThumbs.length; index++){
-				var objTile = jQuery(objThumbs[index]);
-				t.resizeTileTextPanel(objTile, innerWidth);
-			}
-		}
-		
-		//set image overlay width and height
-		if(g_options.tile_enable_image_effect == true && g_options.tile_image_effect_reverse == false)
-			objThumbs.find(".ug-tile-image-overlay").css("width",innerWidth + "px");
-
-
-	}
-	
-	
-	/**
-	 * get tile height by width proportianally
-	 */
-	this.getTileHeightByWidth = function(objTile, width){
-
-		var objItem = t.getItemByTile(objTile);
-		var height =  width * objItem.thumbRatioByHeight;
-		height = Math.floor(height);
-		
-		return(height);
 	}
 	
 	
@@ -1052,7 +1109,7 @@ function UGTileDesign(){
 	 * the force is only for fixed mode
 	 */
 	this.triggerSizeChangeEventAllTiles = function(isForce){
-
+		
 		var objThumbs = g_thumbs.getThumbs();
 
 		objThumbs.each(function(){
@@ -1095,11 +1152,18 @@ function UGTileDesign(){
 	
 	
 	/**
+	 * set custom tile html function
+	 */
+	this.setCustomFunctions = function(funcCustomHtml, funcPositionElements){
+		g_temp.funcCustomTileHtml = funcCustomHtml;
+		g_temp.funcCustomPositionElements = funcPositionElements;
+	}
+	
+	
+	/**
 	 * run the tile design
 	 */
 	this.run = function(){
-		
-		//return(false);
 		
 		var objThumbs = g_thumbs.getThumbs();
 		
@@ -1109,13 +1173,15 @@ function UGTileDesign(){
 		
 		g_thumbs.setHtmlProperties();
 		
-		if(g_temp.isFixedMode == true){
-			objThumbs.children(".ug-thumb-image").fadeTo(0,0);			
+		if(g_options.tile_visible_before_image == true){
+			objThumbs.children(".ug-thumb-image").fadeTo(0,0);
 			g_thumbs.loadThumbsImages();
 		}
+		
 	}
 
 	this._____________EXTERNAL_GETTERS____________=function(){};
+	
 	
 	/**
 	 * get thumbs general option
@@ -1146,4 +1212,37 @@ function UGTileDesign(){
 	this.getItemByTile = function(objTile){
 		return g_thumbs.getItemByThumb(objTile);
 	}
+	
+	
+	/**
+	 * get tile height by width
+	 */
+	this.getTileHeightByWidth = function(newWidth, objTile){
+		
+		var ratio = getTileRatio(objTile);
+		
+		if(ratio === null)
+			return(null);
+		
+		var height = Math.floor( (newWidth - g_temp.tileInnerReduce) * ratio) + g_temp.tileInnerReduce;
+		
+		return(height);
+	}
+	
+	/**
+	 * get tile original size
+	 */
+	this.getTileImageSize = function(objTile){
+        var objItem = t.getItemByTile(objTile);
+        if(!objItem.thumbWidth || !objItem.thumbHeight)
+        	throw new Error("Can't get image size - image not inited.");
+        
+        var objSize = {
+        		width: objItem.thumbWidth,
+        		height: objItem.thumbHeight
+        };
+        
+        return(objSize);
+	}
+	
 }

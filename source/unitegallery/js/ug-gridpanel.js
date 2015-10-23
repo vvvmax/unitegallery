@@ -111,6 +111,11 @@ function UGGridPanel(){
 		
 		//init the base panel object:
 		g_panelBase.init(g_gallery, g_temp, t, g_options, g_objThis);		
+
+		//init the grid 
+		g_objGrid = new UGThumbsGrid();
+		g_objGrid.init(g_gallery, g_options);
+
 	}
 	
 	
@@ -183,13 +188,6 @@ function UGGridPanel(){
 		//hide the arrows
 		g_objArrowPrev.fadeTo(0,0);
 		g_objArrowNext.fadeTo(0,0);
-		
-		//init the grid panel		
-		g_gallery.initThumbsPanel("grid", g_options);
-		
-		//get the grid object
-		var objects = g_gallery.getObjects();
-		g_objGrid = objects.g_objThumbs;
 		
 		g_objGrid.setHtml(g_objPanel);
 		

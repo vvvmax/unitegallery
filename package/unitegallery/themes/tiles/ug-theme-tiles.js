@@ -20,7 +20,8 @@ function UGTheme_tiles(){
 			theme_preloading_height: 200,		//the height of the preloading div, it show before the gallery
 			theme_preloader_vertpos: 100,		//the vertical position of the preloader
 			theme_gallery_padding: 0,			//the horizontal padding of the gallery from the sides
-			theme_appearance_order: "normal"	//normal, shuffle, keep - the appearance order of the tiles. applying only to columns type
+			theme_appearance_order: "normal",	//normal, shuffle, keep - the appearance order of the tiles. applying only to columns type
+			theme_auto_open:null				//auto open lightbox at start
 	};
 	
 	var g_defaults = {
@@ -137,6 +138,7 @@ function UGTheme_tiles(){
 		
 		g_tiles.run();
 		g_lightbox.run();
+		
 	}
 
 	
@@ -199,6 +201,18 @@ function UGTheme_tiles(){
 		
 		g_objWrapper.height(galleryHeight);
 	}
+
+	/**
+	 * open lightbox at start if needed
+	 */
+	function onLightboxInit(){
+
+		if(g_options.theme_auto_open !== null){
+			g_lightbox.open(g_options.theme_auto_open);
+			g_options.theme_auto_open = null;
+		}
+		
+	}
 	
 	
 	/**
@@ -217,6 +231,9 @@ function UGTheme_tiles(){
 		jQuery(g_objTileDesign).on(g_objTileDesign.events.TILE_CLICK, onTileClick);
 		
 		g_objGallery.on(g_gallery.events.GALLERY_BEFORE_REQUEST_ITEMS, onBeforeReqestItems);
+
+		jQuery(g_lightbox).on(g_lightbox.events.LIGHTBOX_INIT, onLightboxInit);
+
 	}
 	
 	
@@ -229,6 +246,8 @@ function UGTheme_tiles(){
 		jQuery(g_tiles).off(g_tiles.events.TILES_FIRST_PLACED);
 		
 		g_objGallery.off(g_gallery.events.GALLERY_BEFORE_REQUEST_ITEMS);
+
+		jQuery(g_lightbox).off(g_lightbox.events.LIGHTBOX_INIT);
 		
 		g_tiles.destroy();
 		g_lightbox.destroy();

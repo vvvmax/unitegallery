@@ -374,8 +374,8 @@ function UGHtml5MediaAPI(){
 			return(true);
 		}
 		
-		g_ugFunctions.loadJs("cdnjs.cloudflare.com/ajax/libs/mediaelement/2.13.2/js/mediaelement.js", true);
-		g_ugFunctions.loadCss("cdnjs.cloudflare.com/ajax/libs/mediaelement/2.13.2/css/mediaelementplayer.min.css", true);
+		g_ugFunctions.loadJs("cdnjs.cloudflare.com/ajax/libs/mediaelement/2.18.1/mediaelement.min.js", true);
+		g_ugFunctions.loadCss("cdnjs.cloudflare.com/ajax/libs/mediaelement/2.18.1/mediaelementplayer.min.css", true);
 		
 		g_ugHtml5MediaAPI.isAPILoaded = true;		
 	}
@@ -397,8 +397,8 @@ function UGHtml5MediaAPI(){
 		g_player = null;
 		g_isPlayerReady = false;
 		
-		var urlFlash = location.protocol + "//cdnjs.cloudflare.com/ajax/libs/mediaelement/2.13.2/js/flashmediaelement-cdn.swf";
-		var urlSilverlight = location.protocol + "//cdnjs.cloudflare.com/ajax/libs/mediaelement/2.13.2/js/silverlightmediaelement.xap";
+		var urlFlash = location.protocol + "//cdnjs.cloudflare.com/ajax/libs/mediaelement/2.18.1/flashmediaelement-cdn.swf";
+		var urlSilverlight = location.protocol + "//cdnjs.cloudflare.com/ajax/libs/mediaelement/2.18.1/silverlightmediaelement.xap";
 
 		var htmlID = divID + "_video";
 		var htmlAutoplay = "";

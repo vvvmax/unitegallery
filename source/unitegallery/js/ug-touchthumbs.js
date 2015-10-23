@@ -266,7 +266,8 @@ function UGTouchThumbsControl(){
 		
 		
 		var innerStripPos = g_parent.getInnerStripPos();
-		var newPos = innerStripPos + path;		
+		var newPos = innerStripPos + path;	
+		
 		var correctPos = g_parent.fixInnerStripLimits(newPos);
 		var objLimits = g_parent.getInnerStripLimits();
 		
@@ -274,7 +275,6 @@ function UGTouchThumbsControl(){
 		var limitsBreakAddition = g_serviceParams.limitsBreakAddition;
 		var doQueue = false;
 		var returnPos = correctPos;
-		
 		
 		//fix the first animation position (off the limits)
 		if(newPos > objLimits.maxPos){

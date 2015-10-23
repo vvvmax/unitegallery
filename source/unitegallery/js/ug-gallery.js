@@ -13,33 +13,85 @@
 		objGallery.run(galleryID, options);
 		
 		var api = new UG_API(objGallery);
+		
 		return(api);
 	}
 
-
+	
+	/**
+	 * check for min jquery version
+	 */
+	function ugCheckForMinJQueryVersion(){
+		
+		var isMinJQuery = g_ugFunctions.checkMinJqueryVersion("1.8.0");
+		
+		if(isMinJQuery == false)
+			throw new Error("The gallery can run from jquery 1.8 You have jQuery "+jQuery.fn.jquery+" Please update your jQuery library.");
+	}
+	
+	
 	/**
 	 * check for errors function
 	 */
 	function ugCheckForErrors(galleryID, type){
-		
-		if(typeof jQuery.fn.unitegallery == "function")
-			return(true);
-		
-		var errorMessage = "Unite Gallery Error: You have some jquery.js library include that comes after the gallery files js include.";
-		errorMessage += "<br> This include eliminates the gallery libraries, and make it not work.";
-		
-		if(type == "cms"){
-			errorMessage += "<br><br> To fix it you can:<br>&nbsp;&nbsp;&nbsp; 1. In the Gallery Settings -> Troubleshooting set option:  <strong><b>Put JS Includes To Body</b></strong> option to true.";
-			errorMessage += "<br>&nbsp;&nbsp;&nbsp; 2. Find the double jquery.js include and remove it.";
-		}else{
-			errorMessage += "<br><br> Please find and remove this jquery.js include and the gallery will work. <br> * There should be only one jquery.js include before all other js includes in the page.";			
+
+		/**
+		 * check for jquery presents
+		 */
+		function checkForJqueryPresents(){
+			if(typeof jQuery == "undefined")
+				throw new Error("jQuery library not included");
 		}
 		
-		errorMessage = "<div style='font-size:16px;color:#BC0C06;max-width:900px;border:1px solid red;padding:10px;'>" + errorMessage + "</div>"
+		/**
+		 * check for double jquery error
+		 */
+		function checkForDoubleJQuery(){
+
+			if(typeof jQuery.fn.unitegallery == "function")
+				return(true);
+			
+			var errorMessage = "You have some jquery.js library include that comes after the gallery files js include.";
+			errorMessage += "<br> This include eliminates the gallery libraries, and make it not work.";
+			
+			if(type == "cms"){
+				errorMessage += "<br><br> To fix it you can:<br>&nbsp;&nbsp;&nbsp; 1. In the Gallery Settings -> Troubleshooting set option:  <strong><b>Put JS Includes To Body</b></strong> option to true.";
+				errorMessage += "<br>&nbsp;&nbsp;&nbsp; 2. Find the double jquery.js include and remove it.";
+			}else{
+				errorMessage += "<br><br> Please find and remove this jquery.js include and the gallery will work. <br> * There should be only one jquery.js include before all other js includes in the page.";			
+			}
+			
+			
+			throw new Error(errorMessage);
+		}
 		
-		jQuery(galleryID).show().html(errorMessage);
+		try{
+			if(type == "jquery"){
+				checkForJqueryPresents();
+				ugCheckForMinJQueryVersion();
+			}else{
+				ugCheckForMinJQueryVersion();
+				checkForDoubleJQuery();
+			}
+			
+		}catch(objError){
+			
+			var message = objError.message;
+			message = "Unite Gallery Error: "+ message;
+			message = "<div style='font-size:16px;color:#BC0C06;max-width:900px;border:1px solid red;padding:10px;'>" + message + "</div>"
+			
+			if(type == "jquery"){
+				var objGallery = document.getElementById(galleryID);
+				objGallery.innerHTML = message;
+				objGallery.style.display = "block";
+			}
+			else
+				jQuery(galleryID).show().html(message);
+			
+			return(false);
+		}
 		
-		return(false);
+		return(true);
 	}
 
 	
@@ -47,7 +99,7 @@ function UniteGalleryMain(){
 	
 	var t = this;
 	var g_galleryID;
-	var g_objGallery = jQuery(t), g_objWrapper;
+	var g_objGallery = jQuery(t), g_objWrapper, g_objParent;
 	var g_objThumbs, g_objSlider, g_functions = new UGFunctions(), g_objTabs;
 	var g_arrItems = [], g_numItems, g_selectedItem = null, g_selectedItemIndex = -1;
 	var g_objTheme, g_objCache = {};
@@ -198,13 +250,18 @@ function UniteGalleryMain(){
 	function checkForStartupErrors(){
 		
 		//protection agains old jquery version
-		var isMinJQuery = g_functions.checkMinJqueryVersion("1.8.0");
-		if(isMinJQuery == false)
-			throwErrorShowMessage("The gallery can run from jquery 1.8 You have jQuery "+jQuery.fn.jquery+" Please update your jQuery library.");
+		try{
+			ugCheckForMinJQueryVersion();
+		}catch(e){
+			throwErrorShowMessage(e.message);
+		}
 		
 		//protection against some jquery ui function change
 	     if(typeof g_objWrapper.outerWidth() == "object")
 	    	 throwErrorShowMessage("You have some buggy script. most chances jquery-ui.js that destroy jquery outerWidth, outerHeight functions. The gallery can't run. Please update jquery-ui.js to latest version.");
+	     
+	     //check for late jquery include
+	     setTimeout(function(){ugCheckForErrors(g_galleryID, "cms")} , 5000);
 	     
 	}
 	
@@ -214,20 +271,24 @@ function UniteGalleryMain(){
 	 *  the gallery
 	 */
 	function runGallery(galleryID, objCustomOptions, htmlItems, cacheID){
-			 
+			
 			var isCustomOptions = (typeof objCustomOptions == "object");
 			
 			if(isCustomOptions)
 		      g_temp.objCustomOptions = objCustomOptions;
 			 			 
 		     if(g_temp.isRunFirstTime == true){
-		    	 
+				
 		    	 g_galleryID = galleryID;
 				 g_objWrapper = jQuery(g_galleryID);
 				 if(g_objWrapper.length == 0){
 					 trace("div with id: "+g_galleryID+" not found");
 					 return(false);
 				 }
+
+				 g_objParent = g_objWrapper.parent();
+				 
+				 checkForStartupErrors();
 				 
 				 g_temp.originalOptions = jQuery.extend({}, g_options);
 				 
@@ -284,10 +345,8 @@ function UniteGalleryMain(){
 		    	 }
 		     
 		     }
-			 
-		     //check for some startup errors that may be
-		     checkForStartupErrors();
 		     
+
 			 //init tabs
 			 if(g_temp.isRunFirstTime == true && g_options.gallery_enable_tabs == true){
 				 g_objTabs = new UGTabs();
@@ -314,8 +373,6 @@ function UniteGalleryMain(){
 			 setHtmlObjectsProperties();
 			 
 			 var galleryWidth = g_objWrapper.width();
-			 
-			 var parent = g_objWrapper.parent();
 			 
 			 if(galleryWidth == 0){
 				 g_functions.waitForWidth(g_objWrapper, runGalleryActually);
@@ -424,7 +481,7 @@ function UniteGalleryMain(){
 			 //throw new Error("Wrong theme function: " + g_options.theme.toString());
 		 
 		 //validate height and width
-		 if(g_options.gallery_height < g_options.gallery_min_height)
+		 if(jQuery.isNumeric(g_options.gallery_height) && g_options.gallery_height < g_options.gallery_min_height)
 			 throw new Error("The <b>gallery_height</b> option must be bigger then <b>gallery_min_height option</b>");
 		 
 		 if(g_options.gallery_width < g_options.gallery_min_width)
@@ -502,11 +559,14 @@ function UniteGalleryMain(){
 		   var objCss = {
 				    //"width":optionWidth,		//make it work within tabs
 				    "max-width":optionWidth,
-					"min-width":g_functions.getCssSizeParam(g_options.gallery_min_width),
+					"min-width":g_functions.getCssSizeParam(g_options.gallery_min_width)
 			};
 		   
 		   if(g_temp.isFreestyleMode == false){
-			   objCss["height"] = g_options.gallery_height+"px";			   
+			   
+			   var galleryHeight = g_functions.getCssSizeParam(g_options.gallery_height);
+			   objCss["height"] = galleryHeight;
+		   
 		   }else{
 			   objCss["overflow"] = "visible";			   
 		   }
@@ -588,6 +648,7 @@ function UniteGalleryMain(){
 			 objItem.thumbHeight = 0;
 			 objItem.thumbRatioByWidth = 0;
 			 objItem.thumbRatioByHeight = 0;
+			 objItem.addHtml = null;
 			 
 			 var isImageMissing = (objItem.urlImage == undefined || objItem.urlImage == "");
 			 var isThumbMissing = (objItem.urlThumb == undefined || objItem.urlThumb == "");
@@ -636,6 +697,24 @@ function UniteGalleryMain(){
 			 	case "wistia":
 					 objItem.videoid = objChild.data("videoid");
 					 g_temp.isWistiaPresent = true;
+			 	break;
+			 	case "custom":
+					var objChildImage = objChild.children("img");
+			 		
+					if(objChildImage.length){
+						objChildImage = jQuery(objChildImage[0]);
+						
+					    objItem.urlThumb = objChildImage.attr("src");
+					    objItem.title = objChildImage.attr("alt");
+					    objItem.objThumbImage = objChildImage;
+			 		}
+			 		
+					//add additional html
+					var objChildren = objChild.children().not("img:first-child");
+			 		
+					if(objChildren.length)
+						objItem.addHtml = objChildren.clone();
+			 		
 			 	break;
 			 }
 			
@@ -895,37 +974,15 @@ function UniteGalleryMain(){
 	
 	}
 	
+	
 	/**
-	 * init the thumbs panel object
-	 * type - strip / grid
-	 */	
-	this.initThumbsPanel = function(type, options){
-		
-		if(!options)
-			var options = {};
-
-		if(!type)
-			var type = "strip";
-		
+	 * attach thumbs panel to the gallery
+	 */
+	this.attachThumbsPanel = function(type, objThumbs){
 		g_temp.thumbsType = type;
-		
-		switch(type){
-			case "strip":
-				 g_objThumbs = new UGThumbsStrip();				
-			break;
-			case "grid":
-				 g_objThumbs = new UGThumbsGrid();				
-			break;
-			default:
-				throw new Error("Wrong thumbs type: " + type);
-			break;
-		}
-		
-		options = jQuery.extend(options, g_temp.objCustomOptions);
-		
-		g_objThumbs.init(t, options);
+		g_objThumbs = objThumbs;
 	}
-
+	
 	
 	/**
 	 * init the slider
@@ -1384,6 +1441,14 @@ function UniteGalleryMain(){
 	this.getSelectedItem = function(){
 		
 		return(g_selectedItem);
+	}
+	
+	/**
+	 * get selected item index
+	 */
+	this.getSelectedItemIndex = function(){
+		
+		return(g_selectedItemIndex);
 	}
 	
 	
@@ -2044,6 +2109,12 @@ function UniteGalleryMain(){
 		runGallery(g_galleryID, "nochange", itemsContent, cacheID);
 	}
 	
+	/**
+	 * show error message, replace whole gallery div
+	 */
+	this.showErrorMessageReplaceGallery = function(message){
+		showErrorMessage(message);
+	}
 	
 	this.__________AJAX_REQUEST_______ = function(){};
 	
@@ -2171,7 +2242,7 @@ function UniteGalleryMain(){
 			 }catch(objError){
 				 if(typeof objError == "object"){
 					 
-					 var message = objError;
+					 var message = objError.message;
 					 var lineNumber = objError.lineNumber;
 					 var fileName = objError.fileName;
 					 var stack = objError.stack;

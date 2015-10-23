@@ -38,7 +38,7 @@ function UGTextPanel(){
 			textpanel_desc_bold:null,					//textpanel description bold. if null - take from css
 			textpanel_css_description:{},				//textpanel additional css of the description
 			
-			textpanel_bg_css:{},						//textpanel background css
+			textpanel_bg_css:{}							//textpanel background css
 	};
 	
 	var g_temp = {
@@ -639,6 +639,7 @@ function UGZoomButtonsPanel(){
 			g_options = jQuery.extend(g_options, customOptions);		
 	}
 	
+	
 	/**
 	 * append the bullets html to some parent
 	 */
@@ -664,6 +665,24 @@ function UGZoomButtonsPanel(){
 	
 	
 	/**
+	 * set objects - use it instead insert html
+	 */
+	this.setObjects = function(objButtonPlus, objButtonMinus, objButtonReturn){
+		
+		g_objButtonPlus = objButtonPlus;
+		g_objButtonMinus = objButtonMinus;
+		g_objButtonReturn = objButtonReturn;
+		
+		if(g_objButtonMinus)
+			g_objButtonMinus.addClass("ug-zoompanel-button-disabled");
+		
+		if(g_objButtonReturn)
+			g_objButtonReturn.addClass("ug-zoompanel-button-disabled");
+			
+	}
+	
+	
+	/**
 	 * get buttons element
 	*/
 	this.getElement = function(){
@@ -677,25 +696,32 @@ function UGZoomButtonsPanel(){
 	 */
 	function isButtonDisabled(objButton){
 		
+		if(!objButton)
+			return(true);
+		
 		if(objButton.hasClass("ug-zoompanel-button-disabled"))
 			return(true);
 		
 		return(false);
 	}
 	
+	
 	/**
 	 * disable some button
 	 */
 	function disableButton(objButton){
-		objButton.addClass("ug-zoompanel-button-disabled");
+		
+		if(objButton)
+			objButton.addClass("ug-zoompanel-button-disabled");
 	}
 	
 	/**
 	 * enable some button
 	 */
 	function enableButton(objButton){
-				
-		objButton.removeClass("ug-zoompanel-button-disabled");		
+		
+		if(objButton)
+			objButton.removeClass("ug-zoompanel-button-disabled");		
 	}
 	
 	
@@ -707,7 +733,7 @@ function UGZoomButtonsPanel(){
 		//skip not image types
 		if(g_slider.isCurrentSlideType("image") == false)
 			return(true);
-				
+		
 		var isFit = g_slider.isCurrentSlideImageFit();
 		
 		if(isFit == true){		//if fit, disable buttons

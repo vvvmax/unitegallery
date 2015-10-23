@@ -58,6 +58,9 @@ function UGThumbsGrid(){
 				
 		g_objects = gallery.getObjects();
 		g_gallery = gallery;
+		
+		g_gallery.attachThumbsPanel("grid", t);
+		
 		g_objGallery = jQuery(gallery);
 		g_objWrapper = g_objects.g_objWrapper;
 		g_arrItems = g_objects.g_arrItems;

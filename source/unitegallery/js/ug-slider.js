@@ -33,7 +33,7 @@ function UGSlider(){
 		IMAGE_MOUSEENTER: "slider_image_mouseenter", //on slide image mouseonter
 		IMAGE_MOUSELEAVE: "slider_image_mouseleave",	 		//on slide image mouseleave
 		CURRENTSLIDE_LOAD_START: "slider_current_loadstart",	//on current slide load image start
-		CURRENTSLIDE_LOAD_END: "slider_current_loadend",		//on finish load current slide image
+		CURRENTSLIDE_LOAD_END: "slider_current_loadend"		//on finish load current slide image
 	}
 	
 	var g_options = {
@@ -690,6 +690,9 @@ function UGSlider(){
 		
 		var objPreloader = getSlidePreloader(objSlide);
 		
+		if(typeof objItem.urlImage == "undefined" || objItem.urlImage == "")
+			throw new Error("The slide don't have big image defined ( data-image='imageurl' ). Please check gallery items.", "showbig");
+		
 		var urlImage = objItem.urlImage;
 		
 		var currentImage = objSlide.data("urlImage");
@@ -836,6 +839,10 @@ function UGSlider(){
 			}
 			
 		}catch(error){
+			
+			if(typeof error.fileName != "undefined" && error.fileName == "showbig")
+				g_gallery.showErrorMessageReplaceGallery(error.message);
+			
 			objItemWrapper.html("");
 			throw new Error(error);
 			return(true);

@@ -25,7 +25,8 @@ function UGTheme_tilesgrid(){
 			theme_bullets_margin_top: 40,			//the space 
 			theme_navigation_align: "center",		//center, left, right - horizontal align of the navigation
 			theme_navigation_offset_hor: 0,			//horizontal offset of the navigation, according the align
-			theme_bullets_color: "gray"				//gray, blue, brown, green, red - color of the bullets
+			theme_bullets_color: "gray",			//gray, blue, brown, green, red - color of the bullets
+			theme_auto_open:null					//auto open lightbox at start
 	};
 	
 	var g_defaults = {
@@ -218,6 +219,7 @@ function UGTheme_tilesgrid(){
 		positionElements();
 		
 		initEvents();
+		
 	}
 
 	
@@ -364,6 +366,19 @@ function UGTheme_tilesgrid(){
 	
 	
 	/**
+	 * open lightbox at start if needed
+	 */
+	function onLightboxInit(){
+
+		if(g_options.theme_auto_open !== null){
+			g_lightbox.open(g_options.theme_auto_open);
+			g_options.theme_auto_open = null;
+		}
+		
+	}
+	
+	
+	/**
 	 * init buttons functionality and events
 	 */
 	function initEvents(){
@@ -380,8 +395,10 @@ function UGTheme_tilesgrid(){
 		}
 		
 		jQuery(g_objTileDesign).on(g_objTileDesign.events.TILE_CLICK, onTileClick);
-
+		
+		jQuery(g_lightbox).on(g_lightbox.events.LIGHTBOX_INIT, onLightboxInit);
 	}
+	
 	
 	/**
 	 * destroy the theme
@@ -395,9 +412,10 @@ function UGTheme_tilesgrid(){
 		
 		if(g_objBullets)
 			jQuery(g_objBullets).off(g_objBullets.events.BULLET_CLICK);
+
+		jQuery(g_lightbox).off(g_lightbox.events.LIGHTBOX_INIT);
 		
 		g_objThumbsGrid.destroy();
-		
 		g_lightbox.destroy();
 		
 	}
