@@ -1399,8 +1399,9 @@ function UGVideoPlayer(){
 			var isAutoplay = true;
 		
 		stopAndHidePlayers("youtube");
-
+		
 		g_objYoutube.show();
+		
 		
 		var objYoutubeInner = g_objYoutube.children("#"+g_temp.youtubeInnerID);
 		if(objYoutubeInner.length == 0)

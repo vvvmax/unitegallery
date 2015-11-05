@@ -1,4 +1,4 @@
-// Unite Gallery, Version: 1.7.1, released 20 Oct 2015 
+// Unite Gallery, Version: 1.7.4, released 05 Nov 2015 
 
 
 
@@ -120,8 +120,9 @@ function UGFunctions(){
 		    element.mozRequestFullScreen();
 		  } else if(element.webkitRequestFullscreen) {
 		    element.webkitRequestFullscreen(); 
-		  }
-		  else{
+		  } else if(element.msRequestFullscreen) {
+			    element.msRequestFullscreen(); 
+		  } else{
 			  return(false);
 		  }
 		  
@@ -143,6 +144,8 @@ function UGFunctions(){
 		    document.mozCancelFullScreen();
 		  } else if(document.webkitExitFullscreen) {
 		    document.webkitExitFullscreen();
+		  } else if(document.msExitFullscreen) {
+			    document.msExitFullscreen();
 		  }else{
 			  return(false);
 		  }
@@ -194,7 +197,7 @@ function UGFunctions(){
 	 */
 	this.getFullScreenElement = function(){
 		
-		var fullscreenElement = document.fullscreenElement || document.mozFullScreenElement || document.webkitFullscreenElement;
+		var fullscreenElement = document.fullscreenElement || document.mozFullScreenElement || document.webkitFullscreenElement || document.msFullscreenElement;
 		
 		return(fullscreenElement);
 	}
@@ -12635,7 +12638,6 @@ function UGSlider(){
 		var slideSize = g_functions.getElementSize(objCurrentSlide);
 		var left = slideSize.left;
 		var top = slideSize.top;
-
 		
 		//set by image position
 		if(g_options.slider_video_constantsize == true){
@@ -12648,6 +12650,7 @@ function UGSlider(){
 			left += g_options.slider_video_padding_left;
 			top += g_options.slider_video_padding_top;
 		}
+		
 		
 		g_objVideoPlayer.setPosition(left, top);
 	}
@@ -14057,7 +14060,7 @@ function UGSlider(){
 	 * works well on resize too.
 	 */
 	this.setSize = function(width, height){
-		 
+		
 		 if(width < 0 || height < 0)
 			 return(true);
 		
@@ -14099,18 +14102,6 @@ function UGSlider(){
 			 g_objTextPanel.setSizeByParent();
 		 }
 		 
-		 //set video player size
-		 var currentSlideType = t.getSlideType();
-		 if(currentSlideType != "image" && g_options.slider_video_constantsize == true){
-			 setVideoPlayerConstantSize();
-		 }else{	
-			 var videoWidth = width - g_options.slider_video_padding_left - g_options.slider_video_padding_right;
-			 var videoHeight = height - g_options.slider_video_padding_top - g_options.slider_video_padding_bottom;
-			 
-			 //set video player size
-			 g_objVideoPlayer.setSize(videoWidth, videoHeight);
-		 }
-		 
 		 positionElements();
 		 
 		 //set image to slides
@@ -14119,7 +14110,22 @@ function UGSlider(){
 		 resizeSlideItem(g_objSlide3);
 		 
 		 positionSlides();
+
+		 //set video player size
+		 var currentSlideType = t.getSlideType();
+		 if(currentSlideType != "image" && g_options.slider_video_constantsize == true){
+			 setVideoPlayerConstantSize();
+			 setVideoPlayerPosition();
+		 }else{	
+			 var videoWidth = width - g_options.slider_video_padding_left - g_options.slider_video_padding_right;
+			 var videoHeight = height - g_options.slider_video_padding_top - g_options.slider_video_padding_bottom;
+			 
+			 //set video player size
+			 g_objVideoPlayer.setSize(videoWidth, videoHeight);
+		 }
+		 
 	}
+	
 	
 	/**
 	 * refresh slide items after options change
@@ -18272,8 +18278,9 @@ function UGVideoPlayer(){
 			var isAutoplay = true;
 		
 		stopAndHidePlayers("youtube");
-
+		
 		g_objYoutube.show();
+		
 		
 		var objYoutubeInner = g_objYoutube.children("#"+g_temp.youtubeInnerID);
 		if(objYoutubeInner.length == 0)
@@ -18733,7 +18740,6 @@ function UniteGalleryMain(){
 		     
 		     }
 		     
-
 			 //init tabs
 			 if(g_temp.isRunFirstTime == true && g_options.gallery_enable_tabs == true){
 				 g_objTabs = new UGTabs();
@@ -18784,7 +18790,7 @@ function UniteGalleryMain(){
 		 
 		 g_objTheme.run();
 		 
-		 if(g_objTabs)
+		 if(g_objTabs && g_temp.isRunFirstTime)
 			 g_objTabs.run();
 		 
 		 preloadBigImages();
@@ -18998,6 +19004,14 @@ function UniteGalleryMain(){
 			 objItem.type = itemType;
 			 
 			 if(tagname == "img"){
+				 
+				 //protection agains lasy load
+				 var lasyLoadSrc = objChild.data("lazyload-src");
+				 if(lasyLoadSrc && lasyLoadSrc != ""){
+					 objChild.attr("src", lasyLoadSrc);
+					 jQuery.removeData(objChild, "lazyload-src");
+				 }
+				 
 				 objItem.urlThumb = objChild.attr("src");
 				 objItem.title = objChild.attr("alt");
 				 objItem.objThumbImage = objChild;
@@ -19436,7 +19450,11 @@ function UniteGalleryMain(){
 	 * on keypress - keyboard control
 	 */
 	function onKeyPress(event){
-						 		 
+		 
+		var obj = jQuery(event.target);
+		if(obj.is("textarea") || obj.is("select") || obj.is("input"))
+			return(true);
+			
 		 var keyCode = (event.charCode) ? event.charCode :((event.keyCode) ? event.keyCode :((event.which) ? event.which : 0));
 		 
 		 switch(keyCode){
@@ -19450,7 +19468,7 @@ function UniteGalleryMain(){
 			 break;
 		 }
 		 
-			g_objGallery.trigger(t.events.GALLERY_KEYPRESS, keyCode);
+		g_objGallery.trigger(t.events.GALLERY_KEYPRESS, keyCode);
 	}
 	
 	
@@ -23247,11 +23265,12 @@ function UGTabs(){
 	
 	var t = this, g_objThis = jQuery(this),g_objGallery;
 	var g_gallery = new UniteGalleryMain(), g_functions = new UGFunctions();
-	var g_objTabs;
+	var g_objTabs, g_objSelect;
 	
 
 	var g_options = {
-		tabs_container: "#ug_tabs",
+		tabs_type:"tabs",					//tabs type: tabs, select
+		tabs_container: "#ug_tabs",			//tabs container
 		tabs_class_selected: "ug-tab-selected"
 	};
 	
@@ -23270,15 +23289,20 @@ function UGTabs(){
 		
 		g_options = jQuery.extend(g_options, customOptions);
 		
-		g_objTabs = jQuery(g_options.tabs_container + " .ug-tab");
+		if(g_options.tabs_type == "select")
+			g_objSelect = jQuery(g_options.tabs_container);
+		else
+			g_objTabs = jQuery(g_options.tabs_container + " .ug-tab");
+		
 	}
+	
 	
 	
 	/**
 	 * run the tabs
 	 */
 	function runTabs(){
-		
+				
 		initEvents();
 	}
 	
@@ -23317,11 +23341,40 @@ function UGTabs(){
 	
 	
 	/**
+	 * on select change
+	 */
+	function onSelectChange(){
+		var objSelect = jQuery(this);
+		var catID = objSelect.val();
+		
+		if(!catID)
+			return(true);
+		
+		requestGalleryItems(catID);
+	}
+	
+	
+	/**
 	 * init tabs events
 	 */
 	function initEvents(){
 		
-		g_objTabs.click(onTabClick);
+		if(g_options.tabs_type == "select")
+			g_objSelect.change(onSelectChange);
+		else
+			g_objTabs.click(onTabClick);
+	}
+	
+	/**
+	 * destroy
+	 */
+	this.destroy = function(){
+		
+		if(g_objSelect)
+			g_objSelect.off("change");
+		
+		if(g_objTabs)
+			g_objTabs.off("click");
 	}
 	
 	
@@ -23337,6 +23390,7 @@ function UGTabs(){
 	 * run the tabs
 	 */
 	this.run = function(){
+		
 		runTabs();
 	}
 	

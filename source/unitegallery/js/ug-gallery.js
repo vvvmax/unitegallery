@@ -346,7 +346,6 @@ function UniteGalleryMain(){
 		     
 		     }
 		     
-
 			 //init tabs
 			 if(g_temp.isRunFirstTime == true && g_options.gallery_enable_tabs == true){
 				 g_objTabs = new UGTabs();
@@ -397,7 +396,7 @@ function UniteGalleryMain(){
 		 
 		 g_objTheme.run();
 		 
-		 if(g_objTabs)
+		 if(g_objTabs && g_temp.isRunFirstTime)
 			 g_objTabs.run();
 		 
 		 preloadBigImages();
@@ -611,6 +610,14 @@ function UniteGalleryMain(){
 			 objItem.type = itemType;
 			 
 			 if(tagname == "img"){
+				 
+				 //protection agains lasy load
+				 var lasyLoadSrc = objChild.data("lazyload-src");
+				 if(lasyLoadSrc && lasyLoadSrc != ""){
+					 objChild.attr("src", lasyLoadSrc);
+					 jQuery.removeData(objChild, "lazyload-src");
+				 }
+				 
 				 objItem.urlThumb = objChild.attr("src");
 				 objItem.title = objChild.attr("alt");
 				 objItem.objThumbImage = objChild;
@@ -1049,7 +1056,11 @@ function UniteGalleryMain(){
 	 * on keypress - keyboard control
 	 */
 	function onKeyPress(event){
-						 		 
+		 
+		var obj = jQuery(event.target);
+		if(obj.is("textarea") || obj.is("select") || obj.is("input"))
+			return(true);
+			
 		 var keyCode = (event.charCode) ? event.charCode :((event.keyCode) ? event.keyCode :((event.which) ? event.which : 0));
 		 
 		 switch(keyCode){
@@ -1063,7 +1074,7 @@ function UniteGalleryMain(){
 			 break;
 		 }
 		 
-			g_objGallery.trigger(t.events.GALLERY_KEYPRESS, keyCode);
+		g_objGallery.trigger(t.events.GALLERY_KEYPRESS, keyCode);
 	}
 	
 	

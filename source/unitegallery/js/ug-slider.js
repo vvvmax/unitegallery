@@ -953,7 +953,6 @@ function UGSlider(){
 		var slideSize = g_functions.getElementSize(objCurrentSlide);
 		var left = slideSize.left;
 		var top = slideSize.top;
-
 		
 		//set by image position
 		if(g_options.slider_video_constantsize == true){
@@ -966,6 +965,7 @@ function UGSlider(){
 			left += g_options.slider_video_padding_left;
 			top += g_options.slider_video_padding_top;
 		}
+		
 		
 		g_objVideoPlayer.setPosition(left, top);
 	}
@@ -2375,7 +2375,7 @@ function UGSlider(){
 	 * works well on resize too.
 	 */
 	this.setSize = function(width, height){
-		 
+		
 		 if(width < 0 || height < 0)
 			 return(true);
 		
@@ -2417,18 +2417,6 @@ function UGSlider(){
 			 g_objTextPanel.setSizeByParent();
 		 }
 		 
-		 //set video player size
-		 var currentSlideType = t.getSlideType();
-		 if(currentSlideType != "image" && g_options.slider_video_constantsize == true){
-			 setVideoPlayerConstantSize();
-		 }else{	
-			 var videoWidth = width - g_options.slider_video_padding_left - g_options.slider_video_padding_right;
-			 var videoHeight = height - g_options.slider_video_padding_top - g_options.slider_video_padding_bottom;
-			 
-			 //set video player size
-			 g_objVideoPlayer.setSize(videoWidth, videoHeight);
-		 }
-		 
 		 positionElements();
 		 
 		 //set image to slides
@@ -2437,7 +2425,22 @@ function UGSlider(){
 		 resizeSlideItem(g_objSlide3);
 		 
 		 positionSlides();
+
+		 //set video player size
+		 var currentSlideType = t.getSlideType();
+		 if(currentSlideType != "image" && g_options.slider_video_constantsize == true){
+			 setVideoPlayerConstantSize();
+			 setVideoPlayerPosition();
+		 }else{	
+			 var videoWidth = width - g_options.slider_video_padding_left - g_options.slider_video_padding_right;
+			 var videoHeight = height - g_options.slider_video_padding_top - g_options.slider_video_padding_bottom;
+			 
+			 //set video player size
+			 g_objVideoPlayer.setSize(videoWidth, videoHeight);
+		 }
+		 
 	}
+	
 	
 	/**
 	 * refresh slide items after options change

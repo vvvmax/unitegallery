@@ -1,3 +1,16 @@
+version 1.7.4
+
+-bug fix: fixed left / right buttons on input objects
+
+version 1.7.3
+
+-feature: added category tab select type
+-bug fix: fixed video player misplaced on gallery resize
+
+version 1.7.2
+
+-protection: added protection agains lasy load
+
 version 1.7.1
 
 -feature: added "open lightbox at start" option for tiles theme
