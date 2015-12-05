@@ -1005,9 +1005,9 @@ function UGYoutubeAPI(){
 			return(false);
 		
 		if(isAutoplay && isAutoplay == true)
-			g_player.loadVideoById(videoID, 0, "default");
+			g_player.loadVideoById(videoID, 0, "large");
 		else
-			g_player.cueVideoById(videoID, 0, "default");
+			g_player.cueVideoById(videoID, 0, "large");
 	}
 	
 	

@@ -1387,13 +1387,13 @@ function UGSlider(){
 	/**
 	 * on item change event
 	 */
-	function onItemChange(){
+	function onItemChange(data, arg_objItem, role){
 		
 		//trace("slider on change");
 		
 		var objItem = g_gallery.getSelectedItem();
 				
-		t.setItem(objItem);
+		t.setItem(objItem, false, role);
 		
 		var itemIndex = objItem.index;
 		
@@ -2071,7 +2071,7 @@ function UGSlider(){
 	/**
 	 * change the slider to some item content
 	 */
-	this.setItem = function(objItem, forseTransition){
+	this.setItem = function(objItem, forseTransition, role){
 		
 		var slides = t.getSlidesReference();
 		
@@ -2095,13 +2095,15 @@ function UGSlider(){
 			
 			var numItems = g_gallery.getNumItems();
 			
-			if(currentIndex == (numItems-1) && nextIndex == 0)
+			if(role == "next")
 				direction = "left";
-			else
-				if(currentIndex == 0 && nextIndex == (numItems-1))
+			else if(role == "prev")
+				direction = "right";
+			else if(currentIndex == (numItems-1) && nextIndex == 0)
+				direction = "left";
+			else if(currentIndex == 0 && nextIndex == (numItems-1))
 					direction = "right";
-			else
-				if(currentIndex > nextIndex)
+			else if(currentIndex > nextIndex)
 					direction = "right";
 						
 			doTransition(direction, objItem, forseTransition);

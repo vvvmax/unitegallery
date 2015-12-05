@@ -159,6 +159,8 @@ function UGTheme_carousel(){
 		g_objWrapper.height(galleryHeight);
 		
 		var galleryWidth = getGalleryWidth();
+
+		initEvents();
 		
 		g_carousel.setMaxWidth(galleryWidth);
 		g_carousel.run();
@@ -167,7 +169,6 @@ function UGTheme_carousel(){
 			
 		positionElements();
 		
-		initEvents();
 	}
 	
 	

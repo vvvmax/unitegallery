@@ -143,6 +143,8 @@ function UGThumbsGrid(){
 		validateBeforeRun();
 		
 		if(g_temp.isFirstTimeRun == true){
+			
+			initEvents();
 						
 			if(g_temp.isTilesMode == true){
 				
@@ -155,7 +157,6 @@ function UGThumbsGrid(){
 				g_thumbs.loadThumbsImages();
 			}
 			
-			initEvents();
 		}
 				
 		positionThumbs();
@@ -182,6 +183,17 @@ function UGThumbsGrid(){
 		g_temp.isFirstTimeRun = false;
 	}
 	
+	/**
+	 * get thumb size object
+	 */
+	function getThumbsSize(){
+		if(g_temp.isTilesMode == true)
+			var objThumbSize = g_tilesDesign.getGlobalTileSize();
+		else
+			var objThumbSize = g_thumbs.getGlobalThumbSize();
+		
+		return(objThumbSize);
+	}
 	
 	/**
 	 * init grid size horizontal
@@ -189,15 +201,17 @@ function UGThumbsGrid(){
 	 */
 	function initSizeParamsHor(){
 		
-		var arrThumbs = g_objInner.children(".ug-thumb-wrapper");
-		var firstThumb = jQuery(arrThumbs[0]);
-		var thumbsRealHeight = firstThumb.outerHeight();
-
+		var objThumbSize = getThumbsSize();
+		
+		var thumbsHeight = objThumbSize.height;
+		
+		
 		//set grid size
 		var gridWidth = g_temp.gridWidth;
-		var gridHeight = g_options.grid_num_rows * thumbsRealHeight + (g_options.grid_num_rows-1) * g_options.grid_space_between_rows + g_options.grid_padding*2;
+		var gridHeight = g_options.grid_num_rows * thumbsHeight + (g_options.grid_num_rows-1) * g_options.grid_space_between_rows + g_options.grid_padding*2;
 		
 		g_temp.gridHeight = gridHeight;
+		
 		
 		g_functions.setElementSize(g_objGrid, gridWidth, gridHeight);
 	
@@ -214,14 +228,13 @@ function UGThumbsGrid(){
 	 * init size params vertical
 	 */
 	function initSizeParamsVert(){
+
+		var objThumbSize = getThumbsSize();
 		
-		//set thumb outer size:
-		var arrThumbs = g_objInner.children(".ug-thumb-wrapper");
-		var firstThumb = jQuery(arrThumbs[0]);
-		var thumbsRealWidth = firstThumb.outerWidth();
+		var thumbsWidth = objThumbSize.width;
 		
 		//set grid size
-		var gridWidth = g_options.grid_num_cols * thumbsRealWidth + (g_options.grid_num_cols-1) * g_options.grid_space_between_cols + g_options.grid_padding*2;
+		var gridWidth = g_options.grid_num_cols * thumbsWidth + (g_options.grid_num_cols-1) * g_options.grid_space_between_cols + g_options.grid_padding*2;
 		var gridHeight = g_temp.gridHeight;
 		
 		g_temp.gridWidth = gridWidth;

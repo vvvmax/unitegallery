@@ -1,4 +1,4 @@
-// Unite Gallery, Version: 1.7.4, released 05 Nov 2015 
+// Unite Gallery, Version: 1.7.7, released 05 Dec 2015 
 
 
 
@@ -93,19 +93,6 @@ function UGFunctions(){
 
 	this.z__________FULL_SCREEN___________ = function(){}
 	
-	/**
-	 * normalize the percent, return always between 0 and 1
-	 */
-	this.normalizePercent = function(percent){
-		
-		if(percent < 0)
-			percent = 0;
-		
-		if(percent > 1)
-			percent = 1;
-		
-		return(percent);
-	}
 	
 	
 	/**
@@ -140,12 +127,19 @@ function UGFunctions(){
 			  
 		  if(document.exitFullscreen) {
 		    document.exitFullscreen();
+
+		  } else if(document.cancelFullScreen) {
+			    document.cancelFullScreen();
+		    
 		  } else if(document.mozCancelFullScreen) {
 		    document.mozCancelFullScreen();
+		    
 		  } else if(document.webkitExitFullscreen) {
 		    document.webkitExitFullscreen();
+		    
 		  } else if(document.msExitFullscreen) {
 			    document.msExitFullscreen();
+			    
 		  }else{
 			  return(false);
 		  }
@@ -173,10 +167,14 @@ function UGFunctions(){
 	 */
 	this.addFullScreenChangeEvent = function(func){
 		
-		addEvent("fullscreenchange",document,func);		 
-		addEvent("mozfullscreenchange",document,func);
-		addEvent("webkitfullscreenchange",document,func);
-		addEvent("msfullscreenchange",document,func);
+		if(document["webkitCancelFullScreen"])
+			addEvent("webkitfullscreenchange",document,func);
+		else if(document["msExitFullscreen"])
+			addEvent("MSFullscreenChange",document,func);
+		else if(document["mozCancelFullScreen"])
+			addEvent("mozfullscreenchange",document,func);
+		else
+			addEvent("fullscreenchange",document,func);
 	}
 	
 	
@@ -185,10 +183,10 @@ function UGFunctions(){
 	 */
 	this.destroyFullScreenChangeEvent = function(){
 		
-		jQuery(document).unbind("fullscreenchange");
+		jQuery(document).unbind("fullscreenChange");
 		jQuery(document).unbind("mozfullscreenchange");
 		jQuery(document).unbind("webkitfullscreenchange");
-		jQuery(document).unbind("msfullscreenchange");
+		jQuery(document).unbind("MSFullscreenChange");
 	}
 	
 	
@@ -208,12 +206,15 @@ function UGFunctions(){
 	this.isFullScreen = function(){
 		
 		var isFullScreen = document.fullscreen || document.mozFullScreen || document.webkitIsFullScreen || document.msFullscreenElement;
-
+		
 		if(!isFullScreen)
 			isFullScreen = false;
+		else
+			isFullScreen = true;
 		
 		return(isFullScreen);
 	}
+	
 	
 	this.z__________END_FULL_SCREEN___________ = function(){}
 	
@@ -959,8 +960,7 @@ function UGFunctions(){
 		
 		t.setElementSizeAndPosition(objTarget, objSize.left, objSize.top, objSize.width, objSize.height);
 	}
-	
-	
+
 	
 	/**
 	 * place image inside parent, scale it by the options
@@ -1014,7 +1014,6 @@ function UGFunctions(){
 	 * parent can be width , height, or object
 	 */	
 	this.scaleImageCoverParent = function(objImage, objParent, pHeight){
-		
 		
 		if(typeof objParent == "number"){
 			var parentWidth = objParent;
@@ -2225,6 +2224,20 @@ function UGFunctions(){
 			num++;
 		return num;
 	}
+
+	/**
+	 * normalize the percent, return always between 0 and 1
+	 */
+	this.normalizePercent = function(percent){
+		
+		if(percent < 0)
+			percent = 0;
+		
+		if(percent > 1)
+			percent = 1;
+		
+		return(percent);
+	}
 	
 	
 	this.z_________END_GENERAL_FUNCTIONS_______ = function(){}
@@ -2334,7 +2347,8 @@ function UGThumbsGeneral(){
 			isEffectOverlay: false,
 			isEffectImage: false,
 			colorOverlayOpacity: 1,
-			thumbInnerReduce: 0
+			thumbInnerReduce: 0,
+			allowOnResize: true		//allow onresize event
 		};
 		
 	
@@ -2387,8 +2401,11 @@ function UGThumbsGeneral(){
 				 var classAddition = "";
 				 if(g_temp.customThumbs == false)
 					 classAddition = " ug-thumb-generated";
-
-			 	var htmlThumb = "<div class='ug-thumb-wrapper"+classAddition+"'></div>";
+				
+				var zIndex = objItem.index + 1;
+				var thumbStyle = "style='z-index:"+zIndex+";'";
+				
+			 	var htmlThumb = "<div class='ug-thumb-wrapper"+classAddition+"' " + thumbStyle + "></div>";
 
 				 if(g_options.thumb_wrapper_as_link == true){
 					 var urlLink = objItem.link;
@@ -2465,7 +2482,7 @@ function UGThumbsGeneral(){
 		 * else, set to all the thumbs
 		 */
 		function setThumbSize(width, height, objThumb, innerOnly){
-			 
+						
 			var objCss = {
 				width: width+"px",
 				height: height+"px"
@@ -2475,7 +2492,6 @@ function UGThumbsGeneral(){
 					width: width-g_temp.thumbInnerReduce+"px",
 					height: height-g_temp.thumbInnerReduce+"px"
 				};
-			
 			
 			var selectorsString = ".ug-thumb-loader, .ug-thumb-error, .ug-thumb-border-overlay, .ug-thumb-overlay";
 			
@@ -2548,7 +2564,7 @@ function UGThumbsGeneral(){
 		function setThumbColorOverlayEffect(objThumb, isActive, noAnimation){
 			
 			var objOverlay = objThumb.children(".ug-thumb-overlay");
-						
+			
 			var animationDuration = g_options.thumb_transition_duration;
 			if(noAnimation && noAnimation === true)
 				animationDuration = 0;
@@ -2683,11 +2699,12 @@ function UGThumbsGeneral(){
 			objThumb.children(".ug-thumb-error").show();		
 		}
 		
+		
 		/**
 		 * set border radius of all the thmbs
 		 */
 		function setThumbsBorderRadius(){
-			
+						
 			if(g_options.thumb_round_corners_radius <= 0)
 				return(false);
 			
@@ -2699,6 +2716,7 @@ function UGThumbsGeneral(){
 			g_objParent.find(".ug-thumb-wrapper, .ug-thumb-wrapper .ug-thumb-border-overlay").css(objCss);
 			
 		}
+		
 		
 		/**
 		 * animate thumb transitions
@@ -2860,7 +2878,7 @@ function UGThumbsGeneral(){
 		 * on thumb size change - triggered by parent on custom thumbs type
 		 */
 		function onThumbSizeChange(temp, objThumb){
-					
+			
 			objThumb = jQuery(objThumb);
 			var objItem = t.getItemByThumb(objThumb);
 			
@@ -2911,7 +2929,7 @@ function UGThumbsGeneral(){
 				var isForce = false;
 			
 			var objImage = jQuery(image);
-			var objThumb = objImage.parent();
+			var objThumb = objImage.parents(".ug-thumb-wrapper");
 			
 			if(objThumb.parent().length == 0)		//don't treat detached thumbs
 				return(false);
@@ -2947,7 +2965,7 @@ function UGThumbsGeneral(){
 			objItem.isThumbImageLoaded = true;
 			
 			var objSize = g_functions.getImageOriginalSize(objImage);
-			
+						
 			objItem.thumbWidth = objSize.width;
 			objItem.thumbHeight = objSize.height;
 			objItem.thumbRatioByWidth = objSize.width / objSize.height;
@@ -2960,7 +2978,7 @@ function UGThumbsGeneral(){
 		 * set thumbnails html properties
 		 */
 		this.setHtmlProperties = function(){
-			
+						
 			 //set thumb params
 			if(g_temp.customThumbs == false){
 				var objThumbCss = {};
@@ -3000,15 +3018,7 @@ function UGThumbsGeneral(){
 			
 		}
 
-		
-		
-
-		
-		
-		
-		
-		
-		
+				
 		/**
 		 * set the thumb on selected state
 		 */
@@ -3061,12 +3071,14 @@ function UGThumbsGeneral(){
 		 * set custom thumbs
 		 * allowedEffects - border, overlay, image
 		 */
-		this.setCustomThumbs = function(funcSetHtml, arrAlowedEffects){
+		this.setCustomThumbs = function(funcSetHtml, arrAlowedEffects, customOptions){
+			
 			g_temp.customThumbs = true;
 						
 			if(typeof funcSetHtml != "function")
 				throw new Error("The argument should be function");
-				
+			
+			
 			g_temp.funcSetCustomThumbHtml = funcSetHtml;
 			
 			//enable effects:
@@ -3077,7 +3089,12 @@ function UGThumbsGeneral(){
 				g_temp.isEffectBorder = false;
 			
 			g_temp.isEffectImage = false;		//for custom effects the image is always off
-			
+
+			//check for dissalow onresize
+			if(customOptions && customOptions.allow_onresize === false){
+				g_temp.allowOnResize = false;
+			}
+		
 		}
 		
 		
@@ -3110,7 +3127,7 @@ function UGThumbsGeneral(){
 		 */
 		this.getThumbImage = function(objThumb){
 			
-			var objImage = objThumb.children(".ug-thumb-image");
+			var objImage = objThumb.find(".ug-thumb-image");
 			return(objImage);
 		}
 		
@@ -3163,6 +3180,20 @@ function UGThumbsGeneral(){
 		}
 		
 		
+		/**
+		 * get global thumb size
+		 */
+		this.getGlobalThumbSize = function(){
+			
+			var objSize = {
+				width:g_options.thumb_width,
+				height: g_options.thumb_height
+			};
+			
+			return(objSize);
+		}
+		
+		
 		this._____________EXTERNAL_OTHERS__________ = function(){};
 
 
@@ -3179,7 +3210,8 @@ function UGThumbsGeneral(){
 				objThumbs.off("mouseenter").off("mouseleave");
 			});
 			
-			g_objWrapper.on(g_serviceParams.eventSizeChange, onThumbSizeChange);
+			if(g_temp.allowOnResize == true)
+				g_objWrapper.on(g_serviceParams.eventSizeChange, onThumbSizeChange);
 			
 			objThumbs.hover(function(event){		//on mouse enter
 				var objThumb = jQuery(this);
@@ -7082,6 +7114,8 @@ function UGThumbsGrid(){
 		validateBeforeRun();
 		
 		if(g_temp.isFirstTimeRun == true){
+			
+			initEvents();
 						
 			if(g_temp.isTilesMode == true){
 				
@@ -7094,7 +7128,6 @@ function UGThumbsGrid(){
 				g_thumbs.loadThumbsImages();
 			}
 			
-			initEvents();
 		}
 				
 		positionThumbs();
@@ -7121,6 +7154,17 @@ function UGThumbsGrid(){
 		g_temp.isFirstTimeRun = false;
 	}
 	
+	/**
+	 * get thumb size object
+	 */
+	function getThumbsSize(){
+		if(g_temp.isTilesMode == true)
+			var objThumbSize = g_tilesDesign.getGlobalTileSize();
+		else
+			var objThumbSize = g_thumbs.getGlobalThumbSize();
+		
+		return(objThumbSize);
+	}
 	
 	/**
 	 * init grid size horizontal
@@ -7128,15 +7172,17 @@ function UGThumbsGrid(){
 	 */
 	function initSizeParamsHor(){
 		
-		var arrThumbs = g_objInner.children(".ug-thumb-wrapper");
-		var firstThumb = jQuery(arrThumbs[0]);
-		var thumbsRealHeight = firstThumb.outerHeight();
-
+		var objThumbSize = getThumbsSize();
+		
+		var thumbsHeight = objThumbSize.height;
+		
+		
 		//set grid size
 		var gridWidth = g_temp.gridWidth;
-		var gridHeight = g_options.grid_num_rows * thumbsRealHeight + (g_options.grid_num_rows-1) * g_options.grid_space_between_rows + g_options.grid_padding*2;
+		var gridHeight = g_options.grid_num_rows * thumbsHeight + (g_options.grid_num_rows-1) * g_options.grid_space_between_rows + g_options.grid_padding*2;
 		
 		g_temp.gridHeight = gridHeight;
+		
 		
 		g_functions.setElementSize(g_objGrid, gridWidth, gridHeight);
 	
@@ -7153,14 +7199,13 @@ function UGThumbsGrid(){
 	 * init size params vertical
 	 */
 	function initSizeParamsVert(){
+
+		var objThumbSize = getThumbsSize();
 		
-		//set thumb outer size:
-		var arrThumbs = g_objInner.children(".ug-thumb-wrapper");
-		var firstThumb = jQuery(arrThumbs[0]);
-		var thumbsRealWidth = firstThumb.outerWidth();
+		var thumbsWidth = objThumbSize.width;
 		
 		//set grid size
-		var gridWidth = g_options.grid_num_cols * thumbsRealWidth + (g_options.grid_num_cols-1) * g_options.grid_space_between_cols + g_options.grid_padding*2;
+		var gridWidth = g_options.grid_num_cols * thumbsWidth + (g_options.grid_num_cols-1) * g_options.grid_space_between_cols + g_options.grid_padding*2;
 		var gridHeight = g_temp.gridHeight;
 		
 		g_temp.gridWidth = gridWidth;
@@ -8918,8 +8963,8 @@ function UGTiles(){
 			placeOrderedTile(objTile);
 		
 		}else{
+			
 			g_objTileDesign.resizeTile(objTile, g_vars.colWidth);
-
 			placeTile(objTile, true, true);
 		}
 	
@@ -10059,6 +10104,10 @@ function UGTiles(){
 		
 		//show tiles
 		g_objWrapper.children(".ug-tile").show();
+
+		if(g_temp.isFirstTimeRun == true){
+			initEvents();
+		}
 		
 		g_objTileDesign.run();
 				
@@ -10075,9 +10124,6 @@ function UGTiles(){
 			break;
 		}
 		
-		if(g_temp.isFirstTimeRun == true){
-			initEvents();
-		}
 		
 		g_temp.isFirstTimeRun = false;
 	}
@@ -10171,6 +10217,9 @@ function UGTileDesign(){
 			tile_size_by:t.sizeby.IMAGE_RATIO,		//image ratio, tile ratio , global_ratio - decide by what parameter resize the tile
 			tile_visible_before_image:false,		//tile visible before image load
 			
+			tile_enable_background:true,			//enable backgruond of the tile
+			tile_background_color: "#F0F0F0",		//tile background color
+			
 			tile_enable_border:false,				//enable border of the tile
 			tile_border_width:3,					//tile border width
 			tile_border_color:"#F0F0F0",			//tile border color
@@ -10203,11 +10252,14 @@ function UGTileDesign(){
 			tile_image_effect_type: "bw",			//bw, blur, sepia - tile effect type
 			tile_image_effect_reverse: false,		//reverce the image, set only on mouseover state
 			
-			tile_enable_textpanel: false,			//enable textpanel
-			tile_textpanel_source: "title",			//title,desc,desc_title. source of the textpanel. desc_title - if description empty, put title
-			tile_textpanel_always_on: false,		//textpanel always visible
-			tile_textpanel_appear_type: "slide"		//slide, fade - appear type of the textpanel on mouseover
+			tile_enable_textpanel: false,			 //enable textpanel
+			tile_textpanel_source: "title",			 //title,desc,desc_title,title_and_desc. source of the textpanel. desc_title - if description empty, put title
+			tile_textpanel_always_on: false,		 //textpanel always visible - for inside type
+			tile_textpanel_appear_type: "slide",	 //slide, fade - appear type of the textpanel on mouseover
+			tile_textpanel_position:"inside_bottom", //inside_bottom, inside_top, inside_center, top, bottom the position of the textpanel
+			tile_textpanel_offset:0					 //vertical offset of the textpanel
 	};
+	
 	
 	var g_defaults = {
 			thumb_color_overlay_effect: true,
@@ -10227,9 +10279,10 @@ function UGTileDesign(){
 		funcCustomPositionElements: null,
 		funcParentApproveClick: null,
 		isSaparateIcons: false,
-		tileInnerReduce: 0		//how much reduce from the tile inner elements from border mostly
+		tileInnerReduce: 0,		//how much reduce from the tile inner elements from border mostly
+		isTextpanelOutside: false,	//is the textpanel is out of tile image border
+		hasImageContainer:false
 	};
-	
 	
 	
 	/**
@@ -10254,7 +10307,8 @@ function UGTileDesign(){
 				
 		g_thumbs.init(gallery, g_options);	
 		
-		var objCustomOptions = {};	
+		var objCustomOptions = {allow_onresize:false};
+		
 		var customThumbsAdd = ["overlay"];
 		
 		if(g_temp.funcCustomTileHtml)
@@ -10266,12 +10320,14 @@ function UGTileDesign(){
 		var thumbOptions = g_thumbs.getOptions();
 		g_options = jQuery.extend(g_options, thumbOptions);
 		
-		//check if saparate icons
-		g_temp.isSaparateIcons = !g_functions.isRgbaSupported();
-		
 		//set ratios of fixed mode
 		g_temp.ratioByWidth = g_options.tile_width / g_options.tile_height;
 		g_temp.ratioByHeight = g_options.tile_height / g_options.tile_width;
+		
+		
+		//set if tile has image container
+		if(g_options.tile_size_by == t.sizeby.GLOBAL_RATIO && g_temp.isTextpanelOutside)
+			g_temp.hasImageContainer = true;
 		
 	}
 	
@@ -10280,7 +10336,7 @@ function UGTileDesign(){
 	 * set thumb and textpanel options according tile options
 	 */
 	function modifyOptions(){
-		
+
 		//set overlay related options
 		if(g_options.tile_enable_overlay == true){
 			
@@ -10309,10 +10365,49 @@ function UGTileDesign(){
 			g_temp.tileInnerReduce = g_options.tile_border_width * 2;
 			g_thumbs.setThumbInnerReduce(g_temp.tileInnerReduce);
 		}
-	
-	
+
+		//check if saparate icons
+		g_temp.isSaparateIcons = !g_functions.isRgbaSupported();
+		
+		//set if the textpanel is enabled and outside
+		if(g_options.tile_enable_textpanel == true){
+			
+			switch(g_options.tile_textpanel_position){
+				case "top":
+					g_options.tile_textpanel_align = "top";
+				case "bottom":
+					g_temp.isTextpanelOutside = true;
+					g_options.tile_textpanel_always_on = true;
+					g_options.tile_textpanel_offset = 0;
+				break;
+				case "inside_top":
+					g_options.tile_textpanel_align = "top";
+				break;
+				case "middle":
+					g_options.tile_textpanel_align = "middle";
+					g_options.tile_textpanel_appear_type = "fade";
+				break;
+			}
+			
+			//if text panel oppearing with the overlay, icons should be saparated
+			if(g_options.tile_textpanel_always_on == false)
+				g_temp.isSaparateIcons = true;
+			
+		}
+		
+		//if the textpanel offset is not from the border, it's always fade.
+		if(g_options.tile_textpanel_offset != 0){
+			g_options.tile_textpanel_appear_type = "fade";
+			g_options.tile_textpanel_margin = g_options.tile_textpanel_offset;
+		}
+		
+		//enable description if needed
+		if(g_options.tile_textpanel_source == "title_and_desc"){
+			g_options.tile_textpanel_enable_description = true;
+			g_options.tile_textpanel_desc_style_as_title = true;
+		}
+		
 	}
-	
 	
 	
 	/**
@@ -10327,29 +10422,40 @@ function UGTileDesign(){
 			return(false);
 		}
 		
+		var html = "";
+			
+		//add image container
+		if(g_temp.hasImageContainer == true){
+			html += "<div class='ug-image-container ug-trans-enabled'>";
+		}
+		
 		//add thumb image:
 		var classImage = "ug-thumb-image";
 
 		if(g_options.tile_enable_image_effect == false || g_options.tile_image_effect_reverse == true)
 			classImage += " ug-trans-enabled";
 		
+		html += "<img src='"+objItem.urlThumb+"' alt='"+objItem.title+"' class='"+classImage+"'>";
+
+		if(g_temp.hasImageContainer == true){
+			html += "</div>";
+		}	
 		
-		var html = "<img src='"+objItem.urlThumb+"' alt='"+objItem.title+"' class='"+classImage+"'>";
 		objThumbWrapper.append(html);
 		
-		var objThumbImage = objThumbWrapper.children(".ug-thumb-image");
 		
 		if(g_options.tile_size_by == t.sizeby.GLOBAL_RATIO){
 			objThumbWrapper.fadeTo(0,0);		//turn on in thumbsGeneral
-			
-			g_functions.setElementSize(objThumbWrapper, g_options.tile_width, g_options.tile_height);
 		}
-		
 		
 		//---- set thumb styles ---- 
 		
 		//set border:
 		var objCss = {};
+		
+		if(g_options.tile_enable_background == true){
+			objCss["background-color"] = g_options.tile_background_color;
+		}
 		
 		if(g_options.tile_enable_border == true){
 			objCss["border-width"] = g_options.tile_border_width+"px";
@@ -10453,13 +10559,18 @@ function UGTileDesign(){
 			if(g_options.tile_image_effect_reverse == false)
 				imageEffectClassAdd = " ug-trans-enabled";
 			
-			var imageOverlayHtml = "<div class='ug-tile-image-overlay"+imageEffectClassAdd+"' style='display:none'>";
+			var imageOverlayHtml = "<div class='ug-tile-image-overlay"+imageEffectClassAdd+"' >";
 			var imageEffectClass = " ug-"+g_options.tile_image_effect_type+"-effect";
 			
 			imageOverlayHtml += "<img src='"+objItem.urlThumb+"' alt='"+objItem.title+"' class='"+imageEffectClass + imageEffectClassAdd+"'>";
 			imageOverlayHtml += "</div>";
 			
 			objThumbWrapper.append(imageOverlayHtml);
+
+			//hide the image overlay if reversed
+			if(g_options.tile_image_effect_reverse == true){
+				objThumbWrapper.children(".ug-tile-image-overlay").fadeTo(0,0);
+			}
 			
 		}
 		
@@ -10470,27 +10581,58 @@ function UGTileDesign(){
 			var objTextPanel = new UGTextPanel();			 
 			objTextPanel.init(g_gallery, g_options, "tile");
 			
-			objTextPanel.appendHTML(objThumbWrapper);				
+			//set transition class
+			var textpanelAddClass = "";
+			if(g_options.tile_textpanel_always_on == true || g_temp.isTextpanelOutside == true)
+				textpanelAddClass = "ug-trans-enabled";
 			
-			var panelText = objItem.title;
+			objTextPanel.appendHTML(objThumbWrapper, textpanelAddClass);
+			
+			var panelTitle = objItem.title;
+			var panelDesc = "";
+			
 			switch(g_options.tile_textpanel_source){
 				case "desc":
 				case "description":
-					panelText = objItem.description;
+					panelTitle = objItem.description;
 				break;
 				case "desc_title":
 					if(objItem.description != "")
-						panelText = objItem.description;
+						panelTitle = objItem.description;
+				break;
+				case "title_and_desc":
+					panelTitle = objItem.title;
+					panelDesc = objItem.description;
 				break;
 			}
 			
-			
-			objTextPanel.setTextPlain(panelText, "");
+			objTextPanel.setTextPlain(panelTitle, panelDesc);
 			
 			if(g_options.tile_textpanel_always_on == false)
 				objTextPanel.getElement().fadeTo(0,0);
-						
+			
 			objThumbWrapper.data("objTextPanel", objTextPanel);
+
+			//if textpanel always on, it has to be under the overlay
+			if(g_options.tile_textpanel_always_on == true){
+				var textPanelElement = getTextPanelElement(objThumbWrapper);
+				textPanelElement.css("z-index",2);
+			}
+			
+			//if text panel is outside, clone textpanel
+			if(g_temp.isTextpanelOutside == true){
+				
+				var htmlClone = "<div class='ug-tile-cloneswrapper'></div>";
+				objThumbWrapper.append(htmlClone);
+				var objCloneWrapper = objThumbWrapper.children(".ug-tile-cloneswrapper");
+				
+				var objTextPanelClone = new UGTextPanel(); 
+				objTextPanelClone.init(g_gallery, g_options, "tile");				
+				objTextPanelClone.appendHTML(objCloneWrapper);
+				objTextPanelClone.setTextPlain(panelText, "");
+				objThumbWrapper.data("objTextPanelClone", objTextPanelClone);
+			}
+			
 		}
 		
 		//add additional html
@@ -10535,13 +10677,26 @@ function UGTileDesign(){
 	
 	
 	/**
+	 * get image container
+	 */
+	function getTileImageContainer(objTile){
+		if(g_temp.hasImageContainer == false)
+			return(null);
+		
+		var objImageContainer = objTile.children(".ug-image-container");
+		
+		return(objImageContainer);
+	}
+	
+	
+	/**
 	 * get image effect
 	 */
 	function getTileImageEffect(objTile){		
 		var objImageEffect = objTile.find(".ug-tile-image-overlay img");			
 		return(objImageEffect);
 	}
-
+	
 	
 	/**
 	 * get text panel
@@ -10552,13 +10707,58 @@ function UGTileDesign(){
 		return(objTextPanel);
 	}
 	
+	
+	/**
+	 * get cloned text panel
+	 */
+	function getTextPanelClone(objTile){
+		var objTextPanelClone = objTile.data("objTextPanelClone");
+		
+		return(objTextPanelClone);
+		
+	}
+	
+	
 	/**
 	 * get text panel element from the tile
 	 */
 	function getTextPanelElement(objTile){
-		var objTextPanel = objTile.find(".ug-textpanel");
+		var objTextPanel = objTile.children(".ug-textpanel");
 		
 		return(objTextPanel);
+	}
+	
+	
+	/**
+	 * get text panel element cloned
+	 */
+	function getTextPanelCloneElement(objTile){
+		var objTextPanel = objTile.find(".ug-tile-cloneswrapper .ug-textpanel");
+		
+		if(objTextPanel.length == 0)
+			throw new Error("text panel cloned element not found");
+		
+		return(objTextPanel);
+		
+	}
+	
+	
+	/**
+	 * get text panel height
+	 */
+	function getTextPanelHeight(objTile){
+		
+		if(g_temp.isTextpanelOutside == true)
+			var objTextPanel = getTextPanelCloneElement(objTile);
+		else
+			var objTextPanel = getTextPanelElement(objTile);
+		
+		
+		if(!objTextPanel)
+			return(0);
+		
+		var objSize = g_functions.getElementSize(objTextPanel);
+		return(objSize.height);
 	}
 	
 	
@@ -10578,7 +10778,7 @@ function UGTileDesign(){
 	 * get tile ratio
 	 */
 	function getTileRatio(objTile){
-		
+					
 		//global ratio
 		var ratio = g_temp.ratioByHeight;
 		
@@ -10607,8 +10807,7 @@ function UGTileDesign(){
 				return null;
 			break;
 		}
-		
-		
+				
 		return(ratio);
 	}
 	
@@ -10654,70 +10853,186 @@ function UGTileDesign(){
 	 * position tile images elements
 	 * width, height - tile width height
 	 */
-	function positionElements_images(objTile, width, height){
-
+	function positionElements_images(objTile, width, height, visibleOnly){
+		
 		var objImageOverlay = getTileOverlayImage(objTile);
 		var objThumbImage = t.getTileImage(objTile);
 		var objImageEffect = getTileImageEffect(objTile);
 		
+		//reduce borders
 		width -= g_temp.tileInnerReduce;
 		height -= g_temp.tileInnerReduce;
+		
+		var imagePosy = null;
+		
+		//reduce textpanel height
+		if(g_temp.isTextpanelOutside == true){
+
+			var textHeight = getTextPanelHeight(objTile);
+			height -= textHeight;
+
+			if(g_options.tile_textpanel_position == "top"){
+				imagePosy = textHeight;
+			}
+			
+			/**
+			 * if has image container
+			 */
+			if(g_temp.hasImageContainer == true){
+				var objImageContainer = getTileImageContainer(objTile);
+				g_functions.setElementSize(objImageContainer, width, height);
+				
+				if(imagePosy !== null)
+					g_functions.placeElement(objImageContainer, 0, imagePosy);
+			}
+			
+		}
 		
 		//scale image
 		if(g_options.tile_enable_image_effect == false){
 
 			g_functions.scaleImageCoverParent(objThumbImage, width, height);
-						
-		}else{	//width the effect
-			g_functions.setElementSize(objImageOverlay, width - g_temp.tileInnerReduce, height - g_temp.tileInnerReduce);
+			
+			if(g_temp.hasImageContainer == false && imagePosy !== null)
+				g_functions.placeElement(objThumbImage, 0, imagePosy);
 
-			g_functions.scaleImageCoverParent(objImageEffect, width, height);
+		}else{	//width the effect
 			
-			g_functions.cloneElementSizeAndPos(objImageEffect, objThumbImage);
+			//set what to resize
+			var dontResize = "nothing";
+			if(visibleOnly === true && g_temp.isTextpanelOutside == false){
+				if(g_options.tile_image_effect_reverse == true){
+					dontResize = "effect";
+				}else{
+					dontResize = "image";
+				}
+			}
+
+			//resize image effect
+			if(dontResize != "effect"){
+				g_functions.setElementSize(objImageOverlay, width, height);
+				
+				if(imagePosy !== null)
+					g_functions.placeElement(objImageOverlay, 0, imagePosy);
+				
+				g_functions.scaleImageCoverParent(objImageEffect, width, height);
+			}
 			
-			setTimeout(function(){
-				g_functions.cloneElementSizeAndPos(objImageEffect, objThumbImage);
-			},500);
+
+			//resize image
+			if(dontResize != "image"){
+				
+				if(g_temp.hasImageContainer == true){
+					g_functions.scaleImageCoverParent(objThumbImage, width, height);
+				}else{
+					
+					//if can't clone, resize
+					if(dontResize == "effect"){
+						g_functions.scaleImageCoverParent(objThumbImage, width, height);
+						if(imagePosy !== null)
+							g_functions.placeElement(objThumbImage, 0, imagePosy);
+					}
+					else
+						g_functions.cloneElementSizeAndPos(objImageEffect, objThumbImage, false, null, imagePosy);
+					
+				}
+				
+			}
+
 			
+			
+		}
+
+	}
+	
+	
+	/**
+	 * position text panel
+	 * panelType - default or clone
+	 */
+	function positionElements_textpanel(objTile, panelType, tileWidth, tileHeight){
+		
+		var panelWidth = null;
+		if(tileWidth)
+			panelWidth = tileWidth - g_temp.tileInnerReduce;
+
+		if(tileHeight)
+			tileHeight -= g_temp.tileInnerReduce;
+		
+		if(panelType == "clone"){
+			var objTextPanelClone = getTextPanelClone(objTile);
+			objTextPanelClone.refresh(true, true, panelWidth);
+			var objItem = t.getItemByTile(objTile);
+			objItem.textPanelCloneSizeSet = true;
+			
+			return(false);
+		}
+		
+		var objTextPanel = getTextPanel(objTile);
+		
+		if(!objTextPanel)
+			return(false);
+		
+		var panelHeight = null;
+				
+		//set panel height also
+		if(g_temp.isTextpanelOutside == true)
+			panelHeight = getTextPanelHeight(objTile);
+			
+		objTextPanel.refresh(false, true, panelWidth, panelHeight);
+		
+		var isPosition = (g_options.tile_textpanel_always_on == true || g_options.tile_textpanel_appear_type == "fade");
+		
+		if(isPosition){
+			
+			if(g_temp.isTextpanelOutside == true && tileHeight && g_options.tile_textpanel_position == "bottom"){
+			
+				var posy = tileHeight - panelHeight;
+				objTextPanel.positionPanel(posy);
+			
+			}else
+				objTextPanel.positionPanel();
 		}
 		
 	}
-
+		
 	
 	/**
 	 * position the elements
 	 */
 	function positionElements(objTile){
 		
-		if(objTile.index() == 0){
-			//debugLine("position", true);
-		}
-		
 		var objItem = t.getItemByTile(objTile);
 		var objButtonZoom = getButtonZoom(objTile);
 		var objButtonLink = getButtonLink(objTile);
 		var sizeTile = g_functions.getElementSize(objTile);
-
-		positionElements_images(objTile, sizeTile.width, sizeTile.height);
-
-		var objTextPanel = getTextPanel(objTile);
-		
-		//set text panel:
-		if(g_options.tile_enable_textpanel == true){
-
-			if(objTextPanel){
-				objTextPanel.refresh(false, true);
 				
-				if(g_options.tile_textpanel_always_on == true || g_options.tile_textpanel_appear_type == "fade")
-					objTextPanel.positionPanel();
-			}
+		positionElements_images(objTile, sizeTile.width, sizeTile.height);
+		
+		//position text panel:
+		if(g_options.tile_enable_textpanel == true)
+			positionElements_textpanel(objTile, "regular", sizeTile.width, sizeTile.height);
+		
+		
+		//position overlay:
+		var overlayWidth = sizeTile.width - g_temp.tileInnerReduce;
+		var overlayHeight = sizeTile.height - g_temp.tileInnerReduce;
+		var overlayY = 0;
+		if(g_temp.isTextpanelOutside == true){
+			var textHeight = getTextPanelHeight(objTile);
+			overlayHeight -= textHeight;
+			if(g_options.tile_textpanel_position == "top")
+				overlayY = textHeight;
 		}
-
+		
+		var objOverlay = getTileOverlay(objTile);
+		g_functions.setElementSizeAndPosition(objOverlay, 0, overlayY, overlayWidth, overlayHeight);
+		
 		//set vertical gap for icons
 		if(objButtonZoom || objButtonLink){
 
 			var gapVert = 0;
-			if(g_options.tile_enable_textpanel == true){
+			if(g_options.tile_enable_textpanel == true && g_temp.isTextpanelOutside == false){
 				var objTextPanelElement = getTextPanelElement(objTile);
 				var texPanelSize = g_functions.getElementSize(objTextPanelElement);
 				if(texPanelSize.height > 0)
@@ -10725,6 +11040,7 @@ function UGTileDesign(){
 			}
 
 		}
+		
 		
 		if(objButtonZoom && objButtonLink){
 			var sizeZoom = g_functions.getElementSize(objButtonZoom);
@@ -10777,6 +11093,7 @@ function UGTileDesign(){
 	 * set the overlay effect
 	 */
 	function setImageOverlayEffect(objTile, isActive){
+		
 		var objItem = t.getItemByTile(objTile);
 		var objOverlayImage = getTileOverlayImage(objTile);
 		
@@ -10816,7 +11133,7 @@ function UGTileDesign(){
 		var objTextPanel = getTextPanelElement(objTile);
 		if(!objTextPanel)
 			return(true);
-		
+
 		if(g_options.tile_textpanel_appear_type == "slide"){
 			
 			var panelSize = g_functions.getElementSize(objTextPanel);
@@ -10825,22 +11142,29 @@ function UGTileDesign(){
 			
 			var startPos = -panelSize.height;
 			var endPos = 0;
+			var startClass = {}, endClass = {};
+			
+			var posName = "bottom";
+			if(g_options.tile_textpanel_position == "inside_top")
+				posName = "top";
+			
+			startClass[posName] = startPos+"px";
+			endClass[posName] = endPos+"px";
 			
 			if(isActive == true){
 								
 				objTextPanel.fadeTo(0,1);
 									
 				if(objTextPanel.is(":animated") == false)
-					objTextPanel.css("bottom",startPos+"px");
+					objTextPanel.css(startClass);
 					
-				objTextPanel.stop(true).animate({"bottom":endPos+"px"}, animationDuration);
+				objTextPanel.stop(true).animate(endClass, animationDuration);
 				
 			}else{
 				
-				objTextPanel.stop(true).animate({"bottom":startPos+"px"}, animationDuration);
+				objTextPanel.stop(true).animate(startClass, animationDuration);
 				
 			}
-			
 			
 		}else{		//fade effect
 			
@@ -10902,12 +11226,12 @@ function UGTileDesign(){
 	}
 	
 	
-	
 	/**
 	 * set normal style
 	 */
 	function setNormalStyle(data, objTile){
-			
+		
+		
 		objTile = jQuery(objTile);
 		
 		if(g_options.tile_enable_image_effect)
@@ -10917,7 +11241,7 @@ function UGTileDesign(){
 			setTextpanelEffect(objTile, false);
 		
 		//show/hide icons - if saparate (if not, they are part of the overlay)
-		if(g_temp.isSaparateIcons && g_options.tile_enable_icons == true){
+		if(g_temp.isSaparateIcons == true && g_options.tile_enable_icons == true){
 			var isSet = (g_options.thumb_overlay_reverse == true)?false:true;
 			setIconsEffect(objTile, isSet, false);
 		}
@@ -10937,22 +11261,6 @@ function UGTileDesign(){
 		
 	}
 	
-	/**
-	 * resize tile text panel to a new width
-	 */
-	function resizeTileTextPanel(objTile, newWidth){
-		
-		var textPanel = getTextPanel(objTile);
-		if(!textPanel)
-			return(false);
-		
-		var tileSize = g_functions.getElementSize(objTile);
-		if(newWidth < tileSize.width)
-			return(false);
-		
-		textPanel.refresh(false, true, newWidth);
-	}
-
 	
 	function _________________EVENTS________________(){};
 	
@@ -11086,12 +11394,11 @@ function UGTileDesign(){
 	}
 	
 	
-	
 	/**
 	 * init events
 	 */
 	this.initEvents = function(){
-		
+				
 		g_thumbs.initEvents();
 		
 		//connect the over and normal style of the regular thumbs
@@ -11160,12 +11467,15 @@ function UGTileDesign(){
 	
 	
 	
-	
 	/**
 	 * resize tile. If no size given, resize to original size
 	 * the resize mode taken from resize modes constants, default is full
 	 */
 	this.resizeTile = function(objTile, newWidth, newHeight, resizeMode){
+
+			//if textpanel outside - refresh the textpanel first
+			if(g_temp.isTextpanelOutside == true)
+				positionElements_textpanel(objTile, "clone", newWidth);
 			
 			if(!newWidth){
 				
@@ -11174,10 +11484,11 @@ function UGTileDesign(){
 				
 			}else{		//only height is missing
 				if(!newHeight){
+					
 					var newHeight = t.getTileHeightByWidth(newWidth, objTile);
 				}
 			}
-			
+						
 			g_functions.setElementSize(objTile, newWidth, newHeight);
 			
 			switch(resizeMode){
@@ -11196,11 +11507,12 @@ function UGTileDesign(){
 					}
 					
 					//resize images
-					positionElements_images(objTile, newWidth, newHeight);
+					positionElements_images(objTile, newWidth, newHeight, true);
 					
 					//resize text panel, if visible
-					if(g_options.tile_enable_textpanel == true && g_options.tile_textpanel_always_on == true && newWidth)
-							resizeTileTextPanel(objTile, newWidth-g_temp.tileInnerReduce);
+					if(g_options.tile_enable_textpanel == true && g_options.tile_textpanel_always_on == true && newWidth){
+						positionElements_textpanel(objTile, "regular", newWidth, newHeight);
+					}
 					
 				break;
 			}
@@ -11212,12 +11524,12 @@ function UGTileDesign(){
 	 * resize all tiles 
 	 */
 	this.resizeAllTiles = function(newWidth, resizeMode){
-		
+				
 		var newHeight = null;
-			
+		
 		if(g_options.tile_size_by == t.sizeby.GLOBAL_RATIO)
 			newHeight = t.getTileHeightByWidth(newWidth);
-		
+						
 		var objTiles = g_thumbs.getThumbs();
 		objTiles.each(function(index, objTile){
 			t.resizeTile(jQuery(objTile), newWidth, newHeight, resizeMode);
@@ -11303,9 +11615,13 @@ function UGTileDesign(){
 	 * run the tile design
 	 */
 	this.run = function(){
-		
+				
 		var objThumbs = g_thumbs.getThumbs();
 		
+		if(g_options.tile_size_by == t.sizeby.GLOBAL_RATIO){
+			t.resizeAllTiles(g_options.tile_width, t.resizemode.WRAPPER_ONLY);
+		}
+			
 		//hide original image if image effect active
 		if(g_options.tile_enable_image_effect == true && g_options.tile_image_effect_reverse == false)
 			objThumbs.children(".ug-thumb-image").fadeTo(0,0);
@@ -11313,12 +11629,15 @@ function UGTileDesign(){
 		g_thumbs.setHtmlProperties();
 		
 		if(g_options.tile_visible_before_image == true){
+			
+			//if textpanel outside - refresh the textpanel first			
 			objThumbs.children(".ug-thumb-image").fadeTo(0,0);
 			g_thumbs.loadThumbsImages();
 		}
 		
 	}
 
+	
 	this._____________EXTERNAL_GETTERS____________=function(){};
 	
 	
@@ -11340,7 +11659,7 @@ function UGTileDesign(){
 	 * get tile image
 	 */
 	this.getTileImage = function(objTile){
-		var objImage = objTile.children("img.ug-thumb-image");
+		var objImage = objTile.find("img.ug-thumb-image");
 		return(objImage);
 	}
 
@@ -11365,8 +11684,12 @@ function UGTileDesign(){
 		
 		var height = Math.floor( (newWidth - g_temp.tileInnerReduce) * ratio) + g_temp.tileInnerReduce;
 		
+		if(objTile && g_temp.isTextpanelOutside == true && g_options.tile_size_by == t.sizeby.IMAGE_RATIO)
+			height += getTextPanelHeight(objTile);
+		
 		return(height);
 	}
+	
 	
 	/**
 	 * get tile original size
@@ -11383,6 +11706,24 @@ function UGTileDesign(){
         
         return(objSize);
 	}
+	
+	
+	/**
+	 * get tile size
+	 */
+	this.getGlobalTileSize = function(){
+		
+		if(g_options.tile_size_by != t.sizeby.GLOBAL_RATIO)
+			throw new Error("The size has to be global ratio");
+		
+		var objSize = {
+				width: g_options.tile_width,
+				height: g_options.tile_height
+		};
+	
+		return(objSize);
+	}
+	
 	
 }
 
@@ -13072,13 +13413,13 @@ function UGSlider(){
 	/**
 	 * on item change event
 	 */
-	function onItemChange(){
+	function onItemChange(data, arg_objItem, role){
 		
 		//trace("slider on change");
 		
 		var objItem = g_gallery.getSelectedItem();
 				
-		t.setItem(objItem);
+		t.setItem(objItem, false, role);
 		
 		var itemIndex = objItem.index;
 		
@@ -13756,7 +14097,7 @@ function UGSlider(){
 	/**
 	 * change the slider to some item content
 	 */
-	this.setItem = function(objItem, forseTransition){
+	this.setItem = function(objItem, forseTransition, role){
 		
 		var slides = t.getSlidesReference();
 		
@@ -13780,13 +14121,15 @@ function UGSlider(){
 			
 			var numItems = g_gallery.getNumItems();
 			
-			if(currentIndex == (numItems-1) && nextIndex == 0)
+			if(role == "next")
 				direction = "left";
-			else
-				if(currentIndex == 0 && nextIndex == (numItems-1))
+			else if(role == "prev")
+				direction = "right";
+			else if(currentIndex == (numItems-1) && nextIndex == 0)
+				direction = "left";
+			else if(currentIndex == 0 && nextIndex == (numItems-1))
 					direction = "right";
-			else
-				if(currentIndex > nextIndex)
+			else if(currentIndex > nextIndex)
 					direction = "right";
 						
 			doTransition(direction, objItem, forseTransition);
@@ -14237,11 +14580,14 @@ function UGTextPanel(){
 			textpanel_desc_bold:null,					//textpanel description bold. if null - take from css
 			textpanel_css_description:{},				//textpanel additional css of the description
 			
+			textpanel_desc_style_as_title: false,		//set that the description style will be as title
+			
 			textpanel_bg_css:{}							//textpanel background css
 	};
 	
 	var g_temp = {
-			isFirstTime: true
+			isFirstTime: true,
+			setInternalHeight: true		//flag if set internal height or not
 	};
 	
 	
@@ -14284,8 +14630,8 @@ function UGTextPanel(){
 		}
 		
 		//change panel height
-		if(!g_options.textpanel_height){
-											
+		if(!g_options.textpanel_height && g_temp.setInternalHeight == true){
+			
 			var panelHeight = maxy + g_options.textpanel_padding_bottom;		
 			
 			setHeight(panelHeight, animateHeight);
@@ -14380,7 +14726,7 @@ function UGTextPanel(){
 	 * set new panel height
 	 */
 	function setHeight(height, animateHeight){
-						
+		
 		if(!animateHeight)
 			var animateHeight = false;
 		
@@ -14427,35 +14773,57 @@ function UGTextPanel(){
 		if(customOptions)
 			g_options = jQuery.extend(g_options, customOptions);
 		
-		
 		//validation:
 		if(g_options.textpanel_enable_title == false && g_options.textpanel_enable_description == false)
 			throw new Error("Textpanel Error: The title or description must be enabled");
 		
 		if(g_options.textpanel_height && g_options.textpanel_height < 0)
 			g_options.textpanel_height = null;
-
+		
+		//copy desc style from title
+		if(g_options.textpanel_desc_style_as_title == true){
+			if(!g_options.textpanel_desc_color)
+				g_options.textpanel_desc_color = g_options.textpanel_title_color;
+			
+			if(!g_options.textpanel_desc_bold)
+				g_options.textpanel_desc_bold = g_options.textpanel_title_bold;
+			
+			if(!g_options.textpanel_desc_font_family)
+				g_options.textpanel_desc_font_family = g_options.textpanel_title_font_family;
+			
+			if(!g_options.textpanel_desc_font_size)
+				g_options.textpanel_desc_font_size = g_options.textpanel_title_font_size;
+			
+			if(!g_options.textpanel_desc_text_align)
+				g_options.textpanel_desc_text_align = g_options.textpanel_title_text_align;
+		}
+		
 	}
 	
 	
 	/**
 	 * append the bullets html to some parent
 	 */
-	this.appendHTML = function(objParent){
+	this.appendHTML = function(objParent, addClass){
 		g_objParent = objParent;
-			
-		var html = "<div class='ug-textpanel'>";
+		
+		if(addClass){
+			addClass = " "+addClass;
+		}else
+			addClass = "";
+		
+		var html = "<div class='ug-textpanel"+addClass+"'>";
 		
 		if(g_options.textpanel_enable_bg == true)
-			html += "<div class='ug-textpanel-bg'></div>";
+			html += "<div class='ug-textpanel-bg"+addClass+"'></div>";
 		
-		html += "<div class='ug-textpanel-textwrapper'>";
+		html += "<div class='ug-textpanel-textwrapper"+addClass+"'>";
 		
 		if(g_options.textpanel_enable_title == true)
-			html += "<div class='ug-textpanel-title'></div>";
+			html += "<div class='ug-textpanel-title"+addClass+"'></div>";
 		
 		if(g_options.textpanel_enable_description == true)
-			html += "<div class='ug-textpanel-description'></div>";
+			html += "<div class='ug-textpanel-description"+addClass+"'></div>";
 		
 		html += "</div></div>";
 		
@@ -14594,16 +14962,20 @@ function UGTextPanel(){
 	/**
 	 * set panel size
 	 */
-	this.setPanelSize = function(panelWidth){
-	
-		var panelHeight = 80;		//some default number
+	this.setPanelSize = function(panelWidth, panelHeight){
+		
+		g_temp.setInternalHeight = true;
+		
+		if(!panelHeight)
+			var panelHeight = 80;		//some default number
+		else
+			g_temp.setInternalHeight = false;
 		
 		if(g_options.textpanel_height)	
 			panelHeight = g_options.textpanel_height;
 		
 		g_objPanel.width(panelWidth);
 		g_objPanel.height(panelHeight);
-		
 		
 		//set background size
 		if(g_objBG){
@@ -14693,6 +15065,7 @@ function UGTextPanel(){
 		
 		if(customTop !== undefined && customTop !== null){
 			objCss.top = customTop;
+			objCss.bottom = "auto";
 		}else{
 			
 			switch(g_options.textpanel_align){
@@ -14751,14 +15124,14 @@ function UGTextPanel(){
 	/**
 	 * refresh panel size, position and contents
 	 */
-	this.refresh = function(toShow, noPosition, panelWidth){
+	this.refresh = function(toShow, noPosition, panelWidth, panelHeight){
 		
 		setCss();
 		
 		if(!panelWidth)
 			t.setSizeByParent();
 		else
-			t.setPanelSize(panelWidth);
+			t.setPanelSize(panelWidth, panelHeight);
 		
 		t.positionElements(false);
 		
@@ -17884,9 +18257,9 @@ function UGYoutubeAPI(){
 			return(false);
 		
 		if(isAutoplay && isAutoplay == true)
-			g_player.loadVideoById(videoID, 0, "default");
+			g_player.loadVideoById(videoID, 0, "large");
 		else
-			g_player.cueVideoById(videoID, 0, "default");
+			g_player.cueVideoById(videoID, 0, "large");
 	}
 	
 	
@@ -19517,9 +19890,10 @@ function UniteGalleryMain(){
 	 */
 	function onFullScreenChange(){
 		
+		
 		var isFullscreen = g_functions.isFullScreen();
-		 var event = isFullscreen ? t.events.ENTER_FULLSCREEN:t.events.EXIT_FULLSCREEN; 
-		 
+		var event = isFullscreen ? t.events.ENTER_FULLSCREEN:t.events.EXIT_FULLSCREEN; 
+
 		 var fullscreenID = g_functions.getGlobalData("fullscreenID");
 		 
 		 //check if this gallery was affected
@@ -20266,8 +20640,9 @@ function UniteGalleryMain(){
 	/**
 	 * select some item
 	 * the input can be index or object
+	 * role - the role of the object who selected the item
 	 */
-	this.selectItem = function(objItem){
+	this.selectItem = function(objItem, role){
 		
 		if(typeof objItem == "number")
 			objItem = t.getItem(objItem);
@@ -20282,7 +20657,7 @@ function UniteGalleryMain(){
 		g_selectedItem = objItem;		
 		g_selectedItemIndex = itemIndex;
 		
-		g_objGallery.trigger(t.events.ITEM_CHANGE, objItem);
+		g_objGallery.trigger(t.events.ITEM_CHANGE, [objItem,role]);
 
 		//reset playback, if playing
 		if(g_temp.isPlayMode == true){
@@ -20314,7 +20689,7 @@ function UniteGalleryMain(){
 		
 		//debugLine(newItemIndex,true);
 		
-		t.selectItem(newItemIndex);
+		t.selectItem(newItemIndex, "next");
 	}
 	
 	
@@ -20337,7 +20712,7 @@ function UniteGalleryMain(){
 		if(newItemIndex < 0)
 			newItemIndex = g_numItems - 1;
 		
-		t.selectItem(newItemIndex);
+		t.selectItem(newItemIndex, "prev");
 		
 	}
 	

@@ -32,6 +32,9 @@ function UGTileDesign(){
 			tile_size_by:t.sizeby.IMAGE_RATIO,		//image ratio, tile ratio , global_ratio - decide by what parameter resize the tile
 			tile_visible_before_image:false,		//tile visible before image load
 			
+			tile_enable_background:true,			//enable backgruond of the tile
+			tile_background_color: "#F0F0F0",		//tile background color
+			
 			tile_enable_border:false,				//enable border of the tile
 			tile_border_width:3,					//tile border width
 			tile_border_color:"#F0F0F0",			//tile border color
@@ -64,11 +67,14 @@ function UGTileDesign(){
 			tile_image_effect_type: "bw",			//bw, blur, sepia - tile effect type
 			tile_image_effect_reverse: false,		//reverce the image, set only on mouseover state
 			
-			tile_enable_textpanel: false,			//enable textpanel
-			tile_textpanel_source: "title",			//title,desc,desc_title. source of the textpanel. desc_title - if description empty, put title
-			tile_textpanel_always_on: false,		//textpanel always visible
-			tile_textpanel_appear_type: "slide"		//slide, fade - appear type of the textpanel on mouseover
+			tile_enable_textpanel: false,			 //enable textpanel
+			tile_textpanel_source: "title",			 //title,desc,desc_title,title_and_desc. source of the textpanel. desc_title - if description empty, put title
+			tile_textpanel_always_on: false,		 //textpanel always visible - for inside type
+			tile_textpanel_appear_type: "slide",	 //slide, fade - appear type of the textpanel on mouseover
+			tile_textpanel_position:"inside_bottom", //inside_bottom, inside_top, inside_center, top, bottom the position of the textpanel
+			tile_textpanel_offset:0					 //vertical offset of the textpanel
 	};
+	
 	
 	var g_defaults = {
 			thumb_color_overlay_effect: true,
@@ -88,9 +94,10 @@ function UGTileDesign(){
 		funcCustomPositionElements: null,
 		funcParentApproveClick: null,
 		isSaparateIcons: false,
-		tileInnerReduce: 0		//how much reduce from the tile inner elements from border mostly
+		tileInnerReduce: 0,		//how much reduce from the tile inner elements from border mostly
+		isTextpanelOutside: false,	//is the textpanel is out of tile image border
+		hasImageContainer:false
 	};
-	
 	
 	
 	/**
@@ -115,7 +122,8 @@ function UGTileDesign(){
 				
 		g_thumbs.init(gallery, g_options);	
 		
-		var objCustomOptions = {};	
+		var objCustomOptions = {allow_onresize:false};
+		
 		var customThumbsAdd = ["overlay"];
 		
 		if(g_temp.funcCustomTileHtml)
@@ -127,12 +135,14 @@ function UGTileDesign(){
 		var thumbOptions = g_thumbs.getOptions();
 		g_options = jQuery.extend(g_options, thumbOptions);
 		
-		//check if saparate icons
-		g_temp.isSaparateIcons = !g_functions.isRgbaSupported();
-		
 		//set ratios of fixed mode
 		g_temp.ratioByWidth = g_options.tile_width / g_options.tile_height;
 		g_temp.ratioByHeight = g_options.tile_height / g_options.tile_width;
+		
+		
+		//set if tile has image container
+		if(g_options.tile_size_by == t.sizeby.GLOBAL_RATIO && g_temp.isTextpanelOutside)
+			g_temp.hasImageContainer = true;
 		
 	}
 	
@@ -141,7 +151,7 @@ function UGTileDesign(){
 	 * set thumb and textpanel options according tile options
 	 */
 	function modifyOptions(){
-		
+
 		//set overlay related options
 		if(g_options.tile_enable_overlay == true){
 			
@@ -170,10 +180,49 @@ function UGTileDesign(){
 			g_temp.tileInnerReduce = g_options.tile_border_width * 2;
 			g_thumbs.setThumbInnerReduce(g_temp.tileInnerReduce);
 		}
-	
-	
+
+		//check if saparate icons
+		g_temp.isSaparateIcons = !g_functions.isRgbaSupported();
+		
+		//set if the textpanel is enabled and outside
+		if(g_options.tile_enable_textpanel == true){
+			
+			switch(g_options.tile_textpanel_position){
+				case "top":
+					g_options.tile_textpanel_align = "top";
+				case "bottom":
+					g_temp.isTextpanelOutside = true;
+					g_options.tile_textpanel_always_on = true;
+					g_options.tile_textpanel_offset = 0;
+				break;
+				case "inside_top":
+					g_options.tile_textpanel_align = "top";
+				break;
+				case "middle":
+					g_options.tile_textpanel_align = "middle";
+					g_options.tile_textpanel_appear_type = "fade";
+				break;
+			}
+			
+			//if text panel oppearing with the overlay, icons should be saparated
+			if(g_options.tile_textpanel_always_on == false)
+				g_temp.isSaparateIcons = true;
+			
+		}
+		
+		//if the textpanel offset is not from the border, it's always fade.
+		if(g_options.tile_textpanel_offset != 0){
+			g_options.tile_textpanel_appear_type = "fade";
+			g_options.tile_textpanel_margin = g_options.tile_textpanel_offset;
+		}
+		
+		//enable description if needed
+		if(g_options.tile_textpanel_source == "title_and_desc"){
+			g_options.tile_textpanel_enable_description = true;
+			g_options.tile_textpanel_desc_style_as_title = true;
+		}
+		
 	}
-	
 	
 	
 	/**
@@ -188,29 +237,40 @@ function UGTileDesign(){
 			return(false);
 		}
 		
+		var html = "";
+			
+		//add image container
+		if(g_temp.hasImageContainer == true){
+			html += "<div class='ug-image-container ug-trans-enabled'>";
+		}
+		
 		//add thumb image:
 		var classImage = "ug-thumb-image";
 
 		if(g_options.tile_enable_image_effect == false || g_options.tile_image_effect_reverse == true)
 			classImage += " ug-trans-enabled";
 		
+		html += "<img src='"+objItem.urlThumb+"' alt='"+objItem.title+"' class='"+classImage+"'>";
+
+		if(g_temp.hasImageContainer == true){
+			html += "</div>";
+		}	
 		
-		var html = "<img src='"+objItem.urlThumb+"' alt='"+objItem.title+"' class='"+classImage+"'>";
 		objThumbWrapper.append(html);
 		
-		var objThumbImage = objThumbWrapper.children(".ug-thumb-image");
 		
 		if(g_options.tile_size_by == t.sizeby.GLOBAL_RATIO){
 			objThumbWrapper.fadeTo(0,0);		//turn on in thumbsGeneral
-			
-			g_functions.setElementSize(objThumbWrapper, g_options.tile_width, g_options.tile_height);
 		}
-		
 		
 		//---- set thumb styles ---- 
 		
 		//set border:
 		var objCss = {};
+		
+		if(g_options.tile_enable_background == true){
+			objCss["background-color"] = g_options.tile_background_color;
+		}
 		
 		if(g_options.tile_enable_border == true){
 			objCss["border-width"] = g_options.tile_border_width+"px";
@@ -314,13 +374,18 @@ function UGTileDesign(){
 			if(g_options.tile_image_effect_reverse == false)
 				imageEffectClassAdd = " ug-trans-enabled";
 			
-			var imageOverlayHtml = "<div class='ug-tile-image-overlay"+imageEffectClassAdd+"' style='display:none'>";
+			var imageOverlayHtml = "<div class='ug-tile-image-overlay"+imageEffectClassAdd+"' >";
 			var imageEffectClass = " ug-"+g_options.tile_image_effect_type+"-effect";
 			
 			imageOverlayHtml += "<img src='"+objItem.urlThumb+"' alt='"+objItem.title+"' class='"+imageEffectClass + imageEffectClassAdd+"'>";
 			imageOverlayHtml += "</div>";
 			
 			objThumbWrapper.append(imageOverlayHtml);
+
+			//hide the image overlay if reversed
+			if(g_options.tile_image_effect_reverse == true){
+				objThumbWrapper.children(".ug-tile-image-overlay").fadeTo(0,0);
+			}
 			
 		}
 		
@@ -331,27 +396,58 @@ function UGTileDesign(){
 			var objTextPanel = new UGTextPanel();			 
 			objTextPanel.init(g_gallery, g_options, "tile");
 			
-			objTextPanel.appendHTML(objThumbWrapper);				
+			//set transition class
+			var textpanelAddClass = "";
+			if(g_options.tile_textpanel_always_on == true || g_temp.isTextpanelOutside == true)
+				textpanelAddClass = "ug-trans-enabled";
 			
-			var panelText = objItem.title;
+			objTextPanel.appendHTML(objThumbWrapper, textpanelAddClass);
+			
+			var panelTitle = objItem.title;
+			var panelDesc = "";
+			
 			switch(g_options.tile_textpanel_source){
 				case "desc":
 				case "description":
-					panelText = objItem.description;
+					panelTitle = objItem.description;
 				break;
 				case "desc_title":
 					if(objItem.description != "")
-						panelText = objItem.description;
+						panelTitle = objItem.description;
+				break;
+				case "title_and_desc":
+					panelTitle = objItem.title;
+					panelDesc = objItem.description;
 				break;
 			}
 			
-			
-			objTextPanel.setTextPlain(panelText, "");
+			objTextPanel.setTextPlain(panelTitle, panelDesc);
 			
 			if(g_options.tile_textpanel_always_on == false)
 				objTextPanel.getElement().fadeTo(0,0);
-						
+			
 			objThumbWrapper.data("objTextPanel", objTextPanel);
+
+			//if textpanel always on, it has to be under the overlay
+			if(g_options.tile_textpanel_always_on == true){
+				var textPanelElement = getTextPanelElement(objThumbWrapper);
+				textPanelElement.css("z-index",2);
+			}
+			
+			//if text panel is outside, clone textpanel
+			if(g_temp.isTextpanelOutside == true){
+				
+				var htmlClone = "<div class='ug-tile-cloneswrapper'></div>";
+				objThumbWrapper.append(htmlClone);
+				var objCloneWrapper = objThumbWrapper.children(".ug-tile-cloneswrapper");
+				
+				var objTextPanelClone = new UGTextPanel(); 
+				objTextPanelClone.init(g_gallery, g_options, "tile");				
+				objTextPanelClone.appendHTML(objCloneWrapper);
+				objTextPanelClone.setTextPlain(panelText, "");
+				objThumbWrapper.data("objTextPanelClone", objTextPanelClone);
+			}
+			
 		}
 		
 		//add additional html
@@ -396,13 +492,26 @@ function UGTileDesign(){
 	
 	
 	/**
+	 * get image container
+	 */
+	function getTileImageContainer(objTile){
+		if(g_temp.hasImageContainer == false)
+			return(null);
+		
+		var objImageContainer = objTile.children(".ug-image-container");
+		
+		return(objImageContainer);
+	}
+	
+	
+	/**
 	 * get image effect
 	 */
 	function getTileImageEffect(objTile){		
 		var objImageEffect = objTile.find(".ug-tile-image-overlay img");			
 		return(objImageEffect);
 	}
-
+	
 	
 	/**
 	 * get text panel
@@ -413,13 +522,58 @@ function UGTileDesign(){
 		return(objTextPanel);
 	}
 	
+	
+	/**
+	 * get cloned text panel
+	 */
+	function getTextPanelClone(objTile){
+		var objTextPanelClone = objTile.data("objTextPanelClone");
+		
+		return(objTextPanelClone);
+		
+	}
+	
+	
 	/**
 	 * get text panel element from the tile
 	 */
 	function getTextPanelElement(objTile){
-		var objTextPanel = objTile.find(".ug-textpanel");
+		var objTextPanel = objTile.children(".ug-textpanel");
 		
 		return(objTextPanel);
+	}
+	
+	
+	/**
+	 * get text panel element cloned
+	 */
+	function getTextPanelCloneElement(objTile){
+		var objTextPanel = objTile.find(".ug-tile-cloneswrapper .ug-textpanel");
+		
+		if(objTextPanel.length == 0)
+			throw new Error("text panel cloned element not found");
+		
+		return(objTextPanel);
+		
+	}
+	
+	
+	/**
+	 * get text panel height
+	 */
+	function getTextPanelHeight(objTile){
+		
+		if(g_temp.isTextpanelOutside == true)
+			var objTextPanel = getTextPanelCloneElement(objTile);
+		else
+			var objTextPanel = getTextPanelElement(objTile);
+		
+		
+		if(!objTextPanel)
+			return(0);
+		
+		var objSize = g_functions.getElementSize(objTextPanel);
+		return(objSize.height);
 	}
 	
 	
@@ -439,7 +593,7 @@ function UGTileDesign(){
 	 * get tile ratio
 	 */
 	function getTileRatio(objTile){
-		
+					
 		//global ratio
 		var ratio = g_temp.ratioByHeight;
 		
@@ -468,8 +622,7 @@ function UGTileDesign(){
 				return null;
 			break;
 		}
-		
-		
+				
 		return(ratio);
 	}
 	
@@ -515,70 +668,186 @@ function UGTileDesign(){
 	 * position tile images elements
 	 * width, height - tile width height
 	 */
-	function positionElements_images(objTile, width, height){
-
+	function positionElements_images(objTile, width, height, visibleOnly){
+		
 		var objImageOverlay = getTileOverlayImage(objTile);
 		var objThumbImage = t.getTileImage(objTile);
 		var objImageEffect = getTileImageEffect(objTile);
 		
+		//reduce borders
 		width -= g_temp.tileInnerReduce;
 		height -= g_temp.tileInnerReduce;
+		
+		var imagePosy = null;
+		
+		//reduce textpanel height
+		if(g_temp.isTextpanelOutside == true){
+
+			var textHeight = getTextPanelHeight(objTile);
+			height -= textHeight;
+
+			if(g_options.tile_textpanel_position == "top"){
+				imagePosy = textHeight;
+			}
+			
+			/**
+			 * if has image container
+			 */
+			if(g_temp.hasImageContainer == true){
+				var objImageContainer = getTileImageContainer(objTile);
+				g_functions.setElementSize(objImageContainer, width, height);
+				
+				if(imagePosy !== null)
+					g_functions.placeElement(objImageContainer, 0, imagePosy);
+			}
+			
+		}
 		
 		//scale image
 		if(g_options.tile_enable_image_effect == false){
 
 			g_functions.scaleImageCoverParent(objThumbImage, width, height);
-						
-		}else{	//width the effect
-			g_functions.setElementSize(objImageOverlay, width - g_temp.tileInnerReduce, height - g_temp.tileInnerReduce);
+			
+			if(g_temp.hasImageContainer == false && imagePosy !== null)
+				g_functions.placeElement(objThumbImage, 0, imagePosy);
 
-			g_functions.scaleImageCoverParent(objImageEffect, width, height);
+		}else{	//width the effect
 			
-			g_functions.cloneElementSizeAndPos(objImageEffect, objThumbImage);
+			//set what to resize
+			var dontResize = "nothing";
+			if(visibleOnly === true && g_temp.isTextpanelOutside == false){
+				if(g_options.tile_image_effect_reverse == true){
+					dontResize = "effect";
+				}else{
+					dontResize = "image";
+				}
+			}
+
+			//resize image effect
+			if(dontResize != "effect"){
+				g_functions.setElementSize(objImageOverlay, width, height);
+				
+				if(imagePosy !== null)
+					g_functions.placeElement(objImageOverlay, 0, imagePosy);
+				
+				g_functions.scaleImageCoverParent(objImageEffect, width, height);
+			}
 			
-			setTimeout(function(){
-				g_functions.cloneElementSizeAndPos(objImageEffect, objThumbImage);
-			},500);
+
+			//resize image
+			if(dontResize != "image"){
+				
+				if(g_temp.hasImageContainer == true){
+					g_functions.scaleImageCoverParent(objThumbImage, width, height);
+				}else{
+					
+					//if can't clone, resize
+					if(dontResize == "effect"){
+						g_functions.scaleImageCoverParent(objThumbImage, width, height);
+						if(imagePosy !== null)
+							g_functions.placeElement(objThumbImage, 0, imagePosy);
+					}
+					else
+						g_functions.cloneElementSizeAndPos(objImageEffect, objThumbImage, false, null, imagePosy);
+					
+				}
+				
+			}
+
 			
+			
+		}
+
+	}
+	
+	
+	/**
+	 * position text panel
+	 * panelType - default or clone
+	 */
+	function positionElements_textpanel(objTile, panelType, tileWidth, tileHeight){
+		
+		var panelWidth = null;
+		if(tileWidth)
+			panelWidth = tileWidth - g_temp.tileInnerReduce;
+
+		if(tileHeight)
+			tileHeight -= g_temp.tileInnerReduce;
+		
+		if(panelType == "clone"){
+			var objTextPanelClone = getTextPanelClone(objTile);
+			objTextPanelClone.refresh(true, true, panelWidth);
+			var objItem = t.getItemByTile(objTile);
+			objItem.textPanelCloneSizeSet = true;
+			
+			return(false);
+		}
+		
+		var objTextPanel = getTextPanel(objTile);
+		
+		if(!objTextPanel)
+			return(false);
+		
+		var panelHeight = null;
+				
+		//set panel height also
+		if(g_temp.isTextpanelOutside == true)
+			panelHeight = getTextPanelHeight(objTile);
+			
+		objTextPanel.refresh(false, true, panelWidth, panelHeight);
+		
+		var isPosition = (g_options.tile_textpanel_always_on == true || g_options.tile_textpanel_appear_type == "fade");
+		
+		if(isPosition){
+			
+			if(g_temp.isTextpanelOutside == true && tileHeight && g_options.tile_textpanel_position == "bottom"){
+			
+				var posy = tileHeight - panelHeight;
+				objTextPanel.positionPanel(posy);
+			
+			}else
+				objTextPanel.positionPanel();
 		}
 		
 	}
-
+		
 	
 	/**
 	 * position the elements
 	 */
 	function positionElements(objTile){
 		
-		if(objTile.index() == 0){
-			//debugLine("position", true);
-		}
-		
 		var objItem = t.getItemByTile(objTile);
 		var objButtonZoom = getButtonZoom(objTile);
 		var objButtonLink = getButtonLink(objTile);
 		var sizeTile = g_functions.getElementSize(objTile);
-
-		positionElements_images(objTile, sizeTile.width, sizeTile.height);
-
-		var objTextPanel = getTextPanel(objTile);
-		
-		//set text panel:
-		if(g_options.tile_enable_textpanel == true){
-
-			if(objTextPanel){
-				objTextPanel.refresh(false, true);
 				
-				if(g_options.tile_textpanel_always_on == true || g_options.tile_textpanel_appear_type == "fade")
-					objTextPanel.positionPanel();
-			}
+		positionElements_images(objTile, sizeTile.width, sizeTile.height);
+		
+		//position text panel:
+		if(g_options.tile_enable_textpanel == true)
+			positionElements_textpanel(objTile, "regular", sizeTile.width, sizeTile.height);
+		
+		
+		//position overlay:
+		var overlayWidth = sizeTile.width - g_temp.tileInnerReduce;
+		var overlayHeight = sizeTile.height - g_temp.tileInnerReduce;
+		var overlayY = 0;
+		if(g_temp.isTextpanelOutside == true){
+			var textHeight = getTextPanelHeight(objTile);
+			overlayHeight -= textHeight;
+			if(g_options.tile_textpanel_position == "top")
+				overlayY = textHeight;
 		}
-
+		
+		var objOverlay = getTileOverlay(objTile);
+		g_functions.setElementSizeAndPosition(objOverlay, 0, overlayY, overlayWidth, overlayHeight);
+		
 		//set vertical gap for icons
 		if(objButtonZoom || objButtonLink){
 
 			var gapVert = 0;
-			if(g_options.tile_enable_textpanel == true){
+			if(g_options.tile_enable_textpanel == true && g_temp.isTextpanelOutside == false){
 				var objTextPanelElement = getTextPanelElement(objTile);
 				var texPanelSize = g_functions.getElementSize(objTextPanelElement);
 				if(texPanelSize.height > 0)
@@ -586,6 +855,7 @@ function UGTileDesign(){
 			}
 
 		}
+		
 		
 		if(objButtonZoom && objButtonLink){
 			var sizeZoom = g_functions.getElementSize(objButtonZoom);
@@ -638,6 +908,7 @@ function UGTileDesign(){
 	 * set the overlay effect
 	 */
 	function setImageOverlayEffect(objTile, isActive){
+		
 		var objItem = t.getItemByTile(objTile);
 		var objOverlayImage = getTileOverlayImage(objTile);
 		
@@ -677,7 +948,7 @@ function UGTileDesign(){
 		var objTextPanel = getTextPanelElement(objTile);
 		if(!objTextPanel)
 			return(true);
-		
+
 		if(g_options.tile_textpanel_appear_type == "slide"){
 			
 			var panelSize = g_functions.getElementSize(objTextPanel);
@@ -686,22 +957,29 @@ function UGTileDesign(){
 			
 			var startPos = -panelSize.height;
 			var endPos = 0;
+			var startClass = {}, endClass = {};
+			
+			var posName = "bottom";
+			if(g_options.tile_textpanel_position == "inside_top")
+				posName = "top";
+			
+			startClass[posName] = startPos+"px";
+			endClass[posName] = endPos+"px";
 			
 			if(isActive == true){
 								
 				objTextPanel.fadeTo(0,1);
 									
 				if(objTextPanel.is(":animated") == false)
-					objTextPanel.css("bottom",startPos+"px");
+					objTextPanel.css(startClass);
 					
-				objTextPanel.stop(true).animate({"bottom":endPos+"px"}, animationDuration);
+				objTextPanel.stop(true).animate(endClass, animationDuration);
 				
 			}else{
 				
-				objTextPanel.stop(true).animate({"bottom":startPos+"px"}, animationDuration);
+				objTextPanel.stop(true).animate(startClass, animationDuration);
 				
 			}
-			
 			
 		}else{		//fade effect
 			
@@ -763,12 +1041,12 @@ function UGTileDesign(){
 	}
 	
 	
-	
 	/**
 	 * set normal style
 	 */
 	function setNormalStyle(data, objTile){
-			
+		
+		
 		objTile = jQuery(objTile);
 		
 		if(g_options.tile_enable_image_effect)
@@ -778,7 +1056,7 @@ function UGTileDesign(){
 			setTextpanelEffect(objTile, false);
 		
 		//show/hide icons - if saparate (if not, they are part of the overlay)
-		if(g_temp.isSaparateIcons && g_options.tile_enable_icons == true){
+		if(g_temp.isSaparateIcons == true && g_options.tile_enable_icons == true){
 			var isSet = (g_options.thumb_overlay_reverse == true)?false:true;
 			setIconsEffect(objTile, isSet, false);
 		}
@@ -798,22 +1076,6 @@ function UGTileDesign(){
 		
 	}
 	
-	/**
-	 * resize tile text panel to a new width
-	 */
-	function resizeTileTextPanel(objTile, newWidth){
-		
-		var textPanel = getTextPanel(objTile);
-		if(!textPanel)
-			return(false);
-		
-		var tileSize = g_functions.getElementSize(objTile);
-		if(newWidth < tileSize.width)
-			return(false);
-		
-		textPanel.refresh(false, true, newWidth);
-	}
-
 	
 	function _________________EVENTS________________(){};
 	
@@ -947,12 +1209,11 @@ function UGTileDesign(){
 	}
 	
 	
-	
 	/**
 	 * init events
 	 */
 	this.initEvents = function(){
-		
+				
 		g_thumbs.initEvents();
 		
 		//connect the over and normal style of the regular thumbs
@@ -1021,12 +1282,15 @@ function UGTileDesign(){
 	
 	
 	
-	
 	/**
 	 * resize tile. If no size given, resize to original size
 	 * the resize mode taken from resize modes constants, default is full
 	 */
 	this.resizeTile = function(objTile, newWidth, newHeight, resizeMode){
+
+			//if textpanel outside - refresh the textpanel first
+			if(g_temp.isTextpanelOutside == true)
+				positionElements_textpanel(objTile, "clone", newWidth);
 			
 			if(!newWidth){
 				
@@ -1035,10 +1299,11 @@ function UGTileDesign(){
 				
 			}else{		//only height is missing
 				if(!newHeight){
+					
 					var newHeight = t.getTileHeightByWidth(newWidth, objTile);
 				}
 			}
-			
+						
 			g_functions.setElementSize(objTile, newWidth, newHeight);
 			
 			switch(resizeMode){
@@ -1057,11 +1322,12 @@ function UGTileDesign(){
 					}
 					
 					//resize images
-					positionElements_images(objTile, newWidth, newHeight);
+					positionElements_images(objTile, newWidth, newHeight, true);
 					
 					//resize text panel, if visible
-					if(g_options.tile_enable_textpanel == true && g_options.tile_textpanel_always_on == true && newWidth)
-							resizeTileTextPanel(objTile, newWidth-g_temp.tileInnerReduce);
+					if(g_options.tile_enable_textpanel == true && g_options.tile_textpanel_always_on == true && newWidth){
+						positionElements_textpanel(objTile, "regular", newWidth, newHeight);
+					}
 					
 				break;
 			}
@@ -1073,12 +1339,12 @@ function UGTileDesign(){
 	 * resize all tiles 
 	 */
 	this.resizeAllTiles = function(newWidth, resizeMode){
-		
+				
 		var newHeight = null;
-			
+		
 		if(g_options.tile_size_by == t.sizeby.GLOBAL_RATIO)
 			newHeight = t.getTileHeightByWidth(newWidth);
-		
+						
 		var objTiles = g_thumbs.getThumbs();
 		objTiles.each(function(index, objTile){
 			t.resizeTile(jQuery(objTile), newWidth, newHeight, resizeMode);
@@ -1164,9 +1430,13 @@ function UGTileDesign(){
 	 * run the tile design
 	 */
 	this.run = function(){
-		
+				
 		var objThumbs = g_thumbs.getThumbs();
 		
+		if(g_options.tile_size_by == t.sizeby.GLOBAL_RATIO){
+			t.resizeAllTiles(g_options.tile_width, t.resizemode.WRAPPER_ONLY);
+		}
+			
 		//hide original image if image effect active
 		if(g_options.tile_enable_image_effect == true && g_options.tile_image_effect_reverse == false)
 			objThumbs.children(".ug-thumb-image").fadeTo(0,0);
@@ -1174,12 +1444,15 @@ function UGTileDesign(){
 		g_thumbs.setHtmlProperties();
 		
 		if(g_options.tile_visible_before_image == true){
+			
+			//if textpanel outside - refresh the textpanel first			
 			objThumbs.children(".ug-thumb-image").fadeTo(0,0);
 			g_thumbs.loadThumbsImages();
 		}
 		
 	}
 
+	
 	this._____________EXTERNAL_GETTERS____________=function(){};
 	
 	
@@ -1201,7 +1474,7 @@ function UGTileDesign(){
 	 * get tile image
 	 */
 	this.getTileImage = function(objTile){
-		var objImage = objTile.children("img.ug-thumb-image");
+		var objImage = objTile.find("img.ug-thumb-image");
 		return(objImage);
 	}
 
@@ -1226,8 +1499,12 @@ function UGTileDesign(){
 		
 		var height = Math.floor( (newWidth - g_temp.tileInnerReduce) * ratio) + g_temp.tileInnerReduce;
 		
+		if(objTile && g_temp.isTextpanelOutside == true && g_options.tile_size_by == t.sizeby.IMAGE_RATIO)
+			height += getTextPanelHeight(objTile);
+		
 		return(height);
 	}
+	
 	
 	/**
 	 * get tile original size
@@ -1244,5 +1521,23 @@ function UGTileDesign(){
         
         return(objSize);
 	}
+	
+	
+	/**
+	 * get tile size
+	 */
+	this.getGlobalTileSize = function(){
+		
+		if(g_options.tile_size_by != t.sizeby.GLOBAL_RATIO)
+			throw new Error("The size has to be global ratio");
+		
+		var objSize = {
+				width: g_options.tile_width,
+				height: g_options.tile_height
+		};
+	
+		return(objSize);
+	}
+	
 	
 }

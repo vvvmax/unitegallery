@@ -63,7 +63,8 @@ function UGThumbsGeneral(){
 			isEffectOverlay: false,
 			isEffectImage: false,
 			colorOverlayOpacity: 1,
-			thumbInnerReduce: 0
+			thumbInnerReduce: 0,
+			allowOnResize: true		//allow onresize event
 		};
 		
 	
@@ -116,8 +117,11 @@ function UGThumbsGeneral(){
 				 var classAddition = "";
 				 if(g_temp.customThumbs == false)
 					 classAddition = " ug-thumb-generated";
-
-			 	var htmlThumb = "<div class='ug-thumb-wrapper"+classAddition+"'></div>";
+				
+				var zIndex = objItem.index + 1;
+				var thumbStyle = "style='z-index:"+zIndex+";'";
+				
+			 	var htmlThumb = "<div class='ug-thumb-wrapper"+classAddition+"' " + thumbStyle + "></div>";
 
 				 if(g_options.thumb_wrapper_as_link == true){
 					 var urlLink = objItem.link;
@@ -194,7 +198,7 @@ function UGThumbsGeneral(){
 		 * else, set to all the thumbs
 		 */
 		function setThumbSize(width, height, objThumb, innerOnly){
-			 
+						
 			var objCss = {
 				width: width+"px",
 				height: height+"px"
@@ -204,7 +208,6 @@ function UGThumbsGeneral(){
 					width: width-g_temp.thumbInnerReduce+"px",
 					height: height-g_temp.thumbInnerReduce+"px"
 				};
-			
 			
 			var selectorsString = ".ug-thumb-loader, .ug-thumb-error, .ug-thumb-border-overlay, .ug-thumb-overlay";
 			
@@ -277,7 +280,7 @@ function UGThumbsGeneral(){
 		function setThumbColorOverlayEffect(objThumb, isActive, noAnimation){
 			
 			var objOverlay = objThumb.children(".ug-thumb-overlay");
-						
+			
 			var animationDuration = g_options.thumb_transition_duration;
 			if(noAnimation && noAnimation === true)
 				animationDuration = 0;
@@ -412,11 +415,12 @@ function UGThumbsGeneral(){
 			objThumb.children(".ug-thumb-error").show();		
 		}
 		
+		
 		/**
 		 * set border radius of all the thmbs
 		 */
 		function setThumbsBorderRadius(){
-			
+						
 			if(g_options.thumb_round_corners_radius <= 0)
 				return(false);
 			
@@ -428,6 +432,7 @@ function UGThumbsGeneral(){
 			g_objParent.find(".ug-thumb-wrapper, .ug-thumb-wrapper .ug-thumb-border-overlay").css(objCss);
 			
 		}
+		
 		
 		/**
 		 * animate thumb transitions
@@ -589,7 +594,7 @@ function UGThumbsGeneral(){
 		 * on thumb size change - triggered by parent on custom thumbs type
 		 */
 		function onThumbSizeChange(temp, objThumb){
-					
+			
 			objThumb = jQuery(objThumb);
 			var objItem = t.getItemByThumb(objThumb);
 			
@@ -640,7 +645,7 @@ function UGThumbsGeneral(){
 				var isForce = false;
 			
 			var objImage = jQuery(image);
-			var objThumb = objImage.parent();
+			var objThumb = objImage.parents(".ug-thumb-wrapper");
 			
 			if(objThumb.parent().length == 0)		//don't treat detached thumbs
 				return(false);
@@ -676,7 +681,7 @@ function UGThumbsGeneral(){
 			objItem.isThumbImageLoaded = true;
 			
 			var objSize = g_functions.getImageOriginalSize(objImage);
-			
+						
 			objItem.thumbWidth = objSize.width;
 			objItem.thumbHeight = objSize.height;
 			objItem.thumbRatioByWidth = objSize.width / objSize.height;
@@ -689,7 +694,7 @@ function UGThumbsGeneral(){
 		 * set thumbnails html properties
 		 */
 		this.setHtmlProperties = function(){
-			
+						
 			 //set thumb params
 			if(g_temp.customThumbs == false){
 				var objThumbCss = {};
@@ -729,15 +734,7 @@ function UGThumbsGeneral(){
 			
 		}
 
-		
-		
-
-		
-		
-		
-		
-		
-		
+				
 		/**
 		 * set the thumb on selected state
 		 */
@@ -790,12 +787,14 @@ function UGThumbsGeneral(){
 		 * set custom thumbs
 		 * allowedEffects - border, overlay, image
 		 */
-		this.setCustomThumbs = function(funcSetHtml, arrAlowedEffects){
+		this.setCustomThumbs = function(funcSetHtml, arrAlowedEffects, customOptions){
+			
 			g_temp.customThumbs = true;
 						
 			if(typeof funcSetHtml != "function")
 				throw new Error("The argument should be function");
-				
+			
+			
 			g_temp.funcSetCustomThumbHtml = funcSetHtml;
 			
 			//enable effects:
@@ -806,7 +805,12 @@ function UGThumbsGeneral(){
 				g_temp.isEffectBorder = false;
 			
 			g_temp.isEffectImage = false;		//for custom effects the image is always off
-			
+
+			//check for dissalow onresize
+			if(customOptions && customOptions.allow_onresize === false){
+				g_temp.allowOnResize = false;
+			}
+		
 		}
 		
 		
@@ -839,7 +843,7 @@ function UGThumbsGeneral(){
 		 */
 		this.getThumbImage = function(objThumb){
 			
-			var objImage = objThumb.children(".ug-thumb-image");
+			var objImage = objThumb.find(".ug-thumb-image");
 			return(objImage);
 		}
 		
@@ -892,6 +896,20 @@ function UGThumbsGeneral(){
 		}
 		
 		
+		/**
+		 * get global thumb size
+		 */
+		this.getGlobalThumbSize = function(){
+			
+			var objSize = {
+				width:g_options.thumb_width,
+				height: g_options.thumb_height
+			};
+			
+			return(objSize);
+		}
+		
+		
 		this._____________EXTERNAL_OTHERS__________ = function(){};
 
 
@@ -908,7 +926,8 @@ function UGThumbsGeneral(){
 				objThumbs.off("mouseenter").off("mouseleave");
 			});
 			
-			g_objWrapper.on(g_serviceParams.eventSizeChange, onThumbSizeChange);
+			if(g_temp.allowOnResize == true)
+				g_objWrapper.on(g_serviceParams.eventSizeChange, onThumbSizeChange);
 			
 			objThumbs.hover(function(event){		//on mouse enter
 				var objThumb = jQuery(this);

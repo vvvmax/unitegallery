@@ -38,11 +38,14 @@ function UGTextPanel(){
 			textpanel_desc_bold:null,					//textpanel description bold. if null - take from css
 			textpanel_css_description:{},				//textpanel additional css of the description
 			
+			textpanel_desc_style_as_title: false,		//set that the description style will be as title
+			
 			textpanel_bg_css:{}							//textpanel background css
 	};
 	
 	var g_temp = {
-			isFirstTime: true
+			isFirstTime: true,
+			setInternalHeight: true		//flag if set internal height or not
 	};
 	
 	
@@ -85,8 +88,8 @@ function UGTextPanel(){
 		}
 		
 		//change panel height
-		if(!g_options.textpanel_height){
-											
+		if(!g_options.textpanel_height && g_temp.setInternalHeight == true){
+			
 			var panelHeight = maxy + g_options.textpanel_padding_bottom;		
 			
 			setHeight(panelHeight, animateHeight);
@@ -181,7 +184,7 @@ function UGTextPanel(){
 	 * set new panel height
 	 */
 	function setHeight(height, animateHeight){
-						
+		
 		if(!animateHeight)
 			var animateHeight = false;
 		
@@ -228,35 +231,57 @@ function UGTextPanel(){
 		if(customOptions)
 			g_options = jQuery.extend(g_options, customOptions);
 		
-		
 		//validation:
 		if(g_options.textpanel_enable_title == false && g_options.textpanel_enable_description == false)
 			throw new Error("Textpanel Error: The title or description must be enabled");
 		
 		if(g_options.textpanel_height && g_options.textpanel_height < 0)
 			g_options.textpanel_height = null;
-
+		
+		//copy desc style from title
+		if(g_options.textpanel_desc_style_as_title == true){
+			if(!g_options.textpanel_desc_color)
+				g_options.textpanel_desc_color = g_options.textpanel_title_color;
+			
+			if(!g_options.textpanel_desc_bold)
+				g_options.textpanel_desc_bold = g_options.textpanel_title_bold;
+			
+			if(!g_options.textpanel_desc_font_family)
+				g_options.textpanel_desc_font_family = g_options.textpanel_title_font_family;
+			
+			if(!g_options.textpanel_desc_font_size)
+				g_options.textpanel_desc_font_size = g_options.textpanel_title_font_size;
+			
+			if(!g_options.textpanel_desc_text_align)
+				g_options.textpanel_desc_text_align = g_options.textpanel_title_text_align;
+		}
+		
 	}
 	
 	
 	/**
 	 * append the bullets html to some parent
 	 */
-	this.appendHTML = function(objParent){
+	this.appendHTML = function(objParent, addClass){
 		g_objParent = objParent;
-			
-		var html = "<div class='ug-textpanel'>";
+		
+		if(addClass){
+			addClass = " "+addClass;
+		}else
+			addClass = "";
+		
+		var html = "<div class='ug-textpanel"+addClass+"'>";
 		
 		if(g_options.textpanel_enable_bg == true)
-			html += "<div class='ug-textpanel-bg'></div>";
+			html += "<div class='ug-textpanel-bg"+addClass+"'></div>";
 		
-		html += "<div class='ug-textpanel-textwrapper'>";
+		html += "<div class='ug-textpanel-textwrapper"+addClass+"'>";
 		
 		if(g_options.textpanel_enable_title == true)
-			html += "<div class='ug-textpanel-title'></div>";
+			html += "<div class='ug-textpanel-title"+addClass+"'></div>";
 		
 		if(g_options.textpanel_enable_description == true)
-			html += "<div class='ug-textpanel-description'></div>";
+			html += "<div class='ug-textpanel-description"+addClass+"'></div>";
 		
 		html += "</div></div>";
 		
@@ -395,16 +420,20 @@ function UGTextPanel(){
 	/**
 	 * set panel size
 	 */
-	this.setPanelSize = function(panelWidth){
-	
-		var panelHeight = 80;		//some default number
+	this.setPanelSize = function(panelWidth, panelHeight){
+		
+		g_temp.setInternalHeight = true;
+		
+		if(!panelHeight)
+			var panelHeight = 80;		//some default number
+		else
+			g_temp.setInternalHeight = false;
 		
 		if(g_options.textpanel_height)	
 			panelHeight = g_options.textpanel_height;
 		
 		g_objPanel.width(panelWidth);
 		g_objPanel.height(panelHeight);
-		
 		
 		//set background size
 		if(g_objBG){
@@ -494,6 +523,7 @@ function UGTextPanel(){
 		
 		if(customTop !== undefined && customTop !== null){
 			objCss.top = customTop;
+			objCss.bottom = "auto";
 		}else{
 			
 			switch(g_options.textpanel_align){
@@ -552,14 +582,14 @@ function UGTextPanel(){
 	/**
 	 * refresh panel size, position and contents
 	 */
-	this.refresh = function(toShow, noPosition, panelWidth){
+	this.refresh = function(toShow, noPosition, panelWidth, panelHeight){
 		
 		setCss();
 		
 		if(!panelWidth)
 			t.setSizeByParent();
 		else
-			t.setPanelSize(panelWidth);
+			t.setPanelSize(panelWidth, panelHeight);
 		
 		t.positionElements(false);
 		

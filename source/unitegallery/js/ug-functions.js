@@ -91,19 +91,6 @@ function UGFunctions(){
 
 	this.z__________FULL_SCREEN___________ = function(){}
 	
-	/**
-	 * normalize the percent, return always between 0 and 1
-	 */
-	this.normalizePercent = function(percent){
-		
-		if(percent < 0)
-			percent = 0;
-		
-		if(percent > 1)
-			percent = 1;
-		
-		return(percent);
-	}
 	
 	
 	/**
@@ -138,12 +125,19 @@ function UGFunctions(){
 			  
 		  if(document.exitFullscreen) {
 		    document.exitFullscreen();
+
+		  } else if(document.cancelFullScreen) {
+			    document.cancelFullScreen();
+		    
 		  } else if(document.mozCancelFullScreen) {
 		    document.mozCancelFullScreen();
+		    
 		  } else if(document.webkitExitFullscreen) {
 		    document.webkitExitFullscreen();
+		    
 		  } else if(document.msExitFullscreen) {
 			    document.msExitFullscreen();
+			    
 		  }else{
 			  return(false);
 		  }
@@ -171,10 +165,14 @@ function UGFunctions(){
 	 */
 	this.addFullScreenChangeEvent = function(func){
 		
-		addEvent("fullscreenchange",document,func);		 
-		addEvent("mozfullscreenchange",document,func);
-		addEvent("webkitfullscreenchange",document,func);
-		addEvent("msfullscreenchange",document,func);
+		if(document["webkitCancelFullScreen"])
+			addEvent("webkitfullscreenchange",document,func);
+		else if(document["msExitFullscreen"])
+			addEvent("MSFullscreenChange",document,func);
+		else if(document["mozCancelFullScreen"])
+			addEvent("mozfullscreenchange",document,func);
+		else
+			addEvent("fullscreenchange",document,func);
 	}
 	
 	
@@ -183,10 +181,10 @@ function UGFunctions(){
 	 */
 	this.destroyFullScreenChangeEvent = function(){
 		
-		jQuery(document).unbind("fullscreenchange");
+		jQuery(document).unbind("fullscreenChange");
 		jQuery(document).unbind("mozfullscreenchange");
 		jQuery(document).unbind("webkitfullscreenchange");
-		jQuery(document).unbind("msfullscreenchange");
+		jQuery(document).unbind("MSFullscreenChange");
 	}
 	
 	
@@ -206,12 +204,15 @@ function UGFunctions(){
 	this.isFullScreen = function(){
 		
 		var isFullScreen = document.fullscreen || document.mozFullScreen || document.webkitIsFullScreen || document.msFullscreenElement;
-
+		
 		if(!isFullScreen)
 			isFullScreen = false;
+		else
+			isFullScreen = true;
 		
 		return(isFullScreen);
 	}
+	
 	
 	this.z__________END_FULL_SCREEN___________ = function(){}
 	
@@ -957,8 +958,7 @@ function UGFunctions(){
 		
 		t.setElementSizeAndPosition(objTarget, objSize.left, objSize.top, objSize.width, objSize.height);
 	}
-	
-	
+
 	
 	/**
 	 * place image inside parent, scale it by the options
@@ -1012,7 +1012,6 @@ function UGFunctions(){
 	 * parent can be width , height, or object
 	 */	
 	this.scaleImageCoverParent = function(objImage, objParent, pHeight){
-		
 		
 		if(typeof objParent == "number"){
 			var parentWidth = objParent;
@@ -2222,6 +2221,20 @@ function UGFunctions(){
 		for(var item in object)
 			num++;
 		return num;
+	}
+
+	/**
+	 * normalize the percent, return always between 0 and 1
+	 */
+	this.normalizePercent = function(percent){
+		
+		if(percent < 0)
+			percent = 0;
+		
+		if(percent > 1)
+			percent = 1;
+		
+		return(percent);
 	}
 	
 	

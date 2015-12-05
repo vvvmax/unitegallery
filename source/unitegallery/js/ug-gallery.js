@@ -1123,9 +1123,10 @@ function UniteGalleryMain(){
 	 */
 	function onFullScreenChange(){
 		
+		
 		var isFullscreen = g_functions.isFullScreen();
-		 var event = isFullscreen ? t.events.ENTER_FULLSCREEN:t.events.EXIT_FULLSCREEN; 
-		 
+		var event = isFullscreen ? t.events.ENTER_FULLSCREEN:t.events.EXIT_FULLSCREEN; 
+
 		 var fullscreenID = g_functions.getGlobalData("fullscreenID");
 		 
 		 //check if this gallery was affected
@@ -1872,8 +1873,9 @@ function UniteGalleryMain(){
 	/**
 	 * select some item
 	 * the input can be index or object
+	 * role - the role of the object who selected the item
 	 */
-	this.selectItem = function(objItem){
+	this.selectItem = function(objItem, role){
 		
 		if(typeof objItem == "number")
 			objItem = t.getItem(objItem);
@@ -1888,7 +1890,7 @@ function UniteGalleryMain(){
 		g_selectedItem = objItem;		
 		g_selectedItemIndex = itemIndex;
 		
-		g_objGallery.trigger(t.events.ITEM_CHANGE, objItem);
+		g_objGallery.trigger(t.events.ITEM_CHANGE, [objItem,role]);
 
 		//reset playback, if playing
 		if(g_temp.isPlayMode == true){
@@ -1920,7 +1922,7 @@ function UniteGalleryMain(){
 		
 		//debugLine(newItemIndex,true);
 		
-		t.selectItem(newItemIndex);
+		t.selectItem(newItemIndex, "next");
 	}
 	
 	
@@ -1943,7 +1945,7 @@ function UniteGalleryMain(){
 		if(newItemIndex < 0)
 			newItemIndex = g_numItems - 1;
 		
-		t.selectItem(newItemIndex);
+		t.selectItem(newItemIndex, "prev");
 		
 	}
 	

@@ -14,6 +14,11 @@
 	z-index:0;
 } 
 
+.ug-item-wrapper img{
+	width:auto;
+	max-width:none;
+}
+
 .---------General_Styles--------{}
 
 .ug-rtl{
@@ -605,6 +610,17 @@ img.ug-sepia-effect{
 	margin:0px;
 }
 
+.ug-tile .ug-tile-cloneswrapper{
+	position:absolute;
+	width:0px;
+	height:0px;
+	top:0px;
+	left:0px;
+	overflow:hidden;
+	opacity:0;
+	filter: alpha(opacity = 90);
+}
+
 
 /* transit something */
 /* transit fixed size items */
@@ -618,6 +634,14 @@ img.ug-sepia-effect{
 
 .ug-thumb-wrapper.ug-tile.ug-tile-clickable{
 	cursor: pointer;
+}
+
+.ug-thumb-wrapper.ug-tile .ug-image-container{
+	position:absolute;
+	overflow:hidden;
+	z-index:1;
+	top:0px;
+	left:0px;
 }
 
 .ug-thumb-wrapper.ug-tile img.ug-thumb-image{
@@ -641,8 +665,8 @@ img.ug-sepia-effect{
 
 .ug-thumb-wrapper.ug-tile .ug-tile-image-overlay{
 	position:absolute;
+	overflow:hidden;
 	z-index:2;
-	xbackground-color:red;
 	top:0px;
 	left:0px;
 }
@@ -664,7 +688,7 @@ img.ug-sepia-effect{
 	background-repeat:no-repeat;
 	background-position:0 0;
 	xbackground-color:green;
-	z-index:4;
+	z-index:6;
 	top:1px;
 	left:1px;
 	cursor:pointer;

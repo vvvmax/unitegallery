@@ -204,6 +204,8 @@ function UGTheme_tilesgrid(){
 		var totalHeight = getHeightEstimation(galleryWidth);
 		g_objWrapper.height(totalHeight);
 		var galleryWidth = getGalleryWidth();
+
+		initEvents();
 		
 		//place preloader
 		g_functions.placeElement(g_objPreloader, "center", 50);
@@ -218,7 +220,6 @@ function UGTheme_tilesgrid(){
 		
 		positionElements();
 		
-		initEvents();
 		
 	}
 

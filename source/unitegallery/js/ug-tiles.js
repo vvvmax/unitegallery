@@ -535,8 +535,8 @@ function UGTiles(){
 			placeOrderedTile(objTile);
 		
 		}else{
+			
 			g_objTileDesign.resizeTile(objTile, g_vars.colWidth);
-
 			placeTile(objTile, true, true);
 		}
 	
@@ -1676,6 +1676,10 @@ function UGTiles(){
 		
 		//show tiles
 		g_objWrapper.children(".ug-tile").show();
+
+		if(g_temp.isFirstTimeRun == true){
+			initEvents();
+		}
 		
 		g_objTileDesign.run();
 				
@@ -1692,9 +1696,6 @@ function UGTiles(){
 			break;
 		}
 		
-		if(g_temp.isFirstTimeRun == true){
-			initEvents();
-		}
 		
 		g_temp.isFirstTimeRun = false;
 	}
