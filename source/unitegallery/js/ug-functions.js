@@ -1071,13 +1071,13 @@ function UGFunctions(){
 		var objCss = {};
 		
 		if(obj.imageWidth !== null){
-			updateCss == true
+			updateCss = true
 			objImage.removeAttr("width");
 			objCss["width"] = obj.imageWidth+"px";
 		}
 		
 		if(obj.imageHeight != null){
-			updateCss == true
+			updateCss = true
 			objImage.removeAttr("height");
 			objCss["height"] = obj.imageHeight+"px";
 		}
@@ -2235,6 +2235,26 @@ function UGFunctions(){
 			percent = 1;
 		
 		return(percent);
+	}
+	
+	
+	/**
+	 * strip tags from string
+	 */
+	this.stripTags = function(html){
+		
+		var text = html.replace(/(<([^>]+)>)/ig,"");
+		
+		return(text);
+	}
+	
+	
+	/**
+	 * html entitles
+	 */
+	this.htmlentitles = function(html){
+		var text = jQuery('<div/>').text(html).html();
+		return(text);
 	}
 	
 	

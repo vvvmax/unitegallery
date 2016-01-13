@@ -643,7 +643,7 @@ function UGZoomSliderControl(){
 		
 		if(g_temp.isZoomActive == true){
 			
-			g_temp.isPanActive == false;
+			g_temp.isPanActive = false;
 			
 		}else{
 			

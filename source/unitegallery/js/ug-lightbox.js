@@ -88,6 +88,7 @@ function UGLightbox(){
 			
 			lightbox_textpanel_enable_title: true,
 			lightbox_textpanel_enable_description: false,
+			lightbox_textpanel_desc_style_as_title: true,
 			
 			lightbox_textpanel_enable_bg:false,
 			

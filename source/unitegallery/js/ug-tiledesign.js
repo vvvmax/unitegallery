@@ -250,7 +250,10 @@ function UGTileDesign(){
 		if(g_options.tile_enable_image_effect == false || g_options.tile_image_effect_reverse == true)
 			classImage += " ug-trans-enabled";
 		
-		html += "<img src='"+objItem.urlThumb+"' alt='"+objItem.title+"' class='"+classImage+"'>";
+		var imageAlt = g_functions.stripTags(objItem.title);
+		imageAlt = g_functions.htmlentitles(imageAlt);
+		
+		html += "<img src='"+objItem.urlThumb+"' alt='"+imageAlt+"' class='"+classImage+"'>";
 
 		if(g_temp.hasImageContainer == true){
 			html += "</div>";
@@ -444,7 +447,7 @@ function UGTileDesign(){
 				var objTextPanelClone = new UGTextPanel(); 
 				objTextPanelClone.init(g_gallery, g_options, "tile");				
 				objTextPanelClone.appendHTML(objCloneWrapper);
-				objTextPanelClone.setTextPlain(panelText, "");
+				objTextPanelClone.setTextPlain(panelTitle, panelDesc);
 				objThumbWrapper.data("objTextPanelClone", objTextPanelClone);
 			}
 			
@@ -607,10 +610,11 @@ function UGTileDesign(){
 					throw new Error("tile should be given for tile ratio");
 				
 				var item = t.getItemByTile(objTile);
-				
+								
 				if(typeof item.thumbRatioByHeight != "undefined"){
 				
 					if(item.thumbRatioByHeight == 0){
+						trace(item);
 						throw new Error("the item ratio not inited yet");
 					}
 				
@@ -793,7 +797,8 @@ function UGTileDesign(){
 		//set panel height also
 		if(g_temp.isTextpanelOutside == true)
 			panelHeight = getTextPanelHeight(objTile);
-			
+		
+		
 		objTextPanel.refresh(false, true, panelWidth, panelHeight);
 		
 		var isPosition = (g_options.tile_textpanel_always_on == true || g_options.tile_textpanel_appear_type == "fade");
@@ -804,7 +809,6 @@ function UGTileDesign(){
 			
 				var posy = tileHeight - panelHeight;
 				objTextPanel.positionPanel(posy);
-			
 			}else
 				objTextPanel.positionPanel();
 		}

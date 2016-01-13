@@ -1,6 +1,15 @@
+version 1.7.8
+
+-made some small js changes
+
+version 1.7.7
+
+-added support for image src as full image, and data-thumb as thumb
+
 version 1.7.7
 
 -bug fix: fixed direction arrows slide direction
+-bug fix: fixed titles with html tags
 
 version 1.7.6
 

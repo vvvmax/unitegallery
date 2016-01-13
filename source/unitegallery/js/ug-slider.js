@@ -1075,8 +1075,6 @@ function UGSlider(){
 		
 		var slides = t.getSlidesReference();
 		
-		//trace(slides.objNextSlide.find("img").attr("src"));
-		//trace(objItem);
 		
 		switch(direction){
 			case "right":	//change to prev item
@@ -2097,12 +2095,8 @@ function UGSlider(){
 			
 			if(role == "next")
 				direction = "left";
-			else if(role == "prev")
+			else if(role == "prev" || currentIndex > nextIndex)
 				direction = "right";
-			else if(currentIndex == (numItems-1) && nextIndex == 0)
-				direction = "left";
-			else if(currentIndex == 0 && nextIndex == (numItems-1))
-					direction = "right";
 			else if(currentIndex > nextIndex)
 					direction = "right";
 						

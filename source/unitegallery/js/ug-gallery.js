@@ -618,8 +618,21 @@ function UniteGalleryMain(){
 					 jQuery.removeData(objChild, "lazyload-src");
 				 }
 				 
-				 objItem.urlThumb = objChild.attr("src");
+				 var imageSrc = objChild.attr("src");
+				 var dataThumb = objChild.data("thumb");
+				 
+				 if(typeof dataThumb != "undefined" && dataThumb != ""){
+					 objItem.urlThumb = dataThumb;
+					 objItem.urlImage = imageSrc;
+					 objChild.attr("src", dataThumb);
+				 }else{
+					 objItem.urlThumb = imageSrc;
+					 objItem.urlImage = objChild.data("image");
+				 }
+					 
 				 objItem.title = objChild.attr("alt");
+				 
+				 //always set thumb image to object
 				 objItem.objThumbImage = objChild;
 			 }else{
 				 
@@ -629,8 +642,8 @@ function UniteGalleryMain(){
 				 objItem.urlThumb = objChild.data("thumb");
 				 objItem.title = objChild.data("title");
 				 objItem.objThumbImage = null;
+				 objItem.urlImage = objChild.data("image");
 			 }
-			 
 			 
 			 objItem.link = itemLink;
 			 
@@ -645,7 +658,6 @@ function UniteGalleryMain(){
 			 objItem.isLoaded = false;
 			 objItem.isThumbImageLoaded = false;	//if the image loaded or error load
 			 objItem.objPreloadImage = null;
-			 objItem.urlImage = objChild.data("image");
 			 objItem.isBigImageLoadStarted = false;
 			 objItem.isBigImageLoaded = false;
 			 objItem.isBigImageLoadError = false;			 
@@ -729,6 +741,7 @@ function UniteGalleryMain(){
 			 if(objItem.objThumbImage){
 				 objItem.objThumbImage.removeAttr("data-description", "");
 				 objItem.objThumbImage.removeAttr("data-image", "");				 
+				 objItem.objThumbImage.removeAttr("data-thumb", "");				 
 				 objItem.objThumbImage.removeAttr("title", "");				 
 			 }
 			 

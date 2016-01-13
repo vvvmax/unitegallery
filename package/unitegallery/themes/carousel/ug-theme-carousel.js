@@ -142,10 +142,12 @@ function UGTheme_carousel(){
 	 */
 	function getEstimatedHeight(){
 		var height = g_carousel.getEstimatedHeight();
+		
 		if(g_objNavWrapper){
 			var navHeight = g_objNavWrapper.height();
 			height += navHeight + g_options.theme_navigation_margin;
 		}
+		
 		return(height);
 	}
 	
@@ -199,7 +201,10 @@ function UGTheme_carousel(){
 			navHeight = sizeNav.height;
 		}
 				
-		var galleryHeight = sizeCar.height + g_options.theme_navigation_margin + navHeight;
+		var galleryHeight = sizeCar.height;
+		
+		if(navHeight > 0)
+			galleryHeight += g_options.theme_navigation_margin + navHeight;
 		
 		//vars for bottom nav position
 		var carouselTop = 0;

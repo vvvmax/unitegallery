@@ -1,4 +1,4 @@
-// Unite Gallery, Version: 1.7.7, released 05 Dec 2015 
+// Unite Gallery, Version: 1.7.8, released 13 Jan 2016 
 
 
 
@@ -1073,13 +1073,13 @@ function UGFunctions(){
 		var objCss = {};
 		
 		if(obj.imageWidth !== null){
-			updateCss == true
+			updateCss = true
 			objImage.removeAttr("width");
 			objCss["width"] = obj.imageWidth+"px";
 		}
 		
 		if(obj.imageHeight != null){
-			updateCss == true
+			updateCss = true
 			objImage.removeAttr("height");
 			objCss["height"] = obj.imageHeight+"px";
 		}
@@ -2237,6 +2237,26 @@ function UGFunctions(){
 			percent = 1;
 		
 		return(percent);
+	}
+	
+	
+	/**
+	 * strip tags from string
+	 */
+	this.stripTags = function(html){
+		
+		var text = html.replace(/(<([^>]+)>)/ig,"");
+		
+		return(text);
+	}
+	
+	
+	/**
+	 * html entitles
+	 */
+	this.htmlentitles = function(html){
+		var text = jQuery('<div/>').text(html).html();
+		return(text);
 	}
 	
 	
@@ -10435,7 +10455,10 @@ function UGTileDesign(){
 		if(g_options.tile_enable_image_effect == false || g_options.tile_image_effect_reverse == true)
 			classImage += " ug-trans-enabled";
 		
-		html += "<img src='"+objItem.urlThumb+"' alt='"+objItem.title+"' class='"+classImage+"'>";
+		var imageAlt = g_functions.stripTags(objItem.title);
+		imageAlt = g_functions.htmlentitles(imageAlt);
+		
+		html += "<img src='"+objItem.urlThumb+"' alt='"+imageAlt+"' class='"+classImage+"'>";
 
 		if(g_temp.hasImageContainer == true){
 			html += "</div>";
@@ -10629,7 +10652,7 @@ function UGTileDesign(){
 				var objTextPanelClone = new UGTextPanel(); 
 				objTextPanelClone.init(g_gallery, g_options, "tile");				
 				objTextPanelClone.appendHTML(objCloneWrapper);
-				objTextPanelClone.setTextPlain(panelText, "");
+				objTextPanelClone.setTextPlain(panelTitle, panelDesc);
 				objThumbWrapper.data("objTextPanelClone", objTextPanelClone);
 			}
 			
@@ -10792,10 +10815,11 @@ function UGTileDesign(){
 					throw new Error("tile should be given for tile ratio");
 				
 				var item = t.getItemByTile(objTile);
-				
+								
 				if(typeof item.thumbRatioByHeight != "undefined"){
 				
 					if(item.thumbRatioByHeight == 0){
+						trace(item);
 						throw new Error("the item ratio not inited yet");
 					}
 				
@@ -10978,7 +11002,8 @@ function UGTileDesign(){
 		//set panel height also
 		if(g_temp.isTextpanelOutside == true)
 			panelHeight = getTextPanelHeight(objTile);
-			
+		
+		
 		objTextPanel.refresh(false, true, panelWidth, panelHeight);
 		
 		var isPosition = (g_options.tile_textpanel_always_on == true || g_options.tile_textpanel_appear_type == "fade");
@@ -10989,7 +11014,6 @@ function UGTileDesign(){
 			
 				var posy = tileHeight - panelHeight;
 				objTextPanel.positionPanel(posy);
-			
 			}else
 				objTextPanel.positionPanel();
 		}
@@ -13101,8 +13125,6 @@ function UGSlider(){
 		
 		var slides = t.getSlidesReference();
 		
-		//trace(slides.objNextSlide.find("img").attr("src"));
-		//trace(objItem);
 		
 		switch(direction){
 			case "right":	//change to prev item
@@ -14123,12 +14145,8 @@ function UGSlider(){
 			
 			if(role == "next")
 				direction = "left";
-			else if(role == "prev")
+			else if(role == "prev" || currentIndex > nextIndex)
 				direction = "right";
-			else if(currentIndex == (numItems-1) && nextIndex == 0)
-				direction = "left";
-			else if(currentIndex == 0 && nextIndex == (numItems-1))
-					direction = "right";
 			else if(currentIndex > nextIndex)
 					direction = "right";
 						
@@ -17068,7 +17086,7 @@ function UGZoomSliderControl(){
 		
 		if(g_temp.isZoomActive == true){
 			
-			g_temp.isPanActive == false;
+			g_temp.isPanActive = false;
 			
 		}else{
 			
@@ -19385,8 +19403,21 @@ function UniteGalleryMain(){
 					 jQuery.removeData(objChild, "lazyload-src");
 				 }
 				 
-				 objItem.urlThumb = objChild.attr("src");
+				 var imageSrc = objChild.attr("src");
+				 var dataThumb = objChild.data("thumb");
+				 
+				 if(typeof dataThumb != "undefined" && dataThumb != ""){
+					 objItem.urlThumb = dataThumb;
+					 objItem.urlImage = imageSrc;
+					 objChild.attr("src", dataThumb);
+				 }else{
+					 objItem.urlThumb = imageSrc;
+					 objItem.urlImage = objChild.data("image");
+				 }
+					 
 				 objItem.title = objChild.attr("alt");
+				 
+				 //always set thumb image to object
 				 objItem.objThumbImage = objChild;
 			 }else{
 				 
@@ -19396,8 +19427,8 @@ function UniteGalleryMain(){
 				 objItem.urlThumb = objChild.data("thumb");
 				 objItem.title = objChild.data("title");
 				 objItem.objThumbImage = null;
+				 objItem.urlImage = objChild.data("image");
 			 }
-			 
 			 
 			 objItem.link = itemLink;
 			 
@@ -19412,7 +19443,6 @@ function UniteGalleryMain(){
 			 objItem.isLoaded = false;
 			 objItem.isThumbImageLoaded = false;	//if the image loaded or error load
 			 objItem.objPreloadImage = null;
-			 objItem.urlImage = objChild.data("image");
 			 objItem.isBigImageLoadStarted = false;
 			 objItem.isBigImageLoaded = false;
 			 objItem.isBigImageLoadError = false;			 
@@ -19496,6 +19526,7 @@ function UniteGalleryMain(){
 			 if(objItem.objThumbImage){
 				 objItem.objThumbImage.removeAttr("data-description", "");
 				 objItem.objThumbImage.removeAttr("data-image", "");				 
+				 objItem.objThumbImage.removeAttr("data-thumb", "");				 
 				 objItem.objThumbImage.removeAttr("title", "");				 
 			 }
 			 
@@ -21143,6 +21174,7 @@ function UGLightbox(){
 			
 			lightbox_textpanel_enable_title: true,
 			lightbox_textpanel_enable_description: false,
+			lightbox_textpanel_desc_style_as_title: true,
 			
 			lightbox_textpanel_enable_bg:false,
 			
