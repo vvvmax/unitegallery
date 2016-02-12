@@ -67,12 +67,14 @@
 	overflow:hidden;
  	width:300px;
   	height:20px;
+	line-height:normal;
 }
 
 .ug-videoskin-right-thumb .ug-thumb-desc{
 	color:#999999;
 	font-size:11px;
     width:300px;
+	line-height:normal;
 }
 
 /* ----- Under 960 ------- */
@@ -90,6 +92,7 @@
 {
   width:167px;
   padding-top:0px;
+  line-height:normal;
 }
 
 
@@ -115,6 +118,7 @@
 {
   width:167px;
   padding-top:0px;
+  line-height:normal;
 }
 
 

@@ -45,6 +45,7 @@
 .ug-videoskin-right-title-only .ug-thumb-title{
 	color:white;
 	font-size:14px;
+	line-height:normal;
 }
 
 
@@ -96,6 +97,7 @@
     width: 289px;
     height:18px;
   	font-size:14px;
+	line-height:normal;
 }
 
 

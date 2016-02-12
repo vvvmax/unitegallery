@@ -1,4 +1,4 @@
-// Unite Gallery, Version: 1.7.8, released 13 Jan 2016 
+// Unite Gallery, Version: 1.7.12, released 12 Feb 2016 
 
 
 
@@ -647,14 +647,23 @@ function UGFunctions(){
 	/**
 	 * get element relative position according the parent
 	 * if the left / top is offset text (left , center, right / top, middle , bottom)
+	 * the element can be number size as well
 	 */
 	this.getElementRelativePos = function(element, pos, offset, objParent){
 		
 		if(!objParent)
 			var objParent = element.parent();
 		
-		var elementSize = t.getElementSize(element);
+		if(typeof element == "number"){
+			var elementSize = {
+					width: element,
+					height: element
+			};
+		}else
+			var elementSize = t.getElementSize(element);
+		
 		var parentSize = t.getElementSize(objParent);
+		
 		
 		switch(pos){
 			case "top":
@@ -667,6 +676,7 @@ function UGFunctions(){
 				pos = Math.round((parentSize.width - elementSize.width) / 2);
 				if(offset)
 					pos += offset;
+				
 			break;
 			case "right":
 				pos = parentSize.width - elementSize.width;
@@ -8701,6 +8711,7 @@ function UGTiles(){
 
 		g_vars.colWidth = g_options.tiles_col_width;
 		g_vars.minCols = g_options.tiles_min_columns;
+		g_vars.maxCols = g_options.tiles_max_columns;
 		
 		if(g_gallery.isMobileMode() == false){
 			g_vars.colGap = g_options.tiles_space_between_cols;
@@ -14471,12 +14482,13 @@ function UGSlider(){
 		 resizeSlideItem(g_objSlide3);
 		 
 		 positionSlides();
-
+		 		 
 		 //set video player size
 		 var currentSlideType = t.getSlideType();
+		
 		 if(currentSlideType != "image" && g_options.slider_video_constantsize == true){
+			 
 			 setVideoPlayerConstantSize();
-			 setVideoPlayerPosition();
 		 }else{	
 			 var videoWidth = width - g_options.slider_video_padding_left - g_options.slider_video_padding_right;
 			 var videoHeight = height - g_options.slider_video_padding_top - g_options.slider_video_padding_bottom;
@@ -14484,6 +14496,8 @@ function UGSlider(){
 			 //set video player size
 			 g_objVideoPlayer.setSize(videoWidth, videoHeight);
 		 }
+		 
+		 setVideoPlayerPosition();
 		 
 	}
 	
@@ -15395,7 +15409,7 @@ function UGZoomButtonsPanel(){
 function UGBullets(){
 	
 	var t = this, g_numBullets = 0, g_gallery = new UniteGalleryMain();
-	var g_objBullets, g_objParent, g_activeIndex = -1;
+	var g_objBullets, g_objParent, g_activeIndex = -1, g_bulletWidth;
 	var g_functions = new UGFunctions();
 	
 	var g_temp = {
@@ -15424,7 +15438,7 @@ function UGBullets(){
 		
 		if(numBullets)
 			g_numBullets = numBullets;
-		else			
+		else	
 			g_numBullets = g_gallery.getNumItems();
 		
 		g_temp.isInited = true;
@@ -15453,8 +15467,29 @@ function UGBullets(){
 		}
 		
 		g_objBullets.html(html);
+		
+		//set bullet width value
+		if(!g_bulletWidth){
+			var objBullet = g_objBullets.find(".ug-bullet:first-child");
+			if(objBullet.length)
+				g_bulletWidth = objBullet.width();
+		}
 	}
 
+	/**
+	 * get total bullets width
+	 */
+	this.getBulletsWidth = function(){
+		if(g_numBullets == 0)
+			return(0);
+		
+		if(!g_bulletWidth)
+			return(0);
+		
+		var totalWidth = g_numBullets*g_bulletWidth+(g_numBullets-1)*g_options.bullets_space_between;
+		return(totalWidth);
+	}
+	
 	
 	/**
 	 * append the bullets html to some parent
@@ -15569,6 +15604,13 @@ function UGBullets(){
 		return(false);
 	}
 	
+	
+	/**
+	 * get bullets number
+	 */
+	this.getNumBullets = function(){
+		return(g_numBullets);
+	}
 	
 	/**
 	 * validate bullets index
@@ -19448,10 +19490,22 @@ function UniteGalleryMain(){
 			 objItem.isBigImageLoadError = false;			 
 			 objItem.imageWidth = 0;
 			 objItem.imageHeight = 0;
+			 
+			 //set thumb size
 			 objItem.thumbWidth = 0;
 			 objItem.thumbHeight = 0;
 			 objItem.thumbRatioByWidth = 0;
 			 objItem.thumbRatioByHeight = 0;
+			 
+			 var dataWidth = objChild.data("width");
+			 var dataHeight = objChild.data("height");
+			 if(dataWidth && typeof dataWidth == "number" && dataHeight && typeof dataHeight == "number"){
+				 objItem.thumbWidth = dataWidth;
+				 objItem.thumbHeight = dataHeight;
+				 objItem.thumbRatioByWidth = dataWidth / dataHeight;
+				 objItem.thumbRatioByHeight = dataHeight / dataWidth;
+			 }
+			 
 			 objItem.addHtml = null;
 			 
 			 var isImageMissing = (objItem.urlImage == undefined || objItem.urlImage == "");
@@ -21141,7 +21195,8 @@ function UGLightbox(){
 			lastMouseX: null,
 			lastMouseY: null,
 			originalOptions: null,
-			isSliderChangedOnce:false
+			isSliderChangedOnce:false,
+			isTopPanelEnabled:true
 	};
 	
 	var g_defaults = {
@@ -21160,9 +21215,9 @@ function UGLightbox(){
 			lightbox_slider_transition: "fade",
 			
 			lightbox_slider_image_padding_top: g_temp.topPanelHeight,
-			lightbox_slider_image_padding_bottom: 10,
+			lightbox_slider_image_padding_bottom: 0,
 			
-			lightbox_slider_video_padding_top: g_temp.topPanelHeight,
+			lightbox_slider_video_padding_top: 0,
 			lightbox_slider_video_padding_bottom: 0,
 			
 			lightbox_textpanel_align: "middle",
@@ -21263,6 +21318,12 @@ function UGLightbox(){
 		if(g_temp.isArrowsInside == true && g_options.lightbox_arrows_inside_alwayson == false)
 			g_temp.isArrowsOnHoverMode = true;
 		
+		//disable top panel if no text panel enabled
+		if(g_options.lightbox_show_textpanel == false){
+			g_temp.isTopPanelEnabled = false;
+			g_temp.topPanelHeight = 0;
+			g_options.lightbox_slider_image_padding_top = 0;
+		}
 		
 	}
 	
@@ -21282,18 +21343,24 @@ function UGLightbox(){
 		html += "<div class='ug-lightbox-overlay'></div>";
 		
 		//set top panel only on wide mode
-		if(g_temp.isCompact == false)
+		if(g_temp.isCompact == false && g_temp.isTopPanelEnabled){
 			html += "<div class='ug-lightbox-top-panel'>";
-				
-		html += 	"<div class='ug-lightbox-top-panel-overlay'></div>";
+			html += 	"<div class='ug-lightbox-top-panel-overlay'></div>";
+			
+			if(g_options.lightbox_show_numbers)
+				html += 	"<div class='ug-lightbox-numbers'></div>";
+			
+			html += "</div>";	//top panel
+		}else{
+			
+			//put numbers without top panel
+			if(g_options.lightbox_show_numbers)
+				html += 	"<div class='ug-lightbox-numbers'></div>";
+			
+		}
+		
 		
 		html += 	"<div class='ug-lightbox-button-close'></div>";
-		
-		if(g_options.lightbox_show_numbers)
-			html += 	"<div class='ug-lightbox-numbers'></div>";
-		
-		if(g_temp.isCompact == false)
-			html += "</div>";	//top panel
 		
 		html += "<div class='ug-lightbox-arrow-left'></div>";		
 		html += "<div class='ug-lightbox-arrow-right'></div>";
@@ -21309,8 +21376,10 @@ function UGLightbox(){
 		
 		g_objOverlay = g_objWrapper.children(".ug-lightbox-overlay");
 		
-		if(g_temp.isCompact == false){
+		if(g_temp.isCompact == false && g_temp.isTopPanelEnabled == true){
 			g_objTopPanel = g_objWrapper.children(".ug-lightbox-top-panel");
+			if(g_objTopPanel.length == 0)
+				g_objTopPanel = null;
 		}
 		
 		g_objButtonClose = g_objWrapper.find(".ug-lightbox-button-close");
@@ -21320,7 +21389,7 @@ function UGLightbox(){
 		
 		g_objArrowLeft = g_objWrapper.children(".ug-lightbox-arrow-left");
 		g_objArrowRight = g_objWrapper.children(".ug-lightbox-arrow-right");
-		
+				
 		if(g_objTextPanel){
 			if(g_objTopPanel)
 				g_objTextPanel.appendHTML(g_objTopPanel);
@@ -21376,7 +21445,7 @@ function UGLightbox(){
 		
 		if(!g_objSlider)
 			return(true);
-		
+				
 		//set slider new image position
 		var objOptions = {
 				slider_image_padding_top: newHeight,
@@ -21468,6 +21537,29 @@ function UGLightbox(){
 		
 		handlePanelHeight();
 		g_objTextPanel.positionPanel();
+	}
+	
+	/**
+	 * hide top panel
+	 */
+	function hideTopPanel(){
+		
+		if(!g_objTopPanel)
+			return(false);
+		
+		g_objTopPanel.hide();
+	}
+	
+	
+	/**
+	 * show top panel
+	 */
+	function showTopPanel(){
+		
+		if(!g_objTopPanel)
+			return(false);
+		
+		g_objTopPanel.show();
 	}
 	
 	
@@ -21849,8 +21941,7 @@ function UGLightbox(){
 			if(g_objTopPanel){
 				var topPanelHeight = g_objTopPanel.height();
 				var objOptions = {
-						slider_image_padding_top: topPanelHeight,
-						slider_video_padding_top: topPanelHeight
+						slider_image_padding_top: topPanelHeight
 				};
 				g_objSlider.setOptions(objOptions);
 			}
@@ -22252,6 +22343,13 @@ function UGLightbox(){
 	 */
 	function onPlayVideo(){
 		
+		if(g_objTopPanel){
+			hideTopPanel();
+		}else{
+			if(g_objNumbers)
+				g_objNumbers.hide();
+		}
+		
 		if(g_objArrowLeft && g_options.lightbox_hide_arrows_onvideoplay == true){
 			g_objArrowLeft.hide();			
 			g_objArrowRight.hide();			
@@ -22264,6 +22362,14 @@ function UGLightbox(){
 	 * on stop video - show the side buttons
 	 */
 	function onStopVideo(){
+
+		if(g_objTopPanel){
+			showTopPanel();
+		}else{
+			
+			if(g_objNumbers)
+				g_objNumbers.show();
+		}
 		
 		if(g_objArrowLeft && g_options.lightbox_hide_arrows_onvideoplay == true){
 			g_objArrowLeft.show();
@@ -22499,7 +22605,7 @@ function UGLightbox(){
 		g_objOverlay.stop().fadeTo(g_temp.fadeDuration, g_options.lightbox_overlay_opacity);
 		
 		positionElements();
-				
+		
 		if(g_temp.isCompact == true){
 			
 			var isPreloading = g_objSlider.isPreloading();

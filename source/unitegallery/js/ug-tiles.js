@@ -253,6 +253,7 @@ function UGTiles(){
 
 		g_vars.colWidth = g_options.tiles_col_width;
 		g_vars.minCols = g_options.tiles_min_columns;
+		g_vars.maxCols = g_options.tiles_max_columns;
 		
 		if(g_gallery.isMobileMode() == false){
 			g_vars.colGap = g_options.tiles_space_between_cols;

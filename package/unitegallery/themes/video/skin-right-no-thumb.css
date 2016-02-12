@@ -49,11 +49,13 @@
 	font-size:14px;
   	height:18px;
   	overflow:hidden;
+	line-height:normal;	
 }
 
 .ug-videoskin-right-no-thumb .ug-thumb-desc{
 	color:#dddddd;
 	font-size:11px;
+	line-height:normal;
 }
 
 /* ----- Buttons Panel ------- */

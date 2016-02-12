@@ -663,10 +663,22 @@ function UniteGalleryMain(){
 			 objItem.isBigImageLoadError = false;			 
 			 objItem.imageWidth = 0;
 			 objItem.imageHeight = 0;
+			 
+			 //set thumb size
 			 objItem.thumbWidth = 0;
 			 objItem.thumbHeight = 0;
 			 objItem.thumbRatioByWidth = 0;
 			 objItem.thumbRatioByHeight = 0;
+			 
+			 var dataWidth = objChild.data("width");
+			 var dataHeight = objChild.data("height");
+			 if(dataWidth && typeof dataWidth == "number" && dataHeight && typeof dataHeight == "number"){
+				 objItem.thumbWidth = dataWidth;
+				 objItem.thumbHeight = dataHeight;
+				 objItem.thumbRatioByWidth = dataWidth / dataHeight;
+				 objItem.thumbRatioByHeight = dataHeight / dataWidth;
+			 }
+			 
 			 objItem.addHtml = null;
 			 
 			 var isImageMissing = (objItem.urlImage == undefined || objItem.urlImage == "");

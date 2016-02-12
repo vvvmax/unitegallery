@@ -193,13 +193,15 @@ function UGTheme_tiles(){
 				
 		g_objTilesWrapper.hide();
 		
-		if(g_objPreloader)
+		if(g_objPreloader){
 			g_objPreloader.show();
 		
-		var preloaderSize = g_functions.getElementSize(g_objPreloader);
-		var galleryHeight = preloaderSize.bottom + 30;
+			var preloaderSize = g_functions.getElementSize(g_objPreloader);
+			var galleryHeight = preloaderSize.bottom + 30;
+			
+			g_objWrapper.height(galleryHeight);
+		}
 		
-		g_objWrapper.height(galleryHeight);
 	}
 
 	/**

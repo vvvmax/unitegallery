@@ -645,14 +645,23 @@ function UGFunctions(){
 	/**
 	 * get element relative position according the parent
 	 * if the left / top is offset text (left , center, right / top, middle , bottom)
+	 * the element can be number size as well
 	 */
 	this.getElementRelativePos = function(element, pos, offset, objParent){
 		
 		if(!objParent)
 			var objParent = element.parent();
 		
-		var elementSize = t.getElementSize(element);
+		if(typeof element == "number"){
+			var elementSize = {
+					width: element,
+					height: element
+			};
+		}else
+			var elementSize = t.getElementSize(element);
+		
 		var parentSize = t.getElementSize(objParent);
+		
 		
 		switch(pos){
 			case "top":
@@ -665,6 +674,7 @@ function UGFunctions(){
 				pos = Math.round((parentSize.width - elementSize.width) / 2);
 				if(offset)
 					pos += offset;
+				
 			break;
 			case "right":
 				pos = parentSize.width - elementSize.width;

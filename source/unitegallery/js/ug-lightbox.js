@@ -55,7 +55,8 @@ function UGLightbox(){
 			lastMouseX: null,
 			lastMouseY: null,
 			originalOptions: null,
-			isSliderChangedOnce:false
+			isSliderChangedOnce:false,
+			isTopPanelEnabled:true
 	};
 	
 	var g_defaults = {
@@ -74,9 +75,9 @@ function UGLightbox(){
 			lightbox_slider_transition: "fade",
 			
 			lightbox_slider_image_padding_top: g_temp.topPanelHeight,
-			lightbox_slider_image_padding_bottom: 10,
+			lightbox_slider_image_padding_bottom: 0,
 			
-			lightbox_slider_video_padding_top: g_temp.topPanelHeight,
+			lightbox_slider_video_padding_top: 0,
 			lightbox_slider_video_padding_bottom: 0,
 			
 			lightbox_textpanel_align: "middle",
@@ -177,6 +178,12 @@ function UGLightbox(){
 		if(g_temp.isArrowsInside == true && g_options.lightbox_arrows_inside_alwayson == false)
 			g_temp.isArrowsOnHoverMode = true;
 		
+		//disable top panel if no text panel enabled
+		if(g_options.lightbox_show_textpanel == false){
+			g_temp.isTopPanelEnabled = false;
+			g_temp.topPanelHeight = 0;
+			g_options.lightbox_slider_image_padding_top = 0;
+		}
 		
 	}
 	
@@ -196,18 +203,24 @@ function UGLightbox(){
 		html += "<div class='ug-lightbox-overlay'></div>";
 		
 		//set top panel only on wide mode
-		if(g_temp.isCompact == false)
+		if(g_temp.isCompact == false && g_temp.isTopPanelEnabled){
 			html += "<div class='ug-lightbox-top-panel'>";
-				
-		html += 	"<div class='ug-lightbox-top-panel-overlay'></div>";
+			html += 	"<div class='ug-lightbox-top-panel-overlay'></div>";
+			
+			if(g_options.lightbox_show_numbers)
+				html += 	"<div class='ug-lightbox-numbers'></div>";
+			
+			html += "</div>";	//top panel
+		}else{
+			
+			//put numbers without top panel
+			if(g_options.lightbox_show_numbers)
+				html += 	"<div class='ug-lightbox-numbers'></div>";
+			
+		}
+		
 		
 		html += 	"<div class='ug-lightbox-button-close'></div>";
-		
-		if(g_options.lightbox_show_numbers)
-			html += 	"<div class='ug-lightbox-numbers'></div>";
-		
-		if(g_temp.isCompact == false)
-			html += "</div>";	//top panel
 		
 		html += "<div class='ug-lightbox-arrow-left'></div>";		
 		html += "<div class='ug-lightbox-arrow-right'></div>";
@@ -223,8 +236,10 @@ function UGLightbox(){
 		
 		g_objOverlay = g_objWrapper.children(".ug-lightbox-overlay");
 		
-		if(g_temp.isCompact == false){
+		if(g_temp.isCompact == false && g_temp.isTopPanelEnabled == true){
 			g_objTopPanel = g_objWrapper.children(".ug-lightbox-top-panel");
+			if(g_objTopPanel.length == 0)
+				g_objTopPanel = null;
 		}
 		
 		g_objButtonClose = g_objWrapper.find(".ug-lightbox-button-close");
@@ -234,7 +249,7 @@ function UGLightbox(){
 		
 		g_objArrowLeft = g_objWrapper.children(".ug-lightbox-arrow-left");
 		g_objArrowRight = g_objWrapper.children(".ug-lightbox-arrow-right");
-		
+				
 		if(g_objTextPanel){
 			if(g_objTopPanel)
 				g_objTextPanel.appendHTML(g_objTopPanel);
@@ -290,7 +305,7 @@ function UGLightbox(){
 		
 		if(!g_objSlider)
 			return(true);
-		
+				
 		//set slider new image position
 		var objOptions = {
 				slider_image_padding_top: newHeight,
@@ -382,6 +397,29 @@ function UGLightbox(){
 		
 		handlePanelHeight();
 		g_objTextPanel.positionPanel();
+	}
+	
+	/**
+	 * hide top panel
+	 */
+	function hideTopPanel(){
+		
+		if(!g_objTopPanel)
+			return(false);
+		
+		g_objTopPanel.hide();
+	}
+	
+	
+	/**
+	 * show top panel
+	 */
+	function showTopPanel(){
+		
+		if(!g_objTopPanel)
+			return(false);
+		
+		g_objTopPanel.show();
 	}
 	
 	
@@ -763,8 +801,7 @@ function UGLightbox(){
 			if(g_objTopPanel){
 				var topPanelHeight = g_objTopPanel.height();
 				var objOptions = {
-						slider_image_padding_top: topPanelHeight,
-						slider_video_padding_top: topPanelHeight
+						slider_image_padding_top: topPanelHeight
 				};
 				g_objSlider.setOptions(objOptions);
 			}
@@ -1166,6 +1203,13 @@ function UGLightbox(){
 	 */
 	function onPlayVideo(){
 		
+		if(g_objTopPanel){
+			hideTopPanel();
+		}else{
+			if(g_objNumbers)
+				g_objNumbers.hide();
+		}
+		
 		if(g_objArrowLeft && g_options.lightbox_hide_arrows_onvideoplay == true){
 			g_objArrowLeft.hide();			
 			g_objArrowRight.hide();			
@@ -1178,6 +1222,14 @@ function UGLightbox(){
 	 * on stop video - show the side buttons
 	 */
 	function onStopVideo(){
+
+		if(g_objTopPanel){
+			showTopPanel();
+		}else{
+			
+			if(g_objNumbers)
+				g_objNumbers.show();
+		}
 		
 		if(g_objArrowLeft && g_options.lightbox_hide_arrows_onvideoplay == true){
 			g_objArrowLeft.show();
@@ -1413,7 +1465,7 @@ function UGLightbox(){
 		g_objOverlay.stop().fadeTo(g_temp.fadeDuration, g_options.lightbox_overlay_opacity);
 		
 		positionElements();
-				
+		
 		if(g_temp.isCompact == true){
 			
 			var isPreloading = g_objSlider.isPreloading();

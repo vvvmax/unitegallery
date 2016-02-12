@@ -2421,12 +2421,13 @@ function UGSlider(){
 		 resizeSlideItem(g_objSlide3);
 		 
 		 positionSlides();
-
+		 		 
 		 //set video player size
 		 var currentSlideType = t.getSlideType();
+		
 		 if(currentSlideType != "image" && g_options.slider_video_constantsize == true){
+			 
 			 setVideoPlayerConstantSize();
-			 setVideoPlayerPosition();
 		 }else{	
 			 var videoWidth = width - g_options.slider_video_padding_left - g_options.slider_video_padding_right;
 			 var videoHeight = height - g_options.slider_video_padding_top - g_options.slider_video_padding_bottom;
@@ -2434,6 +2435,8 @@ function UGSlider(){
 			 //set video player size
 			 g_objVideoPlayer.setSize(videoWidth, videoHeight);
 		 }
+		 
+		 setVideoPlayerPosition();
 		 
 	}
 	

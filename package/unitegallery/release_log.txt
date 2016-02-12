@@ -1,3 +1,22 @@
+
+version 1.7.12
+
+-change: added line height to video title
+-bug fix: bring back the fixed tiles_max_columns function
+
+version 1.7.11
+
+-bog fix: improved lightbox wide video player
+
+version 1.7.10
+
+-change: added theme_align option to tiles grid
+
+version 1.7.9
+
+-bug fix: fixed some preloader error with tabs
+-bug fix: fixed tilegrid resize issues
+
 version 1.7.8
 
 -made some small js changes

@@ -19,6 +19,7 @@ function UGTheme_tilesgrid(){
 
 	var g_options = {
 			theme_gallery_padding: 0,				//padding from sides of the gallery
+			theme_grid_align: "center",				//grid align
 			theme_navigation_type: "bullets",		//bullets, arrows
 			theme_arrows_margin_top: 20,			//the space between arrows and grid
 			theme_space_between_arrows: 5,			//horizontal space between arrows
@@ -208,7 +209,7 @@ function UGTheme_tilesgrid(){
 		initEvents();
 		
 		//place preloader
-		g_functions.placeElement(g_objPreloader, "center", 50);
+		g_functions.placeElement(g_objPreloader, g_options.theme_grid_align, 50);
 		
 		g_objThumbsGrid.setWidth(galleryWidth);
 		
@@ -244,7 +245,7 @@ function UGTheme_tilesgrid(){
 		var g_objGridSize = g_objThumbsGrid.getSize();
 		
 		var gridElement = g_objThumbsGrid.getElement();
-		g_functions.placeElement(gridElement, "center", 0);
+		g_functions.placeElement(gridElement, g_options.theme_grid_align, 0);
 		
 		g_objGridSize = g_objThumbsGrid.getSize();
 		
@@ -253,18 +254,23 @@ function UGTheme_tilesgrid(){
 		var numPanes = g_objThumbsGrid.getNumPanes();
 
 		if(numPanes > 1){
+			
 			//position bullets
 			if(g_objBullets){
 				
 				g_objBullets.getElement().show();
 				
 				var bulletsElement = g_objBullets.getElement();
+				var bulletsWidth = g_objBullets.getBulletsWidth();
 				
-				var bulletsX = g_objGridSize.left + g_functions.getElementRelativePos(bulletsElement, g_options.theme_navigation_align, g_options.theme_navigation_offset_hor, gridElement);
+				//get bullets offset x (relative to the grid)
+				var bulletsX = g_objGridSize.left + g_functions.getElementRelativePos(bulletsWidth, g_options.theme_navigation_align, g_options.theme_navigation_offset_hor, gridElement);
 				
 				g_functions.placeElement(bulletsElement, bulletsX, galleryHeight + g_options.theme_bullets_margin_top);
+				
 				var sizeBullets = g_functions.getElementSize(bulletsElement);
 				galleryHeight = sizeBullets.bottom;
+				
 			}
 			
 			//position buttons
@@ -273,7 +279,7 @@ function UGTheme_tilesgrid(){
 				g_objNavWrapper.show();
 				
 				var navX = g_objGridSize.left + g_functions.getElementRelativePos(g_objNavWrapper, g_options.theme_navigation_align, g_options.theme_navigation_offset_hor, gridElement);
-				
+								
 				g_functions.placeElement(g_objNavWrapper, navX, galleryHeight + g_options.theme_arrows_margin_top);
 				
 				var sizeNav = g_functions.getElementSize(g_objNavWrapper);
@@ -333,7 +339,8 @@ function UGTheme_tilesgrid(){
 		
 		updateBullets();
 		
-		positionElements();
+		setTimeout(positionElements, 500);
+		
 	}
 
 

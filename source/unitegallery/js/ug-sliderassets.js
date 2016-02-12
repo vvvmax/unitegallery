@@ -835,7 +835,7 @@ function UGZoomButtonsPanel(){
 function UGBullets(){
 	
 	var t = this, g_numBullets = 0, g_gallery = new UniteGalleryMain();
-	var g_objBullets, g_objParent, g_activeIndex = -1;
+	var g_objBullets, g_objParent, g_activeIndex = -1, g_bulletWidth;
 	var g_functions = new UGFunctions();
 	
 	var g_temp = {
@@ -864,7 +864,7 @@ function UGBullets(){
 		
 		if(numBullets)
 			g_numBullets = numBullets;
-		else			
+		else	
 			g_numBullets = g_gallery.getNumItems();
 		
 		g_temp.isInited = true;
@@ -893,8 +893,29 @@ function UGBullets(){
 		}
 		
 		g_objBullets.html(html);
+		
+		//set bullet width value
+		if(!g_bulletWidth){
+			var objBullet = g_objBullets.find(".ug-bullet:first-child");
+			if(objBullet.length)
+				g_bulletWidth = objBullet.width();
+		}
 	}
 
+	/**
+	 * get total bullets width
+	 */
+	this.getBulletsWidth = function(){
+		if(g_numBullets == 0)
+			return(0);
+		
+		if(!g_bulletWidth)
+			return(0);
+		
+		var totalWidth = g_numBullets*g_bulletWidth+(g_numBullets-1)*g_options.bullets_space_between;
+		return(totalWidth);
+	}
+	
 	
 	/**
 	 * append the bullets html to some parent
@@ -1009,6 +1030,13 @@ function UGBullets(){
 		return(false);
 	}
 	
+	
+	/**
+	 * get bullets number
+	 */
+	this.getNumBullets = function(){
+		return(g_numBullets);
+	}
 	
 	/**
 	 * validate bullets index
