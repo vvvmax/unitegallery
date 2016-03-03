@@ -1429,12 +1429,17 @@ function UGVideoPlayer(){
 		stopAndHidePlayers("vimeo");
 		
 		g_objVimeo.show();
+
+		g_vimeoAPI.putVideo(g_temp.vimeoPlayerID, videoID, "100%", "100%", isAutoplay);
 		
-		if(g_vimeoAPI.isPlayerReady() && g_temp.standAloneMode == true)
+		/*
+		if(g_vimeoAPI.isPlayerReady() && g_temp.standAloneMode == true){
 			g_vimeoAPI.changeVideo(videoID, isAutoplay);
+		}
 		else
 			g_vimeoAPI.putVideo(g_temp.vimeoPlayerID, videoID, "100%", "100%", isAutoplay);
-
+		 */
+		
 		g_activePlayerType = "vimeo";
 
 	}

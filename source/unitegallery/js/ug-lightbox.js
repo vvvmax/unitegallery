@@ -32,8 +32,9 @@ function UGLightbox(){
 			lightbox_numbers_padding_right:null,			//the right padding of the numbers (used in compact mode)
 			
 			lightbox_compact_closebutton_offsetx: 1,		//the offsetx of the close button. Valid only for compact mode
-			lightbox_compact_closebutton_offsety: 1			//the offsetx of the close button. Valid only for compact mode
+			lightbox_compact_closebutton_offsety: 1,		//the offsetx of the close button. Valid only for compact mode
 			
+			lightbox_close_on_emptyspace:true				//close the lightbox on empty space
 	};
 	
 	this.events = {
@@ -157,6 +158,8 @@ function UGLightbox(){
 		}
 		else
 			g_objTextPanel = null;
+		
+		
 		
 	}
 	
@@ -1181,10 +1184,15 @@ function UGLightbox(){
 			return(true);
 		}
 		
-		var isInside = g_objSlider.isMouseInsideSlideImage(event);
+		//close the lightbox on empty space click
+		if(g_options.lightbox_close_on_emptyspace == true){
+			
+			var isInside = g_objSlider.isMouseInsideSlideImage(event);
+			
+			if(isInside == false)
+				t.close("slider_inside");
+		}
 		
-		if(isInside == false)
-			t.close("slider_inside");
 	}
 	
 	

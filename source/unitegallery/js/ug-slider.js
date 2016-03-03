@@ -320,7 +320,7 @@ function UGSlider(){
 		if(g_options.slider_videoplay_button_type == "round")
 			classVideoplay = "ug-type-round";
 		
-		html = "";
+		var html = "";
 		html += "<div class='ug-slide-wrapper ug-slide"+numSlide+"'>";
 		html += "<div class='ug-item-wrapper'></div>";
 		html += "<div class='ug-slider-preloader "+loaderClass+"'></div>";

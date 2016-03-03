@@ -1,3 +1,12 @@
+version 1.7.14
+
+-bug fix: fixed nested type arrange on first load for mobile mode
+
+version 1.7.13
+
+-bug fix: fixed small js bug, about html variable
+-bug fix: added better protection against unwanted css transitions
+-bug fix: fixed vimeo didn't changed bug (vimeo removed the quick change video option)
 
 version 1.7.12
 

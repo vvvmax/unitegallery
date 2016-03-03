@@ -868,8 +868,13 @@ function UGTiles(){
         objTiles.fadeTo(0, 0);
 
         g_functions.checkImagesLoaded(objImages, function () {
-
-            placeNestedImages(true);
+        	
+        	if(g_gallery.isMobileMode() == true){
+        		placeTiles(true);
+        	}
+        	else
+        		placeNestedImages(true);
+            
             g_objThis.trigger(t.events.TILES_FIRST_PLACED);
             setTransition();
 
@@ -916,6 +921,8 @@ function UGTiles(){
         
         g_nestedWork.gridY = 0;
         g_arrNestedItems = []
+        
+        trace(g_nestedWork);
         
     	var objTiles = g_thumbs.getThumbs();
 		objTiles.each(function(){

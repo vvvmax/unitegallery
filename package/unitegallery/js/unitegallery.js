@@ -1,4 +1,4 @@
-// Unite Gallery, Version: 1.7.12, released 12 Feb 2016 
+// Unite Gallery, Version: 1.7.14, released 03 Mar 2016 
 
 
 
@@ -9326,8 +9326,13 @@ function UGTiles(){
         objTiles.fadeTo(0, 0);
 
         g_functions.checkImagesLoaded(objImages, function () {
-
-            placeNestedImages(true);
+        	
+        	if(g_gallery.isMobileMode() == true){
+        		placeTiles(true);
+        	}
+        	else
+        		placeNestedImages(true);
+            
             g_objThis.trigger(t.events.TILES_FIRST_PLACED);
             setTransition();
 
@@ -9374,6 +9379,8 @@ function UGTiles(){
         
         g_nestedWork.gridY = 0;
         g_arrNestedItems = []
+        
+        trace(g_nestedWork);
         
     	var objTiles = g_thumbs.getThumbs();
 		objTiles.each(function(){
@@ -12381,7 +12388,7 @@ function UGSlider(){
 		if(g_options.slider_videoplay_button_type == "round")
 			classVideoplay = "ug-type-round";
 		
-		html = "";
+		var html = "";
 		html += "<div class='ug-slide-wrapper ug-slide"+numSlide+"'>";
 		html += "<div class='ug-item-wrapper'></div>";
 		html += "<div class='ug-slider-preloader "+loaderClass+"'></div>";
@@ -18741,12 +18748,17 @@ function UGVideoPlayer(){
 		stopAndHidePlayers("vimeo");
 		
 		g_objVimeo.show();
+
+		g_vimeoAPI.putVideo(g_temp.vimeoPlayerID, videoID, "100%", "100%", isAutoplay);
 		
-		if(g_vimeoAPI.isPlayerReady() && g_temp.standAloneMode == true)
+		/*
+		if(g_vimeoAPI.isPlayerReady() && g_temp.standAloneMode == true){
 			g_vimeoAPI.changeVideo(videoID, isAutoplay);
+		}
 		else
 			g_vimeoAPI.putVideo(g_temp.vimeoPlayerID, videoID, "100%", "100%", isAutoplay);
-
+		 */
+		
 		g_activePlayerType = "vimeo";
 
 	}
@@ -21172,8 +21184,9 @@ function UGLightbox(){
 			lightbox_numbers_padding_right:null,			//the right padding of the numbers (used in compact mode)
 			
 			lightbox_compact_closebutton_offsetx: 1,		//the offsetx of the close button. Valid only for compact mode
-			lightbox_compact_closebutton_offsety: 1			//the offsetx of the close button. Valid only for compact mode
+			lightbox_compact_closebutton_offsety: 1,		//the offsetx of the close button. Valid only for compact mode
 			
+			lightbox_close_on_emptyspace:true				//close the lightbox on empty space
 	};
 	
 	this.events = {
@@ -21297,6 +21310,8 @@ function UGLightbox(){
 		}
 		else
 			g_objTextPanel = null;
+		
+		
 		
 	}
 	
@@ -22321,10 +22336,15 @@ function UGLightbox(){
 			return(true);
 		}
 		
-		var isInside = g_objSlider.isMouseInsideSlideImage(event);
+		//close the lightbox on empty space click
+		if(g_options.lightbox_close_on_emptyspace == true){
+			
+			var isInside = g_objSlider.isMouseInsideSlideImage(event);
+			
+			if(isInside == false)
+				t.close("slider_inside");
+		}
 		
-		if(isInside == false)
-			t.close("slider_inside");
 	}
 	
 	

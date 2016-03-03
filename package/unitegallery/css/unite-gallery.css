@@ -2,11 +2,11 @@
 
 .ug-gallery-wrapper, 
 .ug-gallery-wrapper *{
-	transition: all;
-	-o-transition: all;
+	transition: all !important;
+	-o-transition: all !important;
 	-webkit-transition: all;
-	-moz-transition: all;
-	-ms-transition: all;
+	-moz-transition: all !important;
+	-ms-transition: all !important;
 	max-width:none;
 }
 
@@ -258,14 +258,14 @@
 	background-image:url('../images/play-button-round.png');
 	opacity:0.9;
 	filter: alpha(opacity = 90);
-	transition: all 0.3s ease 0s;
+	transition: all 0.3s ease 0s !important;
 }
 
 
 .ug-slider-wrapper .ug-button-videoplay.ug-type-round.ug-button-hover{
 	opacity:1;
 	filter: alpha(opacity = 100);
-	transition: all 0.3s ease 0s;
+	transition: all 0.3s ease 0s !important;
 }
 
 
@@ -628,7 +628,7 @@ img.ug-sepia-effect{
 
 .ug-tiles-transit.ug-tiles-transition-active .ug-thumb-wrapper.ug-tile,
 .ug-tiles-transit.ug-tiles-transition-active .ug-thumb-wrapper.ug-tile .ug-trans-enabled{
-	transition: left 0.7s ease 0s, top 0.7s ease 0s, width 0.7s ease 0s, height 0.7s ease 0s;
+	transition: left 0.7s ease 0s, top 0.7s ease 0s, width 0.7s ease 0s, height 0.7s ease 0s !important;
 }
 
 
