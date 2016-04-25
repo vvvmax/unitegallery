@@ -210,6 +210,7 @@ function UGTileDesign(){
 			
 		}
 		
+		
 		//if the textpanel offset is not from the border, it's always fade.
 		if(g_options.tile_textpanel_offset != 0){
 			g_options.tile_textpanel_appear_type = "fade";
@@ -665,6 +666,18 @@ function UGTileDesign(){
 	}
 	
 	
+	/**
+	 * return if the items icon always on
+	 */
+	function isItemIconAlwaysOn(objItem){
+		
+		if(g_options.tile_enable_icons == true && g_options.tile_videoplay_icon_always_on == true && objItem.type != "image")
+			return(true);
+		
+		return(false);
+	}
+
+	
 	function _________________SETTERS________________(){};
 	
 	
@@ -972,7 +985,7 @@ function UGTileDesign(){
 			
 			if(isActive == true){
 								
-				objTextPanel.fadeTo(0,1);
+				objTextPanel.fadeTo(1,1);
 									
 				if(objTextPanel.is(":animated") == false)
 					objTextPanel.css(startClass);
@@ -1013,10 +1026,12 @@ function UGTileDesign(){
 		
 		if(g_objIconZoom)
 			g_objIconZoom.stop(true).fadeTo(animationDuration, opacity);
+		
 		if(g_objIconLink)
 			g_objIconLink.stop(true).fadeTo(animationDuration, opacity);
 		
 	}
+	
 	
 	
 	/**
@@ -1038,8 +1053,9 @@ function UGTileDesign(){
 			var isSet = (g_options.thumb_overlay_reverse == true);
 			
 			var objItem = t.getItemByTile(objTile);
-			if( !(g_options.tile_videoplay_icon_always_on == true && objItem.type != "image"))
+			if(isItemIconAlwaysOn(objItem) == false)
 				setIconsEffect(objTile, isSet, false);
+			
 		}
 		
 	}
@@ -1049,8 +1065,7 @@ function UGTileDesign(){
 	 * set normal style
 	 */
 	function setNormalStyle(data, objTile){
-		
-		
+						
 		objTile = jQuery(objTile);
 		
 		if(g_options.tile_enable_image_effect)
@@ -1061,8 +1076,13 @@ function UGTileDesign(){
 		
 		//show/hide icons - if saparate (if not, they are part of the overlay)
 		if(g_temp.isSaparateIcons == true && g_options.tile_enable_icons == true){
+			
 			var isSet = (g_options.thumb_overlay_reverse == true)?false:true;
-			setIconsEffect(objTile, isSet, false);
+			
+			var objItem = t.getItemByTile(objTile);
+			if(isItemIconAlwaysOn(objItem) == false)
+				setIconsEffect(objTile, isSet, false);
+		
 		}
 		
 	}
@@ -1105,7 +1125,7 @@ function UGTileDesign(){
 	function onPlaceImage(data, objTile, objImage){
 		
 		positionElements(objTile);
-		objImage.fadeTo(0,1);
+		objImage.fadeTo(1,1);
 		
 		objTile.data("image_placed", true);
 	}

@@ -61,6 +61,7 @@ function UGSlider(){
 		  slider_image_border_width: 10,				//image border width
 		  slider_image_border_color: "#ffffff",			//image border color
 		  slider_image_border_radius: 0,				//image border radius
+		  slider_image_border_maxratio: 0.35,			//max ratio that the border can take from the image
 		  slider_image_shadow: false,					//enable border shadow the image
 		  
 		  slider_video_constantsize: false, 			//constant video size mode for video items
@@ -177,7 +178,7 @@ function UGSlider(){
 	 */
 	function initSlider(objGallery, objOptions, optionsPrefix){
 		g_gallery = objGallery;
-		
+				
 		//change options by prefix
 		if(optionsPrefix){
 			g_optionsPrefix = optionsPrefix;
@@ -197,7 +198,7 @@ function UGSlider(){
 		if(g_options.slider_progress_indicator_type == "bar"){
 			g_options = jQuery.extend(g_options, g_defaultsProgressBar);
 		}
-		
+				
 		if(objOptions)
 			t.setOptions(objOptions);
 		
@@ -643,16 +644,64 @@ function UGSlider(){
 		objPreloader.stop(true).hide(100);
 	}
 	
+	/**
+	 * get proper image border width
+	 */
+	function getImageBorderWidth(objImage, imageData){
+		
+		var borderWidth = g_options.slider_image_border_width;
+		
+		if(borderWidth <= 10)
+			return(borderWidth);
+
+		//set image size
+		var imageSize = g_functions.getElementSize(objImage);
+		var imageWidth = imageSize.width;
+		var imageHeight = imageSize.height;
+		
+		if(imageData){
+			if(imageData.hasOwnProperty("imageWidth"))
+				imageWidth = imageData.imageWidth;
+			
+			if(imageData.hasOwnProperty("imageHeight"))
+				imageHeight = imageData.imageHeight;
+			
+		}
+		
+		if(imageWidth <= 0)
+			return(borderWidth);
+		
+		//take the less size
+		var totalSize = (imageWidth < imageHeight)?imageWidth:imageHeight;
+		var borderSize = borderWidth * 2;
+		
+		var borderRatio = borderSize / totalSize;
+		
+		if(borderRatio < g_options.slider_image_border_maxratio)
+			return(borderWidth);
+		
+		//change border width		
+		var borderWidth = (totalSize * g_options.slider_image_border_maxratio)/2; 
+		
+		borderWidth = Math.round(borderWidth);
+		
+		return(borderWidth);
+		
+	}
+	
 	
 	/**
 	 * set slider image css design according the settings
 	 */
-	function setImageDesign(objImage, slideType){
+	function setImageDesign(objImage, slideType, imageData){
 		
 		var css = {};
 		if(g_options.slider_image_border == true){
 			css["border-style"] = "solid";
-			css["border-width"] = g_options.slider_image_border_width+"px";
+			
+			var borderWidth = getImageBorderWidth(objImage, imageData);
+			
+			css["border-width"] = borderWidth+"px";
 			css["border-color"] = g_options.slider_image_border_color;
 			css["border-radius"] = g_options.slider_image_border_radius;
 		}
@@ -667,6 +716,7 @@ function UGSlider(){
 		objImage.css(css);
 	}
 	
+	
 	/**
 	 * scale image constant size (for video items)
 	 */
@@ -676,7 +726,9 @@ function UGSlider(){
 		var constantHeight = g_options.slider_video_constantsize_height;
 		var scaleMode = g_options.slider_video_constantsize_scalemode;
 		
-		g_functions.scaleImageExactSizeInParent(objImage, objItem.imageWidth, objItem.imageHeight, constantWidth, constantHeight, scaleMode);
+		var objSize = g_functions.scaleImageExactSizeInParent(objImage, objItem.imageWidth, objItem.imageHeight, constantWidth, constantHeight, scaleMode);
+		
+		return(objSize);
 	}
 
 	
@@ -714,11 +766,14 @@ function UGSlider(){
 				g_gallery.checkFillImageSize(objImage, objItem);
 			}
 			
+			var objImageData = {};
+			
 			if(slideType != "image" && g_options.slider_video_constantsize == true)
-				scaleImageConstantSize(objImage, objItem);
+				objImageData = scaleImageConstantSize(objImage, objItem);
 			else
-				g_functions.scaleImageFitParent(objImage, objItem.imageWidth, objItem.imageHeight, scaleMode, objPadding);
+				objImageData = g_functions.scaleImageFitParent(objImage, objItem.imageWidth, objItem.imageHeight, scaleMode, objPadding);
 
+			setImageDesign(objImage, slideType, objImageData);
 			
 			g_objThis.trigger(t.events.AFTER_PUT_IMAGE, objSlide);
 			
@@ -726,14 +781,18 @@ function UGSlider(){
 		else{		//place the image inside parent first time
 						
 			objImage = g_functions.placeImageInsideParent(urlImage, objItemWrapper, objItem.imageWidth, objItem.imageHeight, scaleMode, objPadding);
-									
+			
 			//set image loaded on load:
 			if(objItem.isBigImageLoaded == true){
-				objImage.fadeTo(0,1);
+				objImage.fadeTo(1,1);
 				hidePreloader(objPreloader);
 				
 				if(slideType != "image" && g_options.slider_video_constantsize == true)
-					scaleImageConstantSize(objImage, objItem);
+					var objImageData = scaleImageConstantSize(objImage, objItem);
+				else
+					var objImageData = g_functions.getImageInsideParentData(objItemWrapper, objItem.imageWidth, objItem.imageHeight, scaleMode, objPadding);
+				
+				setImageDesign(objImage, slideType, objImageData);
 				
 				g_objThis.trigger(t.events.AFTER_PUT_IMAGE, objSlide);
 			}
@@ -752,7 +811,7 @@ function UGSlider(){
 					var objImage = jQuery(this);
 					var itemIndex = objImage.data("itemIndex");
 					
-					objImage.fadeTo(0,1);
+					objImage.fadeTo(1,1);
 					
 					//get and hide preloader
 					var objSlide = objImage.parent().parent();
@@ -770,23 +829,24 @@ function UGSlider(){
 					g_gallery.onItemBigImageLoaded(null, objImage);
 					
 					var objItem = g_gallery.getItem(itemIndex);
-										
+					
+					var objImageData = {};
+					
 					if(slideType != "image" && g_options.slider_video_constantsize == true)
 						scaleImageConstantSize(objImage, objItem);
 					else
-						g_functions.scaleImageFitParent(objImage, objItem.imageWidth, objItem.imageHeight, scaleMode, objPadding);
+						objImageData = g_functions.scaleImageFitParent(objImage, objItem.imageWidth, objItem.imageHeight, scaleMode, objPadding);
 					
-					objImage.fadeTo(0,1);
+					objImage.fadeTo(1,1);
+					
+					setImageDesign(objImage, slideType, objImageData);
 					
 					g_objThis.trigger(t.events.AFTER_PUT_IMAGE, objSlide);
 				});
 			}
 			
 		}
-				
 		
-		if(objImage)
-			setImageDesign(objImage, slideType);
 		
 	}
 	
@@ -984,7 +1044,7 @@ function UGSlider(){
 		//set video design
 		var videoElement = g_objVideoPlayer.getObject();
 		
-		setImageDesign(videoElement);
+		setImageDesign(videoElement, "video");
 	}
 	
 	
@@ -1850,7 +1910,7 @@ function UGSlider(){
 	 * options: width / height
 	 */
 	this.init = function(objGallery, objOptions, optionsPrefix){
-		
+				
 		initSlider(objGallery, objOptions, optionsPrefix);
 	}
 
@@ -2407,6 +2467,7 @@ function UGSlider(){
 		 objCssItemWrapper["left"] = g_options.slider_item_padding_left + "px";
 		 
 		 g_objSlider.find(".ug-item-wrapper").css(objCssItemWrapper);		 
+		 
 		 
 		 //set text panel size
 		 if(g_objTextPanel){

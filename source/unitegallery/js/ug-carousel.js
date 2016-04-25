@@ -98,7 +98,7 @@ function UGCarousel(){
 		
 		g_objTileDesign.setHtml(g_objInner);
 		
-		g_thumbs.getThumbs().fadeTo(0,1);
+		g_thumbs.getThumbs().fadeTo(1,1);
 		
 	}
 	

@@ -395,9 +395,9 @@ function UGTiles(){
 		//set max height
 		if(g_vars.maxColHeight < realHeight)
 			g_vars.maxColHeight = realHeight;
-				
+
 		if(toShow == true)
-			objTile.show().fadeTo(0,1);
+			objTile.show().fadeTo(1,1);
 		
 		if(setGalleryHeight == true){
 			g_objParent.height(g_vars.maxColHeight);			
@@ -420,7 +420,7 @@ function UGTiles(){
 		
 		//do some operation before the transition
 		doBeforeTransition();
-
+				
 		//resize all thumbs
 		g_objTileDesign.resizeAllTiles(g_vars.colWidth, g_objTileDesign.resizemode.VISIBLE_ELEMENTS);
 		
@@ -536,7 +536,7 @@ function UGTiles(){
 			placeOrderedTile(objTile);
 		
 		}else{
-			
+						
 			g_objTileDesign.resizeTile(objTile, g_vars.colWidth);
 			placeTile(objTile, true, true);
 		}
@@ -570,6 +570,7 @@ function UGTiles(){
 		
 		objThumbs.fadeTo(0,0);
 		var objImages = jQuery(g_objParent).find("img.ug-thumb-image");
+
 		
 		if(g_temp.isFixedMode == true){		//fixed mode type - just place tiles before images loaded
 			
@@ -836,7 +837,7 @@ function UGTiles(){
 			
 			setTimeout(function(){
 				placeJustified(true);
-				objTiles.fadeTo(0,1);
+				objTiles.fadeTo(1,1);
 				g_objThis.trigger(t.events.TILES_FIRST_PLACED);
 				setTransition();
 			});

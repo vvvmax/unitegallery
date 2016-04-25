@@ -171,7 +171,7 @@ function UGThumbsGrid(){
 				g_objWrapper.trigger(g_temp.eventSizeChange, jQuery(tile));
 			});
 			
-			objTiles.fadeTo(0,1);
+			objTiles.fadeTo(1,1);
 		}
 			
 		if(selectedItem != null)
@@ -369,6 +369,7 @@ function UGThumbsGrid(){
 			}
 		}
 		
+		
 		//set inner strip width and height
 		g_objInner.width(g_temp.innerWidth);
 		
@@ -513,7 +514,6 @@ function UGThumbsGrid(){
 					//change to a new pane					
 					rowsCounter = 0;
 					baseX = posx;
-					paneMaxY = 0;
 					posy = baseY;
 					
 					//change grid width to max width
@@ -563,12 +563,13 @@ function UGThumbsGrid(){
 		}//end for
 		
 		//set inner strip width and height
-		g_temp.innerWidth = maxx;
-		g_temp.innerHeight = paneMaxY;
+		g_temp.innerWidth = maxx + g_options.grid_padding;
+		g_temp.innerHeight = paneMaxY + g_options.grid_padding;
+		
 		
 		g_objInner.width(g_temp.innerWidth);
 		g_objInner.height(g_temp.innerHeight);
-		
+				
 		//set grid height
 		if(g_temp.numPanes == 1){
 			g_temp.gridWidth = maxx + g_options.grid_padding;

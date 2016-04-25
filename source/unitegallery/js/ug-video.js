@@ -1270,7 +1270,7 @@ function UGVideoPlayer(){
 		
 		g_objPlayer.show();
 		
-		g_objPlayer.fadeTo(0,1);
+		g_objPlayer.fadeTo(1,1);
 		
 		if(g_objButtonClose)
 			g_objButtonClose.show();

@@ -310,7 +310,7 @@ function UGThumbsGeneral(){
 				objImageOverlay.stop(true).fadeTo(animationDuration,1);
 			}else{
 				//show the image, hide the overlay
-				objImage.fadeTo(0,1);
+				objImage.fadeTo(1,1);
 				objImageOverlay.stop(true).fadeTo(animationDuration,0);
 			}
 			
@@ -495,7 +495,7 @@ function UGThumbsGeneral(){
 			
 			//if overlay effect exists
 			if(g_options.thumb_image_overlay_effect == false){
-				objImage.fadeTo(0,1);
+				objImage.fadeTo(1,1);
 			}
 			else{
 
@@ -539,7 +539,7 @@ function UGThumbsGeneral(){
 			
 			//show the image
 			if(g_temp.customThumbs == false)
-				objImageBW.fadeTo(0,1);
+				objImageBW.fadeTo(1,1);
 			
 		}
 		

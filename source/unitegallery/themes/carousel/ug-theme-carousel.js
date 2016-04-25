@@ -279,7 +279,7 @@ function UGTheme_carousel(){
 			g_objNavWrapper.hide();
 		
 		//show preloader:
-		g_objPreloader.fadeTo(0,1);
+		g_objPreloader.fadeTo(1,1);
 	}
 	
 	

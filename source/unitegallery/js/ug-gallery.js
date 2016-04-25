@@ -1024,8 +1024,8 @@ function UniteGalleryMain(){
 		 //mix options with user options
 		 if(!customOptions)
 			 var customOptions = {};
-		 
-		 customOptions = jQuery.extend(customOptions, g_temp.objCustomOptions);
+		 		 
+		 customOptions = jQuery.extend(g_temp.objCustomOptions, customOptions);
 		 
 		 g_objSlider = new UGSlider();		 
 		 g_objSlider.init(t, customOptions, optionsPrefix);

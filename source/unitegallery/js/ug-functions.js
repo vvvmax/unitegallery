@@ -1013,6 +1013,7 @@ function UGFunctions(){
 		
 		//return the image just created
 		var objImage = objParent.children("img");
+		
 		return(objImage);
 	}
 	
@@ -1101,7 +1102,7 @@ function UGFunctions(){
 			updateCss = true;		
 			objCss.left = obj.imageLeft+"px";
 		}
-				
+			
 		if(updateCss == true){
 			
 			objCss.position = "absolute";
@@ -1109,7 +1110,8 @@ function UGFunctions(){
 			
 			objImage.css(objCss);			
 		}
-				
+		
+		return(obj);
 	}
 	
 	
@@ -1202,6 +1204,12 @@ function UGFunctions(){
 				
 		objImage.css(objCss);
 		
+		//return size object
+		
+		var objReturn = {};
+		objReturn["imageWidth"] = imageWidth;
+		objReturn["imageHeight"] = imageHeight;
+		return(objReturn);
 	}
 	
 	
@@ -1210,13 +1218,13 @@ function UGFunctions(){
 	 */
 	this.showElement = function(element, element2, element3){
 		
-		element.show().fadeTo(0,1);
+		element.show().fadeTo(1,1);
 		
 		if(element2)
-			element2.show().fadeTo(0,1);
+			element2.show().fadeTo(1,1);
 			
 		if(element3)
-				element3.show().fadeTo(0,1);
+				element3.show().fadeTo(1,1);
 			
 	}
 	

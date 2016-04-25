@@ -1,3 +1,16 @@
+version 1.7.17
+
+-bug fix: fixed jquery 1.8 issue with fading.
+-bug fix: fixed icon always on issue
+
+version 1.7.16
+
+-bug fix: fixed image border issue.
+
+version 1.7.15
+
+-bug fix: fixed tiles grid small issue with rtl
+
 version 1.7.14
 
 -bug fix: fixed nested type arrange on first load for mobile mode

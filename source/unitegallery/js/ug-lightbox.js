@@ -148,7 +148,7 @@ function UGLightbox(){
 			g_gallery.initSlider(g_options, "lightbox");
 			g_objects = gallery.getObjects();
 			g_objSlider = g_objects.g_objSlider;			
-		
+			
 		}else{
 			g_objSlider = null;
 		}
@@ -160,7 +160,6 @@ function UGLightbox(){
 			g_objTextPanel = null;
 		
 		
-		
 	}
 	
 	
@@ -168,7 +167,6 @@ function UGLightbox(){
 	 * modify some options according user options
 	 */
 	function modifyOptions(){
-		
 		
 		if(g_temp.isCompact == true && g_options.lightbox_show_textpanel == true){
 			g_options.lightbox_slider_image_padding_bottom = g_temp.initTextPanelHeight;
@@ -187,6 +185,9 @@ function UGLightbox(){
 			g_temp.topPanelHeight = 0;
 			g_options.lightbox_slider_image_padding_top = 0;
 		}
+		
+		//modify slider image border width
+		
 		
 	}
 	
@@ -1467,7 +1468,7 @@ function UGLightbox(){
 		
 		g_objOverlay.stop().fadeTo(0,0);
 		g_objWrapper.show();
-		g_objWrapper.fadeTo(0,1);
+		g_objWrapper.fadeTo(1,1);
 		
 		//show the overlay
 		g_objOverlay.stop().fadeTo(g_temp.fadeDuration, g_options.lightbox_overlay_opacity);
@@ -1492,7 +1493,7 @@ function UGLightbox(){
 			}
 				
 		}
-				
+		
 		if(g_objSlider)
 			g_objSlider.startSlideAction();
 		

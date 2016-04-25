@@ -369,7 +369,7 @@ function UGTheme_tilesgrid(){
 			g_objThumbsGrid.getElement().hide();
 		
 		//show preloader:
-		g_objPreloader.fadeTo(0,1);
+		g_objPreloader.fadeTo(1,1);
 	}
 	
 	
