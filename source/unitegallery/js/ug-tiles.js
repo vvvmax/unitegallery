@@ -397,7 +397,7 @@ function UGTiles(){
 			g_vars.maxColHeight = realHeight;
 
 		if(toShow == true)
-			objTile.show().fadeTo(1,1);
+			objTile.show().fadeTo(0,1);
 		
 		if(setGalleryHeight == true){
 			g_objParent.height(g_vars.maxColHeight);			
@@ -837,7 +837,7 @@ function UGTiles(){
 			
 			setTimeout(function(){
 				placeJustified(true);
-				objTiles.fadeTo(1,1);
+				objTiles.fadeTo(0,1);
 				g_objThis.trigger(t.events.TILES_FIRST_PLACED);
 				setTransition();
 			});

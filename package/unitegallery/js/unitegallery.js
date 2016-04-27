@@ -1,4 +1,4 @@
-// Unite Gallery, Version: 1.7.17, released 24 Apr 2016 
+// Unite Gallery, Version: 1.7.18, released 27 Apr 2016 
 
 
 
@@ -216,7 +216,6 @@ function UGFunctions(){
 	}
 	
 	
-	this.z__________END_FULL_SCREEN___________ = function(){}
 	
 	this.z__________GET_PROPS___________ = function(){}
 	
@@ -698,9 +697,7 @@ function UGFunctions(){
 		return(pos);
 	}
 	
-	
-	this.z__________END_GET_PROPS___________ = function(){}
-	
+		
 	
 	this.z_________SET_ELEMENT_PROPS_______ = function(){}
 		
@@ -1220,19 +1217,17 @@ function UGFunctions(){
 	 */
 	this.showElement = function(element, element2, element3){
 		
-		element.show().fadeTo(1,1);
+		element.show().fadeTo(0,1);
 		
 		if(element2)
-			element2.show().fadeTo(1,1);
+			element2.show().fadeTo(0,1);
 			
 		if(element3)
-				element3.show().fadeTo(1,1);
+				element3.show().fadeTo(0,1);
 			
 	}
 	
-	
-	this.z_________END_SET_ELEMENT_PROPS_______ = function(){}
-	
+		
 	this.z_________GALLERY_RELATED_FUNCTIONS_______ = function(){}
 	
 	/**
@@ -1300,7 +1295,6 @@ function UGFunctions(){
 	}
 	
 	
-	this.z_________END_GALLERY_RELATED_FUNCTIONS_______ = function(){}
 
 	this.z_________MATH_FUNCTIONS_______ = function(){}
 	
@@ -1714,15 +1708,6 @@ function UGFunctions(){
 	}
 	
 	
-	/**
-	 * check if it's a desctop devide
-	 */
-	this.isDesktopDevice = function(){
-		
-		var isDesktop = typeof window.screenX !== undefined && !t.isTouchDevice() ? true : false;		
-		
-		return(isDesktop);
-	}
 	
 	/**
 	 * check if 
@@ -2632,7 +2617,7 @@ function UGThumbsGeneral(){
 				objImageOverlay.stop(true).fadeTo(animationDuration,1);
 			}else{
 				//show the image, hide the overlay
-				objImage.fadeTo(1,1);
+				objImage.fadeTo(0,1);
 				objImageOverlay.stop(true).fadeTo(animationDuration,0);
 			}
 			
@@ -2817,7 +2802,7 @@ function UGThumbsGeneral(){
 			
 			//if overlay effect exists
 			if(g_options.thumb_image_overlay_effect == false){
-				objImage.fadeTo(1,1);
+				objImage.fadeTo(0,1);
 			}
 			else{
 
@@ -2861,7 +2846,7 @@ function UGThumbsGeneral(){
 			
 			//show the image
 			if(g_temp.customThumbs == false)
-				objImageBW.fadeTo(1,1);
+				objImageBW.fadeTo(0,1);
 			
 		}
 		
@@ -6413,8 +6398,8 @@ function UGGridPanel(){
 		
 		if(showArrows == true){		//show arrows
 			
-			g_objArrowNext.show().fadeTo(1,1);
-			g_objArrowPrev.show().fadeTo(1,1);
+			g_objArrowNext.show().fadeTo(0,1);
+			g_objArrowPrev.show().fadeTo(0,1);
 			g_temp.arrowsVisible = true;
 			
 		}else{		//hide arrows
@@ -7180,7 +7165,7 @@ function UGThumbsGrid(){
 				g_objWrapper.trigger(g_temp.eventSizeChange, jQuery(tile));
 			});
 			
-			objTiles.fadeTo(1,1);
+			objTiles.fadeTo(0,1);
 		}
 			
 		if(selectedItem != null)
@@ -8864,7 +8849,7 @@ function UGTiles(){
 			g_vars.maxColHeight = realHeight;
 
 		if(toShow == true)
-			objTile.show().fadeTo(1,1);
+			objTile.show().fadeTo(0,1);
 		
 		if(setGalleryHeight == true){
 			g_objParent.height(g_vars.maxColHeight);			
@@ -9304,7 +9289,7 @@ function UGTiles(){
 			
 			setTimeout(function(){
 				placeJustified(true);
-				objTiles.fadeTo(1,1);
+				objTiles.fadeTo(0,1);
 				g_objThis.trigger(t.events.TILES_FIRST_PLACED);
 				setTransition();
 			});
@@ -10420,6 +10405,7 @@ function UGTileDesign(){
 		//set if the textpanel is enabled and outside
 		if(g_options.tile_enable_textpanel == true){
 			
+			//optimize for touch device
 			switch(g_options.tile_textpanel_position){
 				case "top":
 					g_options.tile_textpanel_align = "top";
@@ -11169,7 +11155,7 @@ function UGTileDesign(){
 			var objThumbImage = t.getTileImage(objTile);
 			
 			if(isActive){
-				objThumbImage.fadeTo(1,1);			
+				objThumbImage.fadeTo(0,1);			
 				objOverlayImage.stop(true).fadeTo(animationDuration, 0);
 			}
 			else
@@ -11198,7 +11184,7 @@ function UGTileDesign(){
 		var objTextPanel = getTextPanelElement(objTile);
 		if(!objTextPanel)
 			return(true);
-
+				
 		if(g_options.tile_textpanel_appear_type == "slide"){
 			
 			var panelSize = g_functions.getElementSize(objTextPanel);
@@ -11215,13 +11201,15 @@ function UGTileDesign(){
 			
 			startClass[posName] = startPos+"px";
 			endClass[posName] = endPos+"px";
-			
+						
 			if(isActive == true){
 								
-				objTextPanel.fadeTo(1,1);
-									
+				objTextPanel.fadeTo(0,1);
+				
 				if(objTextPanel.is(":animated") == false)
 					objTextPanel.css(startClass);
+				
+				endClass["opacity"] = 1;
 					
 				objTextPanel.stop(true).animate(endClass, animationDuration);
 				
@@ -11276,6 +11264,7 @@ function UGTileDesign(){
 				
 		if(g_options.tile_enable_image_effect)
 			setImageOverlayEffect(objTile, true);
+
 
 		if(g_options.tile_enable_textpanel == true && g_options.tile_textpanel_always_on == false)
 			setTextpanelEffect(objTile, true);
@@ -11358,7 +11347,7 @@ function UGTileDesign(){
 	function onPlaceImage(data, objTile, objImage){
 		
 		positionElements(objTile);
-		objImage.fadeTo(1,1);
+		objImage.fadeTo(0,1);
 		
 		objTile.data("image_placed", true);
 	}
@@ -12882,7 +12871,7 @@ function UGSlider(){
 			
 			//set image loaded on load:
 			if(objItem.isBigImageLoaded == true){
-				objImage.fadeTo(1,1);
+				objImage.fadeTo(0,1);
 				hidePreloader(objPreloader);
 				
 				if(slideType != "image" && g_options.slider_video_constantsize == true)
@@ -12909,7 +12898,7 @@ function UGSlider(){
 					var objImage = jQuery(this);
 					var itemIndex = objImage.data("itemIndex");
 					
-					objImage.fadeTo(1,1);
+					objImage.fadeTo(0,1);
 					
 					//get and hide preloader
 					var objSlide = objImage.parent().parent();
@@ -12935,7 +12924,7 @@ function UGSlider(){
 					else
 						objImageData = g_functions.scaleImageFitParent(objImage, objItem.imageWidth, objItem.imageHeight, scaleMode, objPadding);
 					
-					objImage.fadeTo(1,1);
+					objImage.fadeTo(0,1);
 					
 					setImageDesign(objImage, slideType, objImageData);
 					
@@ -18680,7 +18669,7 @@ function UGVideoPlayer(){
 		
 		g_objPlayer.show();
 		
-		g_objPlayer.fadeTo(1,1);
+		g_objPlayer.fadeTo(0,1);
 		
 		if(g_objButtonClose)
 			g_objButtonClose.show();
@@ -22711,7 +22700,7 @@ function UGLightbox(){
 		
 		g_objOverlay.stop().fadeTo(0,0);
 		g_objWrapper.show();
-		g_objWrapper.fadeTo(1,1);
+		g_objWrapper.fadeTo(0,1);
 		
 		//show the overlay
 		g_objOverlay.stop().fadeTo(g_temp.fadeDuration, g_options.lightbox_overlay_opacity);
@@ -22926,7 +22915,7 @@ function UGCarousel(){
 		
 		g_objTileDesign.setHtml(g_objInner);
 		
-		g_thumbs.getThumbs().fadeTo(1,1);
+		g_thumbs.getThumbs().fadeTo(0,1);
 		
 	}
 	

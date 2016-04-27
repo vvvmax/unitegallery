@@ -214,7 +214,6 @@ function UGFunctions(){
 	}
 	
 	
-	this.z__________END_FULL_SCREEN___________ = function(){}
 	
 	this.z__________GET_PROPS___________ = function(){}
 	
@@ -696,9 +695,7 @@ function UGFunctions(){
 		return(pos);
 	}
 	
-	
-	this.z__________END_GET_PROPS___________ = function(){}
-	
+		
 	
 	this.z_________SET_ELEMENT_PROPS_______ = function(){}
 		
@@ -1218,19 +1215,17 @@ function UGFunctions(){
 	 */
 	this.showElement = function(element, element2, element3){
 		
-		element.show().fadeTo(1,1);
+		element.show().fadeTo(0,1);
 		
 		if(element2)
-			element2.show().fadeTo(1,1);
+			element2.show().fadeTo(0,1);
 			
 		if(element3)
-				element3.show().fadeTo(1,1);
+				element3.show().fadeTo(0,1);
 			
 	}
 	
-	
-	this.z_________END_SET_ELEMENT_PROPS_______ = function(){}
-	
+		
 	this.z_________GALLERY_RELATED_FUNCTIONS_______ = function(){}
 	
 	/**
@@ -1298,7 +1293,6 @@ function UGFunctions(){
 	}
 	
 	
-	this.z_________END_GALLERY_RELATED_FUNCTIONS_______ = function(){}
 
 	this.z_________MATH_FUNCTIONS_______ = function(){}
 	
@@ -1712,15 +1706,6 @@ function UGFunctions(){
 	}
 	
 	
-	/**
-	 * check if it's a desctop devide
-	 */
-	this.isDesktopDevice = function(){
-		
-		var isDesktop = typeof window.screenX !== undefined && !t.isTouchDevice() ? true : false;		
-		
-		return(isDesktop);
-	}
 	
 	/**
 	 * check if 

@@ -1468,7 +1468,7 @@ function UGLightbox(){
 		
 		g_objOverlay.stop().fadeTo(0,0);
 		g_objWrapper.show();
-		g_objWrapper.fadeTo(1,1);
+		g_objWrapper.fadeTo(0,1);
 		
 		//show the overlay
 		g_objOverlay.stop().fadeTo(g_temp.fadeDuration, g_options.lightbox_overlay_opacity);

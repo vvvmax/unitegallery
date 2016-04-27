@@ -784,7 +784,7 @@ function UGSlider(){
 			
 			//set image loaded on load:
 			if(objItem.isBigImageLoaded == true){
-				objImage.fadeTo(1,1);
+				objImage.fadeTo(0,1);
 				hidePreloader(objPreloader);
 				
 				if(slideType != "image" && g_options.slider_video_constantsize == true)
@@ -811,7 +811,7 @@ function UGSlider(){
 					var objImage = jQuery(this);
 					var itemIndex = objImage.data("itemIndex");
 					
-					objImage.fadeTo(1,1);
+					objImage.fadeTo(0,1);
 					
 					//get and hide preloader
 					var objSlide = objImage.parent().parent();
@@ -837,7 +837,7 @@ function UGSlider(){
 					else
 						objImageData = g_functions.scaleImageFitParent(objImage, objItem.imageWidth, objItem.imageHeight, scaleMode, objPadding);
 					
-					objImage.fadeTo(1,1);
+					objImage.fadeTo(0,1);
 					
 					setImageDesign(objImage, slideType, objImageData);
 					

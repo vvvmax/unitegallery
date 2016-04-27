@@ -315,8 +315,8 @@ function UGGridPanel(){
 		
 		if(showArrows == true){		//show arrows
 			
-			g_objArrowNext.show().fadeTo(1,1);
-			g_objArrowPrev.show().fadeTo(1,1);
+			g_objArrowNext.show().fadeTo(0,1);
+			g_objArrowPrev.show().fadeTo(0,1);
 			g_temp.arrowsVisible = true;
 			
 		}else{		//hide arrows

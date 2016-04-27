@@ -187,6 +187,7 @@ function UGTileDesign(){
 		//set if the textpanel is enabled and outside
 		if(g_options.tile_enable_textpanel == true){
 			
+			//optimize for touch device
 			switch(g_options.tile_textpanel_position){
 				case "top":
 					g_options.tile_textpanel_align = "top";
@@ -936,7 +937,7 @@ function UGTileDesign(){
 			var objThumbImage = t.getTileImage(objTile);
 			
 			if(isActive){
-				objThumbImage.fadeTo(1,1);			
+				objThumbImage.fadeTo(0,1);			
 				objOverlayImage.stop(true).fadeTo(animationDuration, 0);
 			}
 			else
@@ -965,7 +966,7 @@ function UGTileDesign(){
 		var objTextPanel = getTextPanelElement(objTile);
 		if(!objTextPanel)
 			return(true);
-
+				
 		if(g_options.tile_textpanel_appear_type == "slide"){
 			
 			var panelSize = g_functions.getElementSize(objTextPanel);
@@ -982,13 +983,15 @@ function UGTileDesign(){
 			
 			startClass[posName] = startPos+"px";
 			endClass[posName] = endPos+"px";
-			
+						
 			if(isActive == true){
 								
-				objTextPanel.fadeTo(1,1);
-									
+				objTextPanel.fadeTo(0,1);
+				
 				if(objTextPanel.is(":animated") == false)
 					objTextPanel.css(startClass);
+				
+				endClass["opacity"] = 1;
 					
 				objTextPanel.stop(true).animate(endClass, animationDuration);
 				
@@ -1043,6 +1046,7 @@ function UGTileDesign(){
 				
 		if(g_options.tile_enable_image_effect)
 			setImageOverlayEffect(objTile, true);
+
 
 		if(g_options.tile_enable_textpanel == true && g_options.tile_textpanel_always_on == false)
 			setTextpanelEffect(objTile, true);
@@ -1125,7 +1129,7 @@ function UGTileDesign(){
 	function onPlaceImage(data, objTile, objImage){
 		
 		positionElements(objTile);
-		objImage.fadeTo(1,1);
+		objImage.fadeTo(0,1);
 		
 		objTile.data("image_placed", true);
 	}

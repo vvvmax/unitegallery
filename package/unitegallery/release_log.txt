@@ -1,3 +1,7 @@
+version 1.7.18
+
+-bug fix: fixed various bugs from 17.7.17
+
 version 1.7.17
 
 -bug fix: fixed jquery 1.8 issue with fading.

@@ -171,7 +171,7 @@ function UGThumbsGrid(){
 				g_objWrapper.trigger(g_temp.eventSizeChange, jQuery(tile));
 			});
 			
-			objTiles.fadeTo(1,1);
+			objTiles.fadeTo(0,1);
 		}
 			
 		if(selectedItem != null)
