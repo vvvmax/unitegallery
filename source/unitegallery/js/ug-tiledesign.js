@@ -60,7 +60,7 @@ function UGTileDesign(){
 			
 			tile_enable_icons: true,				//enable icons in mouseover mode
 			tile_show_link_icon: false,				//show link icon (if the tile has a link). In case of tile_as_link this option not enabled
-			tile_videoplay_icon_always_on: false,	//always show video play icon
+			tile_videoplay_icon_always_on: 'never',	//'always', 'never', 'mobile_only', 'desktop_only' always show video play icon
 			tile_space_between_icons: 26,			//initial space between icons, (on small tiles it may change)
 			
 			tile_enable_image_effect:false,			//enable tile image effect
@@ -96,7 +96,9 @@ function UGTileDesign(){
 		isSaparateIcons: false,
 		tileInnerReduce: 0,		//how much reduce from the tile inner elements from border mostly
 		isTextpanelOutside: false,	//is the textpanel is out of tile image border
-		hasImageContainer:false
+		hasImageContainer:false,
+		isVideoplayIconAlwaysOn:false,
+		isTextPanelHidden:false
 	};
 	
 	
@@ -226,6 +228,43 @@ function UGTileDesign(){
 		
 	}
 	
+
+	/**
+	 * set options before render
+	 */
+	function modifyOptionsBeforeRender(){
+		
+		var isMobile = g_gallery.isMobileMode();
+		
+		//set text panel show / hide
+		
+		g_temp.isTextPanelHidden = false;
+		if(isMobile == true && g_options.tile_textpanel_always_on == false)
+			g_temp.isTextPanelHidden = true;
+		
+		
+		//set video icon always on true / false
+		
+		g_temp.isVideoplayIconAlwaysOn = g_options.tile_videoplay_icon_always_on;
+		
+		switch(g_options.tile_videoplay_icon_always_on){
+			case "always":
+				g_temp.isVideoplayIconAlwaysOn = true;
+			break;
+			case "never":
+				g_temp.isVideoplayIconAlwaysOn = false;
+			break;
+			case "mobile_only":
+				g_temp.isVideoplayIconAlwaysOn = (isMobile == true)?true:false;
+			break;
+			case "desktop_only":
+				g_temp.isVideoplayIconAlwaysOn = (isMobile == false)?true:false;
+			break;
+		}
+		
+		
+	}
+
 	
 	/**
 	 * set thumb html
@@ -336,7 +375,7 @@ function UGTileDesign(){
 			}
 		
 		var toSaparateIcon = g_temp.isSaparateIcons;
-		if(toSaparateIcon == false && objItem.type != "image" && g_options.tile_videoplay_icon_always_on == true)
+		if(toSaparateIcon == false && objItem.type != "image" && g_temp.isVideoplayIconAlwaysOn == true)
 			toSaparateIcon = true;
 		
 		if(toSaparateIcon)		//put the icons on the thumb
@@ -672,7 +711,7 @@ function UGTileDesign(){
 	 */
 	function isItemIconAlwaysOn(objItem){
 		
-		if(g_options.tile_enable_icons == true && g_options.tile_videoplay_icon_always_on == true && objItem.type != "image")
+		if(g_options.tile_enable_icons == true && g_temp.isVideoplayIconAlwaysOn == true && objItem.type != "image")
 			return(true);
 		
 		return(false);
@@ -812,7 +851,6 @@ function UGTileDesign(){
 		if(g_temp.isTextpanelOutside == true)
 			panelHeight = getTextPanelHeight(objTile);
 		
-		
 		objTextPanel.refresh(false, true, panelWidth, panelHeight);
 		
 		var isPosition = (g_options.tile_textpanel_always_on == true || g_options.tile_textpanel_appear_type == "fade");
@@ -865,7 +903,7 @@ function UGTileDesign(){
 		if(objButtonZoom || objButtonLink){
 
 			var gapVert = 0;
-			if(g_options.tile_enable_textpanel == true && g_temp.isTextpanelOutside == false){
+			if( g_options.tile_enable_textpanel == true && g_temp.isTextPanelHidden == false && g_temp.isTextpanelOutside == false){
 				var objTextPanelElement = getTextPanelElement(objTile);
 				var texPanelSize = g_functions.getElementSize(objTextPanelElement);
 				if(texPanelSize.height > 0)
@@ -873,7 +911,6 @@ function UGTileDesign(){
 			}
 
 		}
-		
 		
 		if(objButtonZoom && objButtonLink){
 			var sizeZoom = g_functions.getElementSize(objButtonZoom);
@@ -918,6 +955,9 @@ function UGTileDesign(){
 	 */
 	this.setHtml = function(objParent){
 		g_objParentWrapper = objParent;
+		
+		modifyOptionsBeforeRender();
+		
 		g_thumbs.setHtmlThumbs(objParent);
 	}
 	
@@ -1047,8 +1087,7 @@ function UGTileDesign(){
 		if(g_options.tile_enable_image_effect)
 			setImageOverlayEffect(objTile, true);
 
-
-		if(g_options.tile_enable_textpanel == true && g_options.tile_textpanel_always_on == false)
+		if(g_options.tile_enable_textpanel == true && g_options.tile_textpanel_always_on == false && g_temp.isTextPanelHidden == false)
 			setTextpanelEffect(objTile, true);
 		
 		//show/hide icons - if saparate (if not, they are part of the overlay)
@@ -1069,12 +1108,12 @@ function UGTileDesign(){
 	 * set normal style
 	 */
 	function setNormalStyle(data, objTile){
-						
+		
 		objTile = jQuery(objTile);
 		
 		if(g_options.tile_enable_image_effect)
 			setImageOverlayEffect(objTile, false);
-				
+		
 		if(g_options.tile_enable_textpanel == true && g_options.tile_textpanel_always_on == false)
 			setTextpanelEffect(objTile, false);
 		
@@ -1086,7 +1125,10 @@ function UGTileDesign(){
 			var objItem = t.getItemByTile(objTile);
 			if(isItemIconAlwaysOn(objItem) == false)
 				setIconsEffect(objTile, isSet, false);
-		
+			else{	//make icon always appear
+				setIconsEffect(objTile, true, true);
+			}
+			
 		}
 		
 	}
@@ -1120,6 +1162,8 @@ function UGTileDesign(){
 			return(true);
 
 		positionElements(objTile);
+		
+		g_thumbs.setThumbNormalStyle(objTile);
 	}
 	
 	
@@ -1315,7 +1359,7 @@ function UGTileDesign(){
 	 * the resize mode taken from resize modes constants, default is full
 	 */
 	this.resizeTile = function(objTile, newWidth, newHeight, resizeMode){
-
+		
 			//if textpanel outside - refresh the textpanel first
 			if(g_temp.isTextpanelOutside == true)
 				positionElements_textpanel(objTile, "clone", newWidth);
@@ -1367,7 +1411,9 @@ function UGTileDesign(){
 	 * resize all tiles 
 	 */
 	this.resizeAllTiles = function(newWidth, resizeMode){
-				
+		
+		modifyOptionsBeforeRender();
+		
 		var newHeight = null;
 		
 		if(g_options.tile_size_by == t.sizeby.GLOBAL_RATIO)
@@ -1458,7 +1504,8 @@ function UGTileDesign(){
 	 * run the tile design
 	 */
 	this.run = function(){
-				
+		
+		//resize all tiles
 		var objThumbs = g_thumbs.getThumbs();
 		
 		if(g_options.tile_size_by == t.sizeby.GLOBAL_RATIO){

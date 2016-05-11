@@ -335,6 +335,7 @@ function UGSoundCloudAPI(){
 	 * destroy the player
 	 */
 	this.destroy = function(){
+		
 		g_isPlayerReady = false;
 		g_player = null;
 		
@@ -983,10 +984,20 @@ function UGYoutubeAPI(){
 	 * destroy player
 	 */
 	this.destroy = function(){
-		if(g_player){
-			g_isPlayerReady = false;		
-			g_player.destroy();
+		try{
+			
+			if(g_player){
+				g_isPlayerReady = false;	
+				g_player.clearVideo();
+				g_player.destroy();
+			}
+			
+		}catch(objError){
+			
+			jQuery("#"+g_lastContainerID).html("");
+			
 		}
+		
 	}
 	
 	/**
@@ -1361,7 +1372,7 @@ function UGVideoPlayer(){
 			if(player == except)
 				continue;
 			switch(player){
-				case "youtube":					
+				case "youtube":		
 					g_youtubeAPI.pause();
 					g_youtubeAPI.destroy();	
 					g_objYoutube.hide();

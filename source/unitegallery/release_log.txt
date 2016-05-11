@@ -1,3 +1,15 @@
+version 1.7.20
+
+-bug fix: fixed youtube player destroy function, was a bug there
+
+version 1.7.19
+
+change: changed functionality to: tile_videoplay_icon_always_on
+
+version 1.7.18
+
+-bug fix: fixed various bugs from 17.7.17
+
 version 1.7.17
 
 -bug fix: fixed jquery 1.8 issue with fading.

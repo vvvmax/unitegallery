@@ -65,6 +65,7 @@ function UGTheme_tiles(){
 		g_lightbox.init(gallery, g_options);
 		
 		g_objTileDesign = g_tiles.getObjTileDesign();
+
 		
 	}
 	
@@ -129,7 +130,7 @@ function UGTheme_tiles(){
 		
 		//set preloader mode
 		if(g_objPreloader){
-			g_objPreloader.fadeTo(1,1);
+			g_objPreloader.fadeTo(0,1);
 			g_objWrapper.height(g_options.theme_preloading_height);
 			g_functions.placeElement(g_objPreloader, "center", g_options.theme_preloader_vertpos);
 		}

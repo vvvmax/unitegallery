@@ -65,6 +65,7 @@ function UGTheme_tiles(){
 		g_lightbox.init(gallery, g_options);
 		
 		g_objTileDesign = g_tiles.getObjTileDesign();
+
 		
 	}
 	
