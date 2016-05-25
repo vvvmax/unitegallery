@@ -515,6 +515,7 @@ function UGThumbsGrid(){
 					rowsCounter = 0;
 					baseX = posx;
 					posy = baseY;
+					paneMaxY = 0;
 					
 					//change grid width to max width
 					if(g_temp.numPanes == 1){

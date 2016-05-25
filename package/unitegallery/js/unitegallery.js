@@ -1,4 +1,4 @@
-// Unite Gallery, Version: 1.7.20, released 10 May 2016 
+// Unite Gallery, Version: 1.7.21, released 25 May 2016 
 
 
 
@@ -7509,6 +7509,7 @@ function UGThumbsGrid(){
 					rowsCounter = 0;
 					baseX = posx;
 					posy = baseY;
+					paneMaxY = 0;
 					
 					//change grid width to max width
 					if(g_temp.numPanes == 1){

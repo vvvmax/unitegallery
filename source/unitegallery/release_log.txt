@@ -1,3 +1,7 @@
+version 1.7.21
+
+-bug fix: fixed one row only bug in tiles grid
+
 version 1.7.20
 
 -bug fix: fixed youtube player destroy function, was a bug there
