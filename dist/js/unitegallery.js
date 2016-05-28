@@ -1,4 +1,4 @@
-// Unite Gallery, Version: 1.7.21, released 25 May 2016 
+// Unite Gallery, Version: 1.7.22, released 28 May 2016 
 
 
 
@@ -2783,6 +2783,8 @@ function UGThumbsGeneral(){
 			}
 			else{
 				
+				//variant size
+				
 				if(g_options.thumb_resize_by == "height")	//horizontal strip
 					g_functions.scaleImageByHeight(objImage, g_options.thumb_height);
 				else		//vertical strip
@@ -3348,7 +3350,8 @@ function UGThumbsStrip(){
 	}
 	
 	this.events = {		//events variables
-			STRIP_MOVE:"stripmove"
+			STRIP_MOVE:"stripmove",
+			INNER_SIZE_CHANGE:"size_change"
 	}	
 	
 	//the defaults for vertical align
@@ -3548,6 +3551,8 @@ function UGThumbsStrip(){
 		g_sizes.stripInnerSize = innerSize;
 		
 		checkControlsEnableDisable();
+		
+		jQuery(t).trigger(t.events.INNER_SIZE_CHANGE);
 	}
 	
 	
@@ -4216,7 +4221,7 @@ function UGThumbsStrip(){
 	 * resize the panel according the orientation
 	 */
 	this.resize = function(newSize){
-				
+		
 		if(g_isVertical == false){
 			
 			g_objStrip.width(newSize);
@@ -5823,7 +5828,7 @@ function UGStripPanel() {
 	 * check buttons if they need to be disabled or not
 	 */
 	function checkSideButtons() {
-
+				
 		if (!g_objButtonNext)
 			return (true);
 
@@ -5833,11 +5838,11 @@ function UGStripPanel() {
 			g_functions.disableButton(g_objButtonNext);
 			return (true);
 		}
-
+		
 		// check the limits
 		var limits = g_objStrip.getInnerStripLimits();
 		var pos = g_objStrip.getInnerStripPos();
-
+		
 		if (pos >= limits.maxPos) {
 			g_functions.disableButton(g_objButtonPrev);
 		} else {
@@ -5886,7 +5891,7 @@ function UGStripPanel() {
 			return (false);
 		
 		g_temp.isEventsInited = true;
-				
+		
 		// buttons events
 		if (g_objButtonNext) {
 
@@ -5900,14 +5905,17 @@ function UGStripPanel() {
 
 			// add disable / enable buttons on strip move event
 			if (g_options.strippanel_buttons_role != "advance_item") {
-				jQuery(g_objStrip)
-						.on(g_objStrip.events.STRIP_MOVE, onStripMove);
+				
+				jQuery(g_objStrip).on(g_objStrip.events.STRIP_MOVE, onStripMove);
+				
+				jQuery(g_objStrip).on(g_objStrip.events.INNER_SIZE_CHANGE, checkSideButtons);
+				
 				g_objGallery.on(g_gallery.events.SIZE_CHANGE, checkSideButtons);
+				
 			} else {
 				var galleryOptions = g_gallery.getOptions();
 				if (galleryOptions.gallery_carousel == false)
-					jQuery(g_gallery).on(g_gallery.events.ITEM_CHANGE,
-							onItemChange);
+					jQuery(g_gallery).on(g_gallery.events.ITEM_CHANGE, onItemChange);
 			}
 
 		}
@@ -13148,7 +13156,7 @@ function UGSlider(){
 		var slideSize = g_functions.getElementSize(objCurrentSlide);
 		var left = slideSize.left;
 		var top = slideSize.top;
-		
+				
 		//set by image position
 		if(g_options.slider_video_constantsize == true){
 			
@@ -13157,10 +13165,11 @@ function UGSlider(){
 			top += imageSize.top;
 			
 		}else{	//set video padding
+			
 			left += g_options.slider_video_padding_left;
 			top += g_options.slider_video_padding_top;
-		}
 		
+		}
 		
 		g_objVideoPlayer.setPosition(left, top);
 	}
@@ -18860,7 +18869,6 @@ function UGVideoPlayer(){
 		
 		g_objYoutube.show();
 		
-		
 		var objYoutubeInner = g_objYoutube.children("#"+g_temp.youtubeInnerID);
 		if(objYoutubeInner.length == 0)
 			g_objYoutube.append("<div id='"+g_temp.youtubeInnerID+"'></div>");
@@ -21336,6 +21344,7 @@ function UGLightbox(){
 			topPanelHeight: 44,
 			initTextPanelHeight: 26,		//init height for compact mode
 			isOpened: false, 
+			isRightNowOpened:false,
 			putSlider: true,
 			isCompact: false,
 			fadeDuration: 300,
@@ -21618,7 +21627,7 @@ function UGLightbox(){
 	/**
 	 * handle panel height according text height
 	 */
-	function handlePanelHeight(){
+	function handlePanelHeight(fromWhere){
 		
 		if(!g_objTopPanel)
 			return(false);
@@ -21633,14 +21642,16 @@ function UGLightbox(){
 		
 		var newPanelHeight = panelHeight;
 		
-		var textPanelHeight = g_objTextPanel.getSize().height;
+		var objTextPanelSize = g_objTextPanel.getSize();
+		
+		var textPanelHeight = objTextPanelSize.height;
 		
 		if(panelHeight != g_temp.topPanelHeight)
 			newPanelHeight = g_temp.topPanelHeight;
-		
+				
 		if(textPanelHeight > newPanelHeight)
 			newPanelHeight = textPanelHeight;
-		
+				
 		if(panelHeight != newPanelHeight){
 			g_objTopPanel.height(newPanelHeight);
 						
@@ -21690,7 +21701,7 @@ function UGLightbox(){
 		
 		g_objTextPanel.refresh(true, true);
 		
-		handlePanelHeight();
+		handlePanelHeight("positionTextPanelWide");
 		g_objTextPanel.positionPanel();
 	}
 	
@@ -22417,13 +22428,11 @@ function UGLightbox(){
 	}
 	
 		
-	
 	/**
 	 * on item change
 	 * update numbers text and text panel text/position
 	 */
 	function onItemChange(data, currentItem){
-		
 		
 		if(g_temp.isCompact == false){	//wide mode
 			
@@ -22433,9 +22442,13 @@ function UGLightbox(){
 			if(g_objTextPanel){
 				updateTextPanelText(currentItem);
 				
-				g_objTextPanel.positionElements(false);
-				handlePanelHeight();
-				g_objTextPanel.positionPanel();
+				//update panel height only if the lightbox is already opened, and the items changed within it.
+				if(g_temp.isRightNowOpened == false){
+					g_objTextPanel.positionElements(false);
+					handlePanelHeight("onchange");
+					g_objTextPanel.positionPanel();
+				}
+				
 			}
 			
 		}else{
@@ -22749,6 +22762,10 @@ function UGLightbox(){
 		
 		g_temp.isOpened = true;
 		
+		//set if the panel right now opened
+		g_temp.isRightNowOpened = true;
+		setTimeout(function(){g_temp.isRightNowOpened = false},100);
+		
 		if(g_objSlider){
 			g_objSlider.setItem(objItem, "lightbox_open");
 		}
@@ -22834,8 +22851,6 @@ function UGLightbox(){
 		modifyOptions();
 		
 		g_options = jQuery.extend({}, g_temp.originalOptions);
-		
-		trace(g_options);
 		
 		g_objSlider.setOptions(g_options);
 	}

@@ -45,6 +45,7 @@ function UGLightbox(){
 			topPanelHeight: 44,
 			initTextPanelHeight: 26,		//init height for compact mode
 			isOpened: false, 
+			isRightNowOpened:false,
 			putSlider: true,
 			isCompact: false,
 			fadeDuration: 300,
@@ -327,7 +328,7 @@ function UGLightbox(){
 	/**
 	 * handle panel height according text height
 	 */
-	function handlePanelHeight(){
+	function handlePanelHeight(fromWhere){
 		
 		if(!g_objTopPanel)
 			return(false);
@@ -342,14 +343,16 @@ function UGLightbox(){
 		
 		var newPanelHeight = panelHeight;
 		
-		var textPanelHeight = g_objTextPanel.getSize().height;
+		var objTextPanelSize = g_objTextPanel.getSize();
+		
+		var textPanelHeight = objTextPanelSize.height;
 		
 		if(panelHeight != g_temp.topPanelHeight)
 			newPanelHeight = g_temp.topPanelHeight;
-		
+				
 		if(textPanelHeight > newPanelHeight)
 			newPanelHeight = textPanelHeight;
-		
+				
 		if(panelHeight != newPanelHeight){
 			g_objTopPanel.height(newPanelHeight);
 						
@@ -399,7 +402,7 @@ function UGLightbox(){
 		
 		g_objTextPanel.refresh(true, true);
 		
-		handlePanelHeight();
+		handlePanelHeight("positionTextPanelWide");
 		g_objTextPanel.positionPanel();
 	}
 	
@@ -1126,13 +1129,11 @@ function UGLightbox(){
 	}
 	
 		
-	
 	/**
 	 * on item change
 	 * update numbers text and text panel text/position
 	 */
 	function onItemChange(data, currentItem){
-		
 		
 		if(g_temp.isCompact == false){	//wide mode
 			
@@ -1142,9 +1143,13 @@ function UGLightbox(){
 			if(g_objTextPanel){
 				updateTextPanelText(currentItem);
 				
-				g_objTextPanel.positionElements(false);
-				handlePanelHeight();
-				g_objTextPanel.positionPanel();
+				//update panel height only if the lightbox is already opened, and the items changed within it.
+				if(g_temp.isRightNowOpened == false){
+					g_objTextPanel.positionElements(false);
+					handlePanelHeight("onchange");
+					g_objTextPanel.positionPanel();
+				}
+				
 			}
 			
 		}else{
@@ -1458,6 +1463,10 @@ function UGLightbox(){
 		
 		g_temp.isOpened = true;
 		
+		//set if the panel right now opened
+		g_temp.isRightNowOpened = true;
+		setTimeout(function(){g_temp.isRightNowOpened = false},100);
+		
 		if(g_objSlider){
 			g_objSlider.setItem(objItem, "lightbox_open");
 		}
@@ -1543,8 +1552,6 @@ function UGLightbox(){
 		modifyOptions();
 		
 		g_options = jQuery.extend({}, g_temp.originalOptions);
-		
-		trace(g_options);
 		
 		g_objSlider.setOptions(g_options);
 	}

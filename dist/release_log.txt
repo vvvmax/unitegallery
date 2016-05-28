@@ -1,3 +1,8 @@
+version 1.7.22
+
+-bug fix: fixed bug related to video sizes in lightbox
+-bug fix: fixed bug when right button was disabled on non fixed thumbs
+
 version 1.7.21
 
 -bug fix: fixed one row only bug in tiles grid

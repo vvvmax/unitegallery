@@ -419,7 +419,7 @@ function UGStripPanel() {
 	 * check buttons if they need to be disabled or not
 	 */
 	function checkSideButtons() {
-
+				
 		if (!g_objButtonNext)
 			return (true);
 
@@ -429,11 +429,11 @@ function UGStripPanel() {
 			g_functions.disableButton(g_objButtonNext);
 			return (true);
 		}
-
+		
 		// check the limits
 		var limits = g_objStrip.getInnerStripLimits();
 		var pos = g_objStrip.getInnerStripPos();
-
+		
 		if (pos >= limits.maxPos) {
 			g_functions.disableButton(g_objButtonPrev);
 		} else {
@@ -482,7 +482,7 @@ function UGStripPanel() {
 			return (false);
 		
 		g_temp.isEventsInited = true;
-				
+		
 		// buttons events
 		if (g_objButtonNext) {
 
@@ -496,14 +496,17 @@ function UGStripPanel() {
 
 			// add disable / enable buttons on strip move event
 			if (g_options.strippanel_buttons_role != "advance_item") {
-				jQuery(g_objStrip)
-						.on(g_objStrip.events.STRIP_MOVE, onStripMove);
+				
+				jQuery(g_objStrip).on(g_objStrip.events.STRIP_MOVE, onStripMove);
+				
+				jQuery(g_objStrip).on(g_objStrip.events.INNER_SIZE_CHANGE, checkSideButtons);
+				
 				g_objGallery.on(g_gallery.events.SIZE_CHANGE, checkSideButtons);
+				
 			} else {
 				var galleryOptions = g_gallery.getOptions();
 				if (galleryOptions.gallery_carousel == false)
-					jQuery(g_gallery).on(g_gallery.events.ITEM_CHANGE,
-							onItemChange);
+					jQuery(g_gallery).on(g_gallery.events.ITEM_CHANGE, onItemChange);
 			}
 
 		}

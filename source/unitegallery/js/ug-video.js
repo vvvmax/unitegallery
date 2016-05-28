@@ -1413,7 +1413,6 @@ function UGVideoPlayer(){
 		
 		g_objYoutube.show();
 		
-		
 		var objYoutubeInner = g_objYoutube.children("#"+g_temp.youtubeInnerID);
 		if(objYoutubeInner.length == 0)
 			g_objYoutube.append("<div id='"+g_temp.youtubeInnerID+"'></div>");

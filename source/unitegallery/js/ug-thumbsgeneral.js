@@ -476,6 +476,8 @@ function UGThumbsGeneral(){
 			}
 			else{
 				
+				//variant size
+				
 				if(g_options.thumb_resize_by == "height")	//horizontal strip
 					g_functions.scaleImageByHeight(objImage, g_options.thumb_height);
 				else		//vertical strip

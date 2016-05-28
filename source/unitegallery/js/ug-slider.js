@@ -1013,7 +1013,7 @@ function UGSlider(){
 		var slideSize = g_functions.getElementSize(objCurrentSlide);
 		var left = slideSize.left;
 		var top = slideSize.top;
-		
+				
 		//set by image position
 		if(g_options.slider_video_constantsize == true){
 			
@@ -1022,10 +1022,11 @@ function UGSlider(){
 			top += imageSize.top;
 			
 		}else{	//set video padding
+			
 			left += g_options.slider_video_padding_left;
 			top += g_options.slider_video_padding_top;
-		}
 		
+		}
 		
 		g_objVideoPlayer.setPosition(left, top);
 	}

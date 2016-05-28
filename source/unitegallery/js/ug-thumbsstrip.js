@@ -43,7 +43,8 @@ function UGThumbsStrip(){
 	}
 	
 	this.events = {		//events variables
-			STRIP_MOVE:"stripmove"
+			STRIP_MOVE:"stripmove",
+			INNER_SIZE_CHANGE:"size_change"
 	}	
 	
 	//the defaults for vertical align
@@ -243,6 +244,8 @@ function UGThumbsStrip(){
 		g_sizes.stripInnerSize = innerSize;
 		
 		checkControlsEnableDisable();
+		
+		jQuery(t).trigger(t.events.INNER_SIZE_CHANGE);
 	}
 	
 	
@@ -911,7 +914,7 @@ function UGThumbsStrip(){
 	 * resize the panel according the orientation
 	 */
 	this.resize = function(newSize){
-				
+		
 		if(g_isVertical == false){
 			
 			g_objStrip.width(newSize);
