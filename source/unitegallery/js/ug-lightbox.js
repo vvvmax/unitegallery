@@ -313,8 +313,7 @@ function UGLightbox(){
 				
 		//set slider new image position
 		var objOptions = {
-				slider_image_padding_top: newHeight,
-				slider_video_padding_top: newHeight
+				slider_image_padding_top: newHeight
 		};
 		
 		g_objSlider.setOptions(objOptions);
@@ -341,6 +340,9 @@ function UGLightbox(){
 		if(panelHeight == 0)
 			return(false);
 		
+		if(g_objTopPanel.is(":visible") == false)
+			return(false);
+		
 		var newPanelHeight = panelHeight;
 		
 		var objTextPanelSize = g_objTextPanel.getSize();
@@ -355,10 +357,9 @@ function UGLightbox(){
 				
 		if(panelHeight != newPanelHeight){
 			g_objTopPanel.height(newPanelHeight);
-						
+			
 			if(g_objSlider && g_objSlider.isAnimating() == false)
 				refreshSliderItem(newPanelHeight);
-			
 		}
 				
 	}
@@ -410,7 +411,7 @@ function UGLightbox(){
 	 * hide top panel
 	 */
 	function hideTopPanel(){
-		
+				
 		if(!g_objTopPanel)
 			return(false);
 		
@@ -1239,6 +1240,7 @@ function UGLightbox(){
 
 		if(g_objTopPanel){
 			showTopPanel();
+			handlePanelHeight("onStopVideo");
 		}else{
 			
 			if(g_objNumbers)
