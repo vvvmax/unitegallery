@@ -29,7 +29,7 @@ function UGTheme_default(){
 			theme_text_padding_left: 20,			//left padding of the text in the textpanel
 			theme_text_padding_right: 5,			//right paddin of the text in the textpanel
 			theme_text_align: "left",				//left, center, right - the align of the text in the textpanel
-			theme_text_type: "title",				//title, description - text that will be shown on the text panel, title or description
+			theme_text_type: "description",			//title, description, both - text that will be shown on the text panel, title or description or both
 			
 			theme_hide_panel_under_width: 480		//hide panel under certain browser width, if null, don't hide
 	};
@@ -144,6 +144,20 @@ function UGTheme_default(){
 		
 		g_options.slider_textpanel_css_title["text-align"] = g_options.theme_text_align;
 		g_options.slider_textpanel_css_description["text-align"] = g_options.theme_text_align;
+		
+		switch(g_options.theme_text_type){
+			case "title":
+				g_options.slider_textpanel_enable_title = true;
+				g_options.slider_textpanel_enable_description = false;				
+			break;
+			case "both":
+				g_options.slider_textpanel_enable_title = true;
+				g_options.slider_textpanel_enable_description = true;
+			break;
+			default:
+			case "description":		//the description is the default
+		}
+				
 	}
 	
 

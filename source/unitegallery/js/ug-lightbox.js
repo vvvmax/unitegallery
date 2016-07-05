@@ -500,7 +500,7 @@ function UGLightbox(){
 		}
 		
 		g_temp.textPanelTop = objImageSize.bottom;
-				
+		
 		if(positionPanel === true)
 			g_objTextPanel.positionPanel(g_temp.textPanelTop, g_temp.textPanelLeft);
 	}
@@ -536,6 +536,7 @@ function UGLightbox(){
 			var numbersLeft = objImageSize.right - objNumbersSize.width;
 			g_functions.placeElement(g_objNumbers, numbersLeft, g_temp.textPanelTop);
 		}
+			
 			
 		if(g_objTextPanel){
 			g_objTextPanel.show();
@@ -1084,7 +1085,6 @@ function UGLightbox(){
 		
 		positionArrowsInside(true);
 		
-		
 		handleCompactTextpanelSizes();
 	}
 	
@@ -1115,15 +1115,15 @@ function UGLightbox(){
 			
 			positionCloseButton(true);
 			positionArrowsInside(true);
-			
+
 			if(g_objSlider.isSlideActionActive() == false){
 				var isChanged = handleCompactHeight();
 				if(isChanged == false)
 					handleCompactTextpanelSizes();
-				
-				showTextPanel();
-				showNumbers();
 			}
+			
+			showTextPanel();
+			showNumbers();
 			
 		}
 		
@@ -1508,6 +1508,9 @@ function UGLightbox(){
 		if(g_objSlider)
 			g_objSlider.startSlideAction();
 		
+		//trigger gallery event
+		g_objGallery.trigger(g_gallery.events.OPEN_LIGHTBOX, objItem);
+		
 	}
 	
 	
@@ -1533,6 +1536,8 @@ function UGLightbox(){
 				g_objWrapper.hide();
 			});
 		}
+
+		g_objGallery.trigger(g_gallery.events.CLOSE_LIGHTBOX);
 		
 	}
 	

@@ -1,3 +1,33 @@
+version 1.7.28
+
+-feature: updated tiles grid with options: grid_min_cols, grid_space_between_mobile for better responsiveness
+-protection: added protection for margin and padding in the slider
+
+version 1.7.27
+
+-feature: added "open_lightbox" and "close_lightbox" to the API
+
+version 1.7.26
+
+-feature: added option for: data-thumb-mobile and data-image-mobile in the items for mobile urls
+
+version 1.7.25
+
+-bug fix: fixed lightbox compact bottom text issue
+-bug fix: loading youtube API only from https
+-protection: added protection to html5 video player for css size change
+
+version 1.7.24
+
+-bug fix: escaped "'" character in image url's
+
+version 1.7.23
+
+-feature: added theme_next_video_onend function in video gallery theme
+
+-bug fix: fixed the api events issue on tab change
+-bug fix: fixed option: theme_text_type in default theme
+
 version 1.7.22
 
 -bug fix: fixed bug related to video sizes in lightbox

@@ -46,6 +46,7 @@ function UGTheme_tilesgrid(){
 			
 			grid_space_between_cols: 20,
 			grid_space_between_rows: 20,
+			grid_space_between_mobile: 15,
 			
 			bullets_space_between: 12,
 			grid_vertical_scroll_ondrag: true

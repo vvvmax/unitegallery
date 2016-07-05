@@ -117,7 +117,9 @@ function UniteGalleryMain(){
 			SLIDER_ACTION_END: "slider_action_end",
 			ITEM_IMAGE_UPDATED: "item_image_updated",
 			GALLERY_KEYPRESS: "gallery_keypress",
-			GALLERY_BEFORE_REQUEST_ITEMS: "gallery_before_request_items"	//before ajax load items
+			GALLERY_BEFORE_REQUEST_ITEMS: "gallery_before_request_items",	//before ajax load items
+			OPEN_LIGHTBOX:"open_lightbox",
+			CLOSE_LIGHTBOX:"close_lightbox"			
 	};
 	
 	
@@ -181,7 +183,8 @@ function UniteGalleryMain(){
 		isWistiaPresent: false,			//flag if some wistia movie present
 		resizeDelay: 100,
 		isRunFirstTime: true,
-		originalOptions: {}
+		originalOptions: {},
+		funcCustomHeight: null			//custom height function, set by the theme if needed
 	};
 	
 	
@@ -299,6 +302,9 @@ function UniteGalleryMain(){
 				 //cache items
 				 if(g_options.gallery_enable_cache == true && g_options.gallery_initial_catid)
 					 cacheItems(g_options.gallery_initial_catid);
+				
+				 //set size class
+				 t.setSizeClass();
 				 
 				 //fill arrItems
 				 var objItems = g_objWrapper.children();
@@ -586,6 +592,8 @@ function UniteGalleryMain(){
 	function fillItemsArray(arrChildren){
 		
 		g_arrItems = [];
+				
+		var isMobile = t.isMobileMode();
 		
 		 var numIndex = 0;
 		 
@@ -621,15 +629,19 @@ function UniteGalleryMain(){
 				 var imageSrc = objChild.attr("src");
 				 var dataThumb = objChild.data("thumb");
 				 
+				 //if exists data-thumb, then the big image is src
 				 if(typeof dataThumb != "undefined" && dataThumb != ""){
 					 objItem.urlThumb = dataThumb;
 					 objItem.urlImage = imageSrc;
 					 objChild.attr("src", dataThumb);
 				 }else{
+					 
+					 //if not, the thumb is src
+
 					 objItem.urlThumb = imageSrc;
 					 objItem.urlImage = objChild.data("image");
 				 }
-					 
+				 
 				 objItem.title = objChild.attr("alt");
 				 
 				 //always set thumb image to object
@@ -643,6 +655,23 @@ function UniteGalleryMain(){
 				 objItem.title = objChild.data("title");
 				 objItem.objThumbImage = null;
 				 objItem.urlImage = objChild.data("image");
+			 }
+			 
+			 
+			 //check mobile version images
+			 if(isMobile == true){
+				 
+				 var urlThumbMobile = objChild.data("thumb-mobile");
+				 if(typeof urlThumbMobile != "undefined" && urlThumbMobile != ""){
+					 objItem.urlThumb = urlThumbMobile;
+	 			 	 
+					 if(tagname == "img")
+	 					 objChild.attr("src",objItem.urlThumb);
+				 }
+				 
+				 var urlImageMobile = objChild.data("image-mobile");
+				 if(typeof urlImageMobile != "undefined" && urlImageMobile != "")
+					 objItem.urlImage = urlImageMobile;
 			 }
 			 
 			 objItem.link = itemLink;
@@ -1119,7 +1148,18 @@ function UniteGalleryMain(){
 				
 		if(objSize.width != g_temp.lastWidth || objSize.height != g_temp.lastHeight){
 			
-			if(g_options.gallery_preserve_ratio == true && g_temp.isFreestyleMode == false)
+			var heightWasSet = false;
+			
+			//set height with custom function (if exists)
+			if(g_temp.funcCustomHeight){
+				var newHeight = g_temp.funcCustomHeight(objSize);
+				if(newHeight){
+					g_objWrapper.height(newHeight);
+					heightWasSet = true;
+				}
+			}
+			
+			if(heightWasSet == false && g_options.gallery_preserve_ratio == true && g_temp.isFreestyleMode == false)
 				setHeightByOriginalRatio();
 			
 			storeLastSize();
@@ -1916,7 +1956,7 @@ function UniteGalleryMain(){
 		g_selectedItemIndex = itemIndex;
 		
 		g_objGallery.trigger(t.events.ITEM_CHANGE, [objItem,role]);
-
+		
 		//reset playback, if playing
 		if(g_temp.isPlayMode == true){
 				t.resetPlaying();
@@ -2102,7 +2142,10 @@ function UniteGalleryMain(){
 			var objSize = t.getSize();
 			var width = objSize.width;			
 		}
-				
+		
+		if(width == 0)
+			var width = jQuery(window).width();
+		
 		var addClass = "";
 		
 		if(width <= 480){
@@ -2152,6 +2195,13 @@ function UniteGalleryMain(){
 	 */
 	this.showErrorMessageReplaceGallery = function(message){
 		showErrorMessage(message);
+	}
+	
+	/**
+	 * set custom height function by width
+	 */
+	this.setFuncCustomHeight = function(func){
+		g_temp.funcCustomHeight = func;
 	}
 	
 	this.__________AJAX_REQUEST_______ = function(){};

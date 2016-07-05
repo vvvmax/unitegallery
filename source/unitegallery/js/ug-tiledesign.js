@@ -637,13 +637,13 @@ function UGTileDesign(){
 	 * get tile ratio
 	 */
 	function getTileRatio(objTile){
-					
+		
 		//global ratio
 		var ratio = g_temp.ratioByHeight;
 		
 		switch(g_options.tile_size_by){
 			default:		//global ratio
-				ratio = g_temp.ratioByHeight
+				ratio = g_temp.ratioByHeight;
 			break;
 			case t.sizeby.IMAGE_RATIO:
 
@@ -1418,7 +1418,7 @@ function UGTileDesign(){
 		
 		if(g_options.tile_size_by == t.sizeby.GLOBAL_RATIO)
 			newHeight = t.getTileHeightByWidth(newWidth);
-						
+		
 		var objTiles = g_thumbs.getThumbs();
 		objTiles.each(function(index, objTile){
 			t.resizeTile(jQuery(objTile), newWidth, newHeight, resizeMode);
@@ -1488,6 +1488,21 @@ function UGTileDesign(){
 	this.setOptions = function(newOptions){
 		g_options = jQuery.extend(g_options, newOptions);
 		g_thumbs.setOptions(newOptions);
+	}
+	
+	
+	/**
+	 * set new tile size, this function will not resize, and keep ratio
+	 */
+	this.setTileSizeOptions = function(newTileWidth){
+		
+		if(g_options.tile_size_by !== t.sizeby.GLOBAL_RATIO)
+			throw new Error("setNewTileOptions works with global ration only");
+		
+		g_options.tile_width = newTileWidth;
+		g_options.tile_height = Math.floor(newTileWidth * g_temp.ratioByHeight);
+		
+		
 	}
 	
 	
@@ -1610,7 +1625,7 @@ function UGTileDesign(){
 				width: g_options.tile_width,
 				height: g_options.tile_height
 		};
-	
+		
 		return(objSize);
 	}
 	

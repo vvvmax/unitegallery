@@ -1682,7 +1682,7 @@ function UGTiles(){
 	 * run the gallery after init and set html
 	 */
 	function run(){
-		
+				
 		//show tiles
 		g_objWrapper.children(".ug-tile").show();
 

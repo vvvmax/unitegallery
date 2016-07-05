@@ -1001,9 +1001,11 @@ function UGFunctions(){
 		if(obj.imageLeft !== null){
 			obj.style += "left:"+obj.imageLeft+"px;";
 		}
-				
+		
+		urlImage = urlImage.replace('"','\"');
+		
 		htmlImage += " style='"+obj.style+"'";
-		htmlImage += " src='"+urlImage+"'";
+		htmlImage += " src=\""+urlImage+"\"";
 		htmlImage += ">";
 				
 		objParent.html(htmlImage);

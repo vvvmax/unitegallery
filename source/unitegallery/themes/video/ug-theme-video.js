@@ -6,7 +6,8 @@ else
 
 
 /**
- * Grid gallery theme
+ * Video gallery theme
+ * themes: right-thumb | right-title-only | right-no-thumb | bottom-text
  */
 function UGTheme_video(){
 
@@ -19,9 +20,10 @@ function UGTheme_video(){
 
 	//theme options
 	var g_options = {
-			theme_skin: "right-thumb",			//right-thumb | right-title-only | right-no-thumb
+			theme_skin: "right-thumb",			//right-thumb | right-title-only | right-no-thumb | bottom-thumb
 			theme_autoplay: false,				//autoplay videos at start.  true / false. Don't working on mobiles.
-			theme_disable_panel_timeout: 2500	//How much time the right panel will be disabled. in ms		
+			theme_next_video_onend:false, 		//go to next video automatically when the video ends
+			theme_disable_panel_timeout: 2500	//How much time the right panel will be disabled. in ms
 	};
 	
 	//global defaults
@@ -34,14 +36,18 @@ function UGTheme_video(){
 			strippanel_padding_top: 0,
 			strippanel_padding_bottom: 0,
 			strippanel_padding_left: 0,
-			strippanel_padding_right: 0	
+			strippanel_padding_right: 0,
+			strippanel_vertical_type:true
 	};
-	
+		
 	
 	//temp variables
 	var g_temp = {
 			panel_position:"right",
-			putButtonsPanel: false
+			isVertical: true,
+			putButtonsPanel: false,
+			isFirstChange: true,
+			playerRatio:null,
 	};
 	
 	
@@ -57,13 +63,19 @@ function UGTheme_video(){
 		g_options = jQuery.extend(g_options, customOptions);
 		g_options.strippanel_vertical_type = true;
 		
+		modifyOptions();
+		
 		//set gallery options
 		g_gallery.setOptions(g_options);
+		if(g_temp.isVertical == false)
+			g_gallery.setFuncCustomHeight(getHeightByWidthOnResize);
 		
 		//set panel options		
 		g_objPanel.init(gallery, g_options);			
 		g_objPanel.setOrientation(g_temp.panel_position);
+		
 		g_objPanel.setCustomThumbs(setHtmlThumb);
+		
 		g_objPanel.setDisabledAtStart(g_options.theme_disable_panel_timeout);
 		
 		var galleryID = g_gallery.getGalleryID();
@@ -72,18 +84,39 @@ function UGTheme_video(){
 		g_objPlayer.init(g_options, true, galleryID);
 		
 		g_objects = gallery.getObjects();		
-		g_objGallery = jQuery(gallery);		
+		g_objGallery = jQuery(gallery);
 		g_objWrapper = g_objects.g_objWrapper;
+		
+	}
+	
+	
+	/**
+	 * modify options
+	 */
+	function modifyOptions(){
 		
 		switch(g_options.theme_skin){
 			case "right-no-thumb":
 			case "right-title-only":
 				g_temp.putButtonsPanel = true;
 			break;
+			case "bottom-text":
+				g_temp.panel_position = "bottom";				
+			break;
 		}
+		
+		//set isVertical
+		switch(g_temp.panel_position){
+			case "top":
+			case "bottom":
+				g_temp.isVertical = false;
+				g_options.strippanel_vertical_type = false;
+			break;
+		}
+		
 	}
 	
-		
+	
 	/**
 	 * init all the theme's elements and set them to their places 
 	 * according gallery's dimentions.
@@ -197,13 +230,15 @@ function UGTheme_video(){
 		
 		//set size:
 		var objGallerySize = g_gallery.getSize();
-		
-		g_objPanel.setHeight(objGallerySize.height);
+
+		if(g_temp.isVertical == false)			
+			g_objPanel.setWidth(objGallerySize.width);
+		else
+			g_objPanel.setHeight(objGallerySize.height);
 		
 		g_objPanel.run();
 		
 	}
-	
 	
 	
 	/**
@@ -213,7 +248,16 @@ function UGTheme_video(){
 			
 		var objPanelElement = g_objPanel.getElement();
 		
-		g_functions.placeElement(objPanelElement, "right", 0);
+		switch(g_temp.panel_position){
+			default:
+			case "right":
+				g_functions.placeElement(objPanelElement, "right", 0);
+			break;
+			case "bottom":
+				g_functions.placeElement(objPanelElement, 0, "bottom");
+			break;
+		}
+		
 	} 
 	
 	
@@ -226,10 +270,34 @@ function UGTheme_video(){
 		var gallerySize = g_functions.getElementSize(g_objWrapper);
 		var panelSize = g_objPanel.getSize();			
 		
-		var playerWidth = playerWidth = panelSize.left;
+		var playerWidth = gallerySize.width;
 		var playerHeight = gallerySize.height;
 		var playerTop = 0;
 		var playerLeft = 0;
+		
+		if(g_objPanel){
+			
+			var panelSize = g_objPanel.getSize();
+			
+			switch(g_temp.panel_position){
+				case "left":
+					playerLeft = panelSize.right;
+					playerWidth = gallerySize.width - panelSize.right;	
+				break;
+				case "right":
+					playerWidth = panelSize.left;					
+				break;
+				case "top":
+					playerHeight = gallerySize.height - panelSize.bottom;
+					playerTop = panelSize.bottom;
+				break;
+				case "bottom":
+					playerHeight = panelSize.top;
+				break;
+			}
+			
+		}
+		
 		
 		if(g_objButtonsPanel && g_objButtonsPanel.is(":visible")){
 			var buttonsPanelSize = g_functions.getElementSize(g_objButtonsPanel);
@@ -241,8 +309,12 @@ function UGTheme_video(){
 		g_objPlayer.setSize(playerWidth, playerHeight);
 		
 		//place
-		var objPlayer = g_objPlayer.getObject();		
+		var objPlayer = g_objPlayer.getObject();
 		g_functions.placeElement(objPlayer, playerLeft, playerTop);
+		
+		//remember player ratio
+		if(g_temp.playerRatio == null)
+			g_temp.playerRatio = playerHeight / playerWidth;
 		
 	}
 
@@ -269,10 +341,27 @@ function UGTheme_video(){
 	
 	
 	/**
+	 * get height by width and raetio on resize
+	 */
+	function getHeightByWidthOnResize(objSize){
+		
+		initThumbsPanel();
+		var objPanelSize = g_objPanel.getSize();
+		var thumbsHeight = objPanelSize.height;
+		var newWidth = objSize.width;
+		
+		var playerHeight = g_temp.playerRatio * newWidth;
+		var newHeight = playerHeight + thumbsHeight;
+		
+		return(newHeight);
+	}
+	
+	
+	/**
 	 * on gallery size change - resize the theme.
 	 */
 	function onSizeChange(){
-				
+		
 		initAndPlaceElements();
 	}
 	
@@ -282,26 +371,41 @@ function UGTheme_video(){
 	 */
 	function onItemChange(){
 		
+		var isAutoplay = g_options.theme_autoplay;
+		
 		var selectedItem = g_gallery.getSelectedItem();
 		
 		switch(selectedItem.type){
 			case "youtube":
-				g_objPlayer.playYoutube(selectedItem.videoid, g_options.theme_autoplay);
+				g_objPlayer.playYoutube(selectedItem.videoid, isAutoplay);
 			break;
 			case "vimeo":
-				g_objPlayer.playVimeo(selectedItem.videoid, g_options.theme_autoplay);
+				g_objPlayer.playVimeo(selectedItem.videoid, isAutoplay);
 			break;
 			case "html5video":
-				g_objPlayer.playHtml5Video(selectedItem.videoogv, selectedItem.videowebm, selectedItem.videomp4, selectedItem.urlImage, g_options.theme_autoplay);
+				g_objPlayer.playHtml5Video(selectedItem.videoogv, selectedItem.videowebm, selectedItem.videomp4, selectedItem.urlImage, isAutoplay);
 			break;
 			case "wistia":
-				g_objPlayer.playWistia(selectedItem.videoid, g_options.theme_autoplay);
+				g_objPlayer.playWistia(selectedItem.videoid, isAutoplay);
 			break;			
 			case "soundcloud":
-				g_objPlayer.playSoundCloud(selectedItem.trackid, g_options.theme_autoplay);
+				g_objPlayer.playSoundCloud(selectedItem.trackid, isAutoplay);
 			break;
 		}
 		
+		g_temp.isFirstChange = false;
+		
+	}
+	
+	
+	/**
+	 * on video ended playing
+	 */
+	function onVideoEnded(){
+		
+		if(g_options.theme_next_video_onend == true)
+			g_gallery.nextItem();
+				
 	}
 	
 	
@@ -310,10 +414,13 @@ function UGTheme_video(){
 	 */
 	function initEvents(){
 		
-		g_objGallery.on(g_gallery.events.SIZE_CHANGE,onSizeChange);
-		g_objGallery.on(g_gallery.events.ITEM_CHANGE,onItemChange);
+		g_objGallery.on(g_gallery.events.SIZE_CHANGE, onSizeChange);
+		g_objGallery.on(g_gallery.events.ITEM_CHANGE, onItemChange);
 		
 		g_objPlayer.initEvents();
+		
+		if(g_options.theme_next_video_onend == true)
+			jQuery(g_objPlayer).on(g_objPlayer.events.VIDEO_ENDED, onVideoEnded);
 		
 		//init buttons panel events:		
 		if(g_objButtonsPanel){
@@ -340,6 +447,9 @@ function UGTheme_video(){
 			g_functions.destroyButton(g_buttonPrev);
 			g_functions.destroyButton(g_buttonNext);
 		}
+		
+		if(g_options.theme_next_video_onend == true)
+			jQuery(g_objPlayer).off(g_objPlayer.events.VIDEO_ENDED);
 		
 		if(g_objPanel)
 			g_objPanel.destroy();

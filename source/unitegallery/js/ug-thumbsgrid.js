@@ -12,9 +12,11 @@ function UGThumbsGrid(){
 	var g_options = {
 		grid_panes_direction: "left",				//where panes will move -> left, bottom
 		grid_num_cols: 2,							//number of grid columns
+		grid_min_cols: 2,							//minimum number of columns (for horizontal type) - the tile size is dynamic 
 		grid_num_rows: 2,							//number of grid rows (for horizontal type)
 		grid_space_between_cols: 10,				//space between columns
 		grid_space_between_rows: 10,				//space between rows
+		grid_space_between_mobile: 10,				//space between rows and cols mobile
 		grid_transition_duration: 300,				//transition of the panes change duration 
 		grid_transition_easing: "easeInOutQuad",	//transition of the panes change easing function
 		grid_carousel: false,						//next pane goes to first when last
@@ -45,7 +47,11 @@ function UGThumbsGrid(){
 			startScrollPos:0,
 			isFirstTimeRun:true,
 			isTilesMode: false,
-			storedEventID: "thumbsgrid"
+			storedEventID: "thumbsgrid",
+			tileMaxWidth:null,
+			tileMaxHeight:null,
+			spaceBetweenCols: null,
+			spaceBetweenRows: null
 		};
 	
 	
@@ -64,7 +70,7 @@ function UGThumbsGrid(){
 		g_objGallery = jQuery(gallery);
 		g_objWrapper = g_objects.g_objWrapper;
 		g_arrItems = g_objects.g_arrItems;
-				
+		
 		if(isTilesMode === true)
 			g_temp.isTilesMode = true;
 		
@@ -72,14 +78,15 @@ function UGThumbsGrid(){
 		
 		setOptions(customOptions);
 		
-		//set vertical or horizon
-		g_temp.isNavigationVertical = (g_options.grid_panes_direction == "top" || g_options.grid_panes_direction == "bottom")
-		
 		if(g_temp.isTilesMode == true){
 			
 			g_tilesDesign.setFixedMode();
 			g_tilesDesign.setApproveClickFunction(isApproveTileClick);
 			g_tilesDesign.init(gallery, g_options);
+			
+			var options_td = g_tilesDesign.getOptions();
+			g_temp.tileMaxHeight = options_td.tile_height;
+			g_temp.tileMaxWidth = options_td.tile_width;
 			
 			g_thumbs = g_tilesDesign.getObjThumbs();
 		}else{
@@ -148,13 +155,27 @@ function UGThumbsGrid(){
 						
 			if(g_temp.isTilesMode == true){
 				
-				initSizeParams();							
+				initGridDynamicSize();
+				initSizeParams();					
 				g_tilesDesign.run();
 				
 			}else{
 				g_thumbs.setHtmlProperties();
 				initSizeParams();			
 				g_thumbs.loadThumbsImages();
+			}
+			
+		}else{
+			
+			if(g_temp.isTilesMode == true){
+				
+				//check if dynamic size changed. If do, run the thumbs again
+				var isChanged = initGridDynamicSize();
+				
+				if(isChanged == true){
+					initSizeParams();					
+					g_tilesDesign.run();
+				}
 			}
 			
 		}
@@ -195,23 +216,70 @@ function UGThumbsGrid(){
 		return(objThumbSize);
 	}
 	
+	
+	/**
+	 * init grid dynamic size (tiles mode)
+	 */
+	function initGridDynamicSize(){
+		
+		if(g_temp.isTilesMode == false)
+			throw new Error("Dynamic size can be set only in tiles mode");
+		
+		var isChanged = false;
+		var isMobile = g_gallery.isMobileMode();
+		
+		//--- set space between cols and rows
+		
+		var spaceOld = g_temp.spaceBetweenCols;
+		
+		if(isMobile == true){
+			g_temp.spaceBetweenCols = g_options.grid_space_between_mobile;
+			g_temp.spaceBetweenRows = g_options.grid_space_between_mobile;
+		}else{
+			g_temp.spaceBetweenCols = g_options.grid_space_between_cols;
+			g_temp.spaceBetweenRows = g_options.grid_space_between_rows;
+		}
+		
+		if(g_temp.spaceBetweenCols != spaceOld)
+			isChanged = true;
+		
+		//set tile size
+		
+		var lastThumbSize = getThumbsSize();
+		var lastThumbWidth = lastThumbSize.width;
+		
+		var tileWidth = g_temp.tileMaxWidth;
+		var numCols = g_functions.getNumItemsInSpace(g_temp.gridWidth, g_temp.tileMaxWidth, g_temp.spaceBetweenCols);
+		
+		if(numCols < g_options.grid_min_cols){
+			tileWidth = g_functions.getItemSizeInSpace(g_temp.gridWidth, g_options.grid_min_cols, g_temp.spaceBetweenCols);
+		}
+		
+		g_tilesDesign.setTileSizeOptions(tileWidth);
+		
+		if(tileWidth != lastThumbWidth)
+			isChanged = true;
+		
+		
+		return(isChanged);
+	}
+	
+	
 	/**
 	 * init grid size horizontal
 	 * get height param
 	 */
 	function initSizeParamsHor(){
-		
+				
 		var objThumbSize = getThumbsSize();
 		
 		var thumbsHeight = objThumbSize.height;
 		
-		
 		//set grid size
 		var gridWidth = g_temp.gridWidth;
-		var gridHeight = g_options.grid_num_rows * thumbsHeight + (g_options.grid_num_rows-1) * g_options.grid_space_between_rows + g_options.grid_padding*2;
+		var gridHeight = g_options.grid_num_rows * thumbsHeight + (g_options.grid_num_rows-1) * g_temp.spaceBetweenRows + g_options.grid_padding*2;
 		
 		g_temp.gridHeight = gridHeight;
-		
 		
 		g_functions.setElementSize(g_objGrid, gridWidth, gridHeight);
 	
@@ -234,7 +302,7 @@ function UGThumbsGrid(){
 		var thumbsWidth = objThumbSize.width;
 		
 		//set grid size
-		var gridWidth = g_options.grid_num_cols * thumbsWidth + (g_options.grid_num_cols-1) * g_options.grid_space_between_cols + g_options.grid_padding*2;
+		var gridWidth = g_options.grid_num_cols * thumbsWidth + (g_options.grid_num_cols-1) * g_temp.spaceBetweenCols + g_options.grid_padding*2;
 		var gridHeight = g_temp.gridHeight;
 		
 		g_temp.gridWidth = gridWidth;
@@ -277,6 +345,7 @@ function UGThumbsGrid(){
 				
 	}
 	
+	
 	/**
 	 * set the options of the strip
 	 */
@@ -285,6 +354,13 @@ function UGThumbsGrid(){
 		g_options = jQuery.extend(g_options, objOptions);
 		
 		g_thumbs.setOptions(objOptions);
+		
+		//set vertical or horizon
+		g_temp.isNavigationVertical = (g_options.grid_panes_direction == "top" || g_options.grid_panes_direction == "bottom")
+		
+		g_temp.spaceBetweenCols = g_options.grid_space_between_cols;
+		g_temp.spaceBetweenRows = g_options.grid_space_between_rows;
+		
 	}
 	
 	
@@ -331,12 +407,12 @@ function UGThumbsGrid(){
 			if(endX > g_temp.innerWidth)
 				g_temp.innerWidth = endX;
 						
-			posx += thumbWidth + g_options.grid_space_between_cols;
+			posx += thumbWidth + g_temp.spaceBetweenCols;
 			
 			//next row
 			counter++;
 			if(counter >= g_options.grid_num_cols){
-				posy += thumbHeight + g_options.grid_space_between_rows;
+				posy += thumbHeight + g_temp.spaceBetweenRows;
 				posx = baseX;
 				counter = 0;
 			}
@@ -348,7 +424,7 @@ function UGThumbsGrid(){
 			//prepare next pane
 			if((posy + thumbHeight) > g_temp.gridHeight){
 				posy = 0;
-				baseX = g_temp.innerWidth + g_options.grid_space_between_cols;
+				baseX = g_temp.innerWidth + g_temp.spaceBetweenCols;
 				posx = baseX;
 				counter = 0;
 								
@@ -412,7 +488,7 @@ function UGThumbsGrid(){
 			var thumbWidth = objThumb.outerWidth();
 			var thumbHeight = objThumb.outerHeight();
 									
-			posx += thumbWidth + g_options.grid_space_between_cols;
+			posx += thumbWidth + g_temp.spaceBetweenCols;
 			
 			var endy = (posy + thumbHeight);
 			if(endy > maxy)
@@ -421,7 +497,7 @@ function UGThumbsGrid(){
 			//next row
 			counter++;
 			if(counter >= g_options.grid_num_cols){
-				posy += thumbHeight + g_options.grid_space_between_rows;
+				posy += thumbHeight + g_temp.spaceBetweenRows;
 				posx = baseX;
 				counter = 0;
 			}
@@ -444,7 +520,7 @@ function UGThumbsGrid(){
 					paneMaxY = g_temp.gridHeight;
 				}
 				
-				posy = paneMaxY + g_options.grid_space_between_rows;					
+				posy = paneMaxY + g_temp.spaceBetweenRows;					
 				paneStartY = posy;
 				baseX = 0;
 				posx = baseX;
@@ -474,6 +550,7 @@ function UGThumbsGrid(){
 		
 	}
 
+	
 	/**
 	 * position the thumbs horizontal type
 	 */	
@@ -485,7 +562,7 @@ function UGThumbsGrid(){
 		var baseY = g_options.grid_padding;
 		var posy = baseY;
 		var posx = baseX;
-		var maxx = 0, maxy = 0, paneMaxY = 0;
+		var maxx = 0, maxy = 0, paneMaxY = 0, gridMaxY = 0;
 		var rowsCounter = 0;
 		
 		g_temp.innerWidth = 0;
@@ -521,6 +598,10 @@ function UGThumbsGrid(){
 					if(g_temp.numPanes == 1){
 						g_temp.gridWidth = maxx+g_options.grid_padding;
 						g_objGrid.width(g_temp.gridWidth);
+						
+						g_temp.gridHeight = gridMaxY + g_options.grid_padding;
+						g_objGrid.height(g_temp.gridHeight);
+						
 					}
 					
 					g_temp.numPanes++;
@@ -528,7 +609,7 @@ function UGThumbsGrid(){
 					
 				}else{			//start new line in existing pane
 					posx = baseX;
-					posy = paneMaxY + g_options.grid_space_between_rows;
+					posy = paneMaxY + g_temp.spaceBetweenRows;
 				}
 			}
 			
@@ -543,9 +624,12 @@ function UGThumbsGrid(){
 			//count maxy
 			var endY = posy + thumbHeight;
 			
-			if(endY > paneMaxY)
+			if(endY > paneMaxY)		//pane height
 				paneMaxY = endY;
-				
+			
+			if(endY > gridMaxY)		//total height
+				gridMaxY = endY;
+			
 			if(endY > maxy)
 				maxy = endY;
 			
@@ -554,7 +638,7 @@ function UGThumbsGrid(){
 			if(endX > g_temp.innerWidth)
 				g_temp.innerWidth = endX;
 						
-			posx += thumbWidth + g_options.grid_space_between_cols;
+			posx += thumbWidth + g_temp.spaceBetweenCols;
 						
 			//count number thumbs in pane
 			if(g_temp.numPanes == 1)
@@ -565,20 +649,22 @@ function UGThumbsGrid(){
 		
 		//set inner strip width and height
 		g_temp.innerWidth = maxx + g_options.grid_padding;
-		g_temp.innerHeight = paneMaxY + g_options.grid_padding;
-		
+		g_temp.innerHeight = gridMaxY + g_options.grid_padding;
 		
 		g_objInner.width(g_temp.innerWidth);
 		g_objInner.height(g_temp.innerHeight);
-				
+
+
 		//set grid height
 		if(g_temp.numPanes == 1){
 			g_temp.gridWidth = maxx + g_options.grid_padding;
-			g_temp.gridHeight = maxy + g_options.grid_padding;
+			g_temp.gridHeight = gridMaxY + g_options.grid_padding;
 			
 			g_objGrid.width(g_temp.gridWidth);
 			g_objGrid.height(g_temp.gridHeight);
+						
 		}
+		
 			
 	}
 	
@@ -1128,7 +1214,7 @@ function UGThumbsGrid(){
 		var numThumbs = g_thumbs.getNumThumbs();
 		var numRows = Math.ceil(numThumbs / g_options.grid_num_cols);
 		
-		var totalHeight = numRows * thumbHeight + (numRows-1) * g_options.grid_space_between_rows;
+		var totalHeight = numRows * thumbHeight + (numRows-1) * g_temp.spaceBetweenRows;
 			
 		var numPanes = Math.ceil(totalHeight / gridHeight);
 		
@@ -1150,7 +1236,7 @@ function UGThumbsGrid(){
 		var numThumbs = g_thumbs.getNumThumbs();
 		var numCols = Math.ceil(numThumbs / g_options.grid_num_rows);
 		
-		var totalWidth = numCols * thumbWidth + (numCols-1) * g_options.grid_space_between_cols;
+		var totalWidth = numCols * thumbWidth + (numCols-1) * g_temp.spaceBetweenCols;
 		
 		var numPanes = Math.ceil(totalWidth / gridWidth);
 				
@@ -1167,13 +1253,13 @@ function UGThumbsGrid(){
 			throw new Error("This function works only with tiles mode");
 		
 		var numThumbs = g_thumbs.getNumThumbs();
-		var numCols = g_functions.getNumItemsInSpace(width, g_options.tile_width, g_options.grid_space_between_cols);
+		var numCols = g_functions.getNumItemsInSpace(width, g_options.tile_width, g_temp.spaceBetweenCols);
 		var numRows = Math.ceil(numThumbs / numCols);
 		
 		if(numRows > g_options.grid_num_rows)
 			numRows = g_options.grid_num_rows;
 		
-		var gridHeight = g_functions.getSpaceByNumItems(numRows, g_options.tile_height, g_options.grid_space_between_rows);
+		var gridHeight = g_functions.getSpaceByNumItems(numRows, g_options.tile_height, g_temp.spaceBetweenRows);
 		gridHeight += g_options.grid_padding * 2;
 		
 		return(gridHeight);

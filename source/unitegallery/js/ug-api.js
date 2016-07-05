@@ -7,13 +7,17 @@ function UG_API(gallery){
 	
 	var t = this, g_objThis = jQuery(t);
 	var g_gallery = new UniteGalleryMain(), g_objGallery;
+	var g_arrEvents = [];
+	
 	g_gallery = gallery;
 	g_objGallery = jQuery(gallery);
+	
 	
 	this.events = {
 			API_INIT_FUNCTIONS:"api_init",
 			API_ON_EVENT:"api_on_event"
 	}
+	
 	
 	/**
 	 * get item data for output
@@ -48,7 +52,12 @@ function UG_API(gallery){
 	/**
 	 * event handling function
 	 */
-	this.on = function(event, handlerFunction){
+	this.on = function(event, handlerFunction, notCache){
+		
+		//remember cache
+		if(notCache !== true){
+			g_arrEvents.push({event:event,func:handlerFunction});
+		}
 		
 		switch(event){
 			case "item_change":
@@ -79,7 +88,13 @@ function UG_API(gallery){
 				g_objGallery.on(g_gallery.events.PAUSE_PLAYING, handlerFunction);				
 			break;
 			case "continue":
-				g_objGallery.on(g_gallery.events.CONTINUE_PLAYING, handlerFunction);				
+				g_objGallery.on(g_gallery.events.CONTINUE_PLAYING, handlerFunction);
+			break;
+			case "open_lightbox":
+				g_objGallery.on(g_gallery.events.OPEN_LIGHTBOX, handlerFunction);
+			break;
+			case "close_lightbox":
+				g_objGallery.on(g_gallery.events.CLOSE_LIGHTBOX, handlerFunction);
 			break;
 			default:
 				if(console)
@@ -239,6 +254,12 @@ function UG_API(gallery){
 			var customOptions = {};
 		
 		g_gallery.run(null, customOptions);
+		
+		//restore events:
+		g_arrEvents.map(function(obj){
+			t.on(obj.event,obj.func,true);
+		});
+		
 	}
 	
 	

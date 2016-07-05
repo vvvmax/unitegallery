@@ -115,7 +115,7 @@ function UGStripPanel() {
 	 * validate panel before run
 	 */
 	function validatePanelBeforeRun() {
-				
+		
 		if (g_options.strippanel_vertical_type == false) { // horizontal
 															// validate
 			if (g_temp.panelWidth == 0) {

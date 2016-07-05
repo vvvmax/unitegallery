@@ -8,10 +8,11 @@ function UGWistiaAPI(){
 	
 	this.events = {
 			START_PLAYING: "start_playing",
-			STOP_PLAYING: "stop_playing"
+			STOP_PLAYING: "stop_playing",
+			VIDEO_ENDED: "video_ended"
 	};
 
-
+	
 	/**
 	 * check if sound cloud active
 	 */
@@ -85,8 +86,8 @@ function UGWistiaAPI(){
 		
 		g_player.bind('end', function(){
 			g_objThis.trigger(t.events.STOP_PLAYING);
+			g_objThis.trigger(t.events.VIDEO_ENDED);
 		});
-		
 		
 	}
 	
@@ -177,7 +178,8 @@ function UGSoundCloudAPI(){
 	
 	this.events = {
 			START_PLAYING: "start_playing",
-			STOP_PLAYING: "stop_playing"
+			STOP_PLAYING: "stop_playing",
+			VIDEO_ENDED: "video_ended"
 	};
 
 	/**
@@ -262,8 +264,8 @@ function UGSoundCloudAPI(){
 		
 		g_player.bind(SC.Widget.Events.FINISH, function(){
 			g_objThis.trigger(t.events.STOP_PLAYING);
+			g_objThis.trigger(t.events.VIDEO_ENDED);
 		});
-		
 		
 	}
 		
@@ -358,7 +360,8 @@ function UGHtml5MediaAPI(){
 	
 	this.events = {
 			START_PLAYING: "start_playing",
-			STOP_PLAYING: "stop_playing"
+			STOP_PLAYING: "stop_playing",
+			VIDEO_ENDED: "video_ended"
 	};
 	
 	/**
@@ -466,8 +469,8 @@ function UGHtml5MediaAPI(){
 		
 		g_ugFunctions.addEvent(g_player, "ended", function(){
 			g_objThis.trigger(t.events.STOP_PLAYING);
+			g_objThis.trigger(t.events.VIDEO_ENDED);
 		});
-						
 		
 	}
 	
@@ -549,7 +552,8 @@ function UGVimeoAPI(){
 	
 	this.events = {
 			START_PLAYING: "start_playing",
-			STOP_PLAYING: "stop_playing"
+			STOP_PLAYING: "stop_playing",
+			VIDEO_ENDED: "video_ended"
 	};
 	
 	/**
@@ -643,8 +647,8 @@ function UGVimeoAPI(){
 		
 		g_player.addEvent('finish', function(){
 			g_objThis.trigger(t.events.STOP_PLAYING);
+			g_objThis.trigger(t.events.VIDEO_ENDED);
 		});
-		
 		
 	}
 	
@@ -781,7 +785,8 @@ function UGYoutubeAPI(){
 	
 	this.events = {
 		START_PLAYING: "start_playing",
-		STOP_PLAYING: "stop_playing"
+		STOP_PLAYING: "stop_playing",
+		VIDEO_ENDED: "video_ended"
 	};
 	
 	
@@ -885,10 +890,14 @@ function UGYoutubeAPI(){
 		}
 		
 		var state = g_player.getPlayerState();
-				
+		
 		switch(state){
 			case YT.PlayerState.PLAYING:
 				g_objThis.trigger(t.events.START_PLAYING);
+			break;
+			case YT.PlayerState.ENDED:
+				g_objThis.trigger(t.events.STOP_PLAYING);					
+				g_objThis.trigger(t.events.VIDEO_ENDED);
 			break;
 			default:
 				if(g_prevState == YT.PlayerState.PLAYING)
@@ -913,8 +922,8 @@ function UGYoutubeAPI(){
 			return(true);
 		}
 		
-		g_ugFunctions.loadJs("www.youtube.com/player_api", true);
-				
+		g_ugFunctions.loadJs("https://www.youtube.com/player_api", false);
+		
 		g_ugYoutubeAPI.isAPILoaded = true;	
 		
 	}
@@ -1067,7 +1076,8 @@ function UGVideoPlayer(){
 			SHOW: "video_show",
 			HIDE: "video_hide",
 			PLAY_START: "video_play_start",
-			PLAY_STOP: "video_play_stop"
+			PLAY_STOP: "video_play_stop",
+			VIDEO_ENDED: "video_ended"
 	};
 	
 	var g_temp = {
@@ -1169,6 +1179,15 @@ function UGVideoPlayer(){
 			g_objButtonClose.show();
 	}
 	
+	/**
+	 * on video ended
+	 */
+	function onVideoEnded(){
+		
+		g_objThis.trigger(t.events.VIDEO_ENDED);
+		
+	}
+
 	
 	/**
 	 * init events
@@ -1184,20 +1203,25 @@ function UGVideoPlayer(){
 		//youtube events
 		jQuery(g_youtubeAPI).on(g_youtubeAPI.events.START_PLAYING, onPlayStart);
 		jQuery(g_youtubeAPI).on(g_youtubeAPI.events.STOP_PLAYING, onPlayStop);
+		jQuery(g_youtubeAPI).on(g_youtubeAPI.events.VIDEO_ENDED, onVideoEnded);
 		
 		//vimeo events
 		jQuery(g_vimeoAPI).on(g_vimeoAPI.events.START_PLAYING, onPlayStart);
 		jQuery(g_vimeoAPI).on(g_vimeoAPI.events.STOP_PLAYING, onPlayStop);
+		jQuery(g_vimeoAPI).on(g_vimeoAPI.events.VIDEO_ENDED, onVideoEnded);
 		
 		//html5 video events
 		jQuery(g_html5API).on(g_html5API.events.START_PLAYING, onPlayStart);
 		jQuery(g_html5API).on(g_html5API.events.STOP_PLAYING, onPlayStop);
+		jQuery(g_html5API).on(g_html5API.events.VIDEO_ENDED, onVideoEnded);
 		
 		jQuery(g_soundCloudAPI).on(g_soundCloudAPI.events.START_PLAYING, onPlayStart);
 		jQuery(g_soundCloudAPI).on(g_soundCloudAPI.events.STOP_PLAYING, onPlayStop);
+		jQuery(g_soundCloudAPI).on(g_soundCloudAPI.events.VIDEO_ENDED, onVideoEnded);
 		
 		jQuery(g_wistiaAPI).on(g_wistiaAPI.events.START_PLAYING, onPlayStart);
 		jQuery(g_wistiaAPI).on(g_wistiaAPI.events.STOP_PLAYING, onPlayStop);
+		jQuery(g_wistiaAPI).on(g_wistiaAPI.events.VIDEO_ENDED, onVideoEnded);
 		
 	}
 	
