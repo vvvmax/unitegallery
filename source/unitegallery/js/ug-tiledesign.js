@@ -294,7 +294,7 @@ function UGTileDesign(){
 		var imageAlt = g_functions.stripTags(objItem.title);
 		imageAlt = g_functions.htmlentitles(imageAlt);
 		
-		html += "<img src='"+objItem.urlThumb+"' alt='"+imageAlt+"' class='"+classImage+"'>";
+		html += "<img src=\""+g_functions.escapeDoubleSlash(objItem.urlThumb)+"\" alt='"+imageAlt+"' class='"+classImage+"'>";
 
 		if(g_temp.hasImageContainer == true){
 			html += "</div>";
@@ -421,7 +421,7 @@ function UGTileDesign(){
 			var imageOverlayHtml = "<div class='ug-tile-image-overlay"+imageEffectClassAdd+"' >";
 			var imageEffectClass = " ug-"+g_options.tile_image_effect_type+"-effect";
 			
-			imageOverlayHtml += "<img src='"+objItem.urlThumb+"' alt='"+objItem.title+"' class='"+imageEffectClass + imageEffectClassAdd+"'>";
+			imageOverlayHtml += "<img src=\""+g_functions.escapeDoubleSlash(objItem.urlThumb)+"\" alt='"+objItem.title+"' class='"+imageEffectClass + imageEffectClassAdd+"'>";
 			imageOverlayHtml += "</div>";
 			
 			objThumbWrapper.append(imageOverlayHtml);

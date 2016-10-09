@@ -1,4 +1,4 @@
-// Unite Gallery, Version: 1.7.28, released 04 Jul 2016 
+// Unite Gallery, Version: 1.7.32, released 09 Oct 2016 
 
 
 
@@ -1004,7 +1004,7 @@ function UGFunctions(){
 			obj.style += "left:"+obj.imageLeft+"px;";
 		}
 		
-		urlImage = urlImage.replace('"','\"');
+		urlImage = t.escapeDoubleSlash(urlImage);
 		
 		htmlImage += " style='"+obj.style+"'";
 		htmlImage += " src=\""+urlImage+"\"";
@@ -1111,6 +1111,7 @@ function UGFunctions(){
 			
 			objImage.css(objCss);			
 		}
+		
 		
 		return(obj);
 	}
@@ -1734,6 +1735,7 @@ function UGFunctions(){
 	
 	this.z_________GENERAL_FUNCTIONS_______ = function(){}
 	
+	
 	/**
 	 * check if current jquery version is more then minimal version
 	 * version can be "1.8.0" for example
@@ -2253,6 +2255,15 @@ function UGFunctions(){
 		var text = html.replace(/(<([^>]+)>)/ig,"");
 		
 		return(text);
+	}
+	
+	
+	/**
+	 * escape double slash
+	 */
+	this.escapeDoubleSlash = function(str){
+		
+		return str.replace('"','\"');
 	}
 	
 	
@@ -10609,7 +10620,7 @@ function UGTileDesign(){
 		var imageAlt = g_functions.stripTags(objItem.title);
 		imageAlt = g_functions.htmlentitles(imageAlt);
 		
-		html += "<img src='"+objItem.urlThumb+"' alt='"+imageAlt+"' class='"+classImage+"'>";
+		html += "<img src=\""+g_functions.escapeDoubleSlash(objItem.urlThumb)+"\" alt='"+imageAlt+"' class='"+classImage+"'>";
 
 		if(g_temp.hasImageContainer == true){
 			html += "</div>";
@@ -10736,7 +10747,7 @@ function UGTileDesign(){
 			var imageOverlayHtml = "<div class='ug-tile-image-overlay"+imageEffectClassAdd+"' >";
 			var imageEffectClass = " ug-"+g_options.tile_image_effect_type+"-effect";
 			
-			imageOverlayHtml += "<img src='"+objItem.urlThumb+"' alt='"+objItem.title+"' class='"+imageEffectClass + imageEffectClassAdd+"'>";
+			imageOverlayHtml += "<img src=\""+g_functions.escapeDoubleSlash(objItem.urlThumb)+"\" alt='"+objItem.title+"' class='"+imageEffectClass + imageEffectClassAdd+"'>";
 			imageOverlayHtml += "</div>";
 			
 			objThumbWrapper.append(imageOverlayHtml);
@@ -12974,6 +12985,7 @@ function UGSlider(){
 		
 		var objSize = g_functions.scaleImageExactSizeInParent(objImage, objItem.imageWidth, objItem.imageHeight, constantWidth, constantHeight, scaleMode);
 		
+		
 		return(objSize);
 	}
 
@@ -13014,13 +13026,14 @@ function UGSlider(){
 			
 			var objImageData = {};
 			
-			if(slideType != "image" && g_options.slider_video_constantsize == true)
+			if(slideType != "image" && g_options.slider_video_constantsize == true){
 				objImageData = scaleImageConstantSize(objImage, objItem);
-			else
+			}
+			else{
 				objImageData = g_functions.scaleImageFitParent(objImage, objItem.imageWidth, objItem.imageHeight, scaleMode, objPadding);
-
-			setImageDesign(objImage, slideType, objImageData);
+			}
 			
+			setImageDesign(objImage, slideType, objImageData);
 			g_objThis.trigger(t.events.AFTER_PUT_IMAGE, objSlide);
 			
 		}
@@ -13038,6 +13051,9 @@ function UGSlider(){
 				else
 					var objImageData = g_functions.getImageInsideParentData(objItemWrapper, objItem.imageWidth, objItem.imageHeight, scaleMode, objPadding);
 				
+				//set missing css width
+				objImage.css("width",objImageData.imageWidth+"px");
+						
 				setImageDesign(objImage, slideType, objImageData);
 				
 				g_objThis.trigger(t.events.AFTER_PUT_IMAGE, objSlide);
@@ -13080,8 +13096,9 @@ function UGSlider(){
 					
 					if(slideType != "image" && g_options.slider_video_constantsize == true)
 						scaleImageConstantSize(objImage, objItem);
-					else
+					else{
 						objImageData = g_functions.scaleImageFitParent(objImage, objItem.imageWidth, objItem.imageHeight, scaleMode, objPadding);
+					}
 					
 					objImage.fadeTo(0,1);
 					
@@ -14618,11 +14635,13 @@ function UGSlider(){
 		
 		var objFitSize = g_functions.getImageInsideParentData(objParent, objItem.imageWidth, objItem.imageHeight, scaleMode, objPadding);
 		var objSize = g_functions.getElementSize(objImage);
+
+		var output = false;
 		
 		if(objFitSize.imageWidth == objSize.width)
-			return(true);
-		
-		return(false);
+			output = true;
+				
+		return(output);
 	}
 	
 	
@@ -18433,7 +18452,6 @@ function UGYoutubeAPI(){
 	 */
 	function onPlayerReady(){
 		g_isPlayerReady = true;
-		
 	}
 	
 	
@@ -19121,7 +19139,7 @@ var g_ugWistiaAPI = new UGWistiaAPI();
 		
 		if(!options)
 			var options = {};
-		
+				
 		var objGallery = new UniteGalleryMain();
 		objGallery.run(galleryID, options);
 		
@@ -19739,22 +19757,24 @@ function UniteGalleryMain(){
 					 jQuery.removeData(objChild, "lazyload-src");
 				 }
 				 
-				 var imageSrc = objChild.attr("src");
+				 //get the big image
+				 var imageSrc = objChild.data("image");
+				 if(!imageSrc || typeof imageSrc == "undefined")				 
+					 imageSrc = objChild.attr("src");
+				 
 				 var dataThumb = objChild.data("thumb");
 				 
 				 //if exists data-thumb, then the big image is src
 				 if(typeof dataThumb != "undefined" && dataThumb != ""){
 					 objItem.urlThumb = dataThumb;
 					 objItem.urlImage = imageSrc;
-					 objChild.attr("src", dataThumb);
+					 //objChild.attr("src", dataThumb);
 				 }else{
-					 
 					 //if not, the thumb is src
-
 					 objItem.urlThumb = imageSrc;
 					 objItem.urlImage = objChild.data("image");
 				 }
-				 
+				 				 
 				 objItem.title = objChild.attr("alt");
 				 
 				 //always set thumb image to object
@@ -19904,6 +19924,7 @@ function UniteGalleryMain(){
 			 numIndex++;
 			 
 		 }
+		 
 		 
 		 g_numItems = g_arrItems.length;
 		 
@@ -20227,21 +20248,32 @@ function UniteGalleryMain(){
 		var obj = jQuery(event.target);
 		if(obj.is("textarea") || obj.is("select") || obj.is("input"))
 			return(true);
-			
+						
 		 var keyCode = (event.charCode) ? event.charCode :((event.keyCode) ? event.keyCode :((event.which) ? event.which : 0));
+		 
+		 var wasAction = true;
 		 
 		 switch(keyCode){
 			 case 39:	//right key
 				 t.nextItem();
-				 event.preventDefault();
 			 break;
 			 case 37:	//left key
 				 t.prevItem();
-				 event.preventDefault();
 			 break;
+			 default:
+				 wasAction = false;
+			 break; 
 		 }
 		 
-		g_objGallery.trigger(t.events.GALLERY_KEYPRESS, keyCode);
+		 //only first page gallery affected
+		 
+		 if(wasAction == true){
+			 event.preventDefault();
+			 event.stopPropagation();
+			 event.stopImmediatePropagation();
+		 }
+		 
+		g_objGallery.trigger(t.events.GALLERY_KEYPRESS, [keyCode,event]);
 	}
 	
 	
@@ -22058,7 +22090,7 @@ function UGLightbox(){
 	 * position the arrows inside mode
 	 */
 	function positionArrowsInside(toShow, isAnimation){
-		
+				
 		if(g_temp.isArrowsInside == false)
 			return(false);
 		
@@ -22074,6 +22106,7 @@ function UGLightbox(){
 		
 		if(g_temp.isArrowsOnHoverMode == true && isImageInPlace == true && isMouseInsideImage() == false)
 			hideArrows(true);
+		
 		
 		if(isImageInPlace == false){
 			var leftArrowLeft = g_functions.getElementRelativePos(g_objArrowLeft, "left", g_options.lightbox_arrows_offset);
@@ -22125,6 +22158,7 @@ function UGLightbox(){
 			g_functions.placeElement(g_objArrowLeft, leftArrowLeft, leftArrowTop);
 			g_functions.placeElement(g_objArrowRight, rightArrowLeft, rightArrowTop);
 		}
+		
 		
 		if(toShow == true)
 			showArrows(isAnimation);
@@ -22733,14 +22767,26 @@ function UGLightbox(){
 	/**
 	 * on gallery keypres, do operations
 	 */
-	function onKeyPress(data, key){
+	function onKeyPress(data, key, event){
+		
+		var isScrollKey = false;
 		
 		switch(key){
 			case 27:		//escape - close lightbox
 				if(g_temp.isOpened == true)
 					t.close("keypress");
 			break;
+			case 38:	//up and down arrows
+			case 40:
+			case 33:	//page up and down
+			case 34:
+				isScrollKey = true;
+			break;
 		}
+		
+		if(g_temp.isOpened == true && isScrollKey == true)
+			event.preventDefault();
+		
 		
 	}
 	

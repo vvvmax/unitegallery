@@ -582,7 +582,7 @@ function UGLightbox(){
 	 * position the arrows inside mode
 	 */
 	function positionArrowsInside(toShow, isAnimation){
-		
+				
 		if(g_temp.isArrowsInside == false)
 			return(false);
 		
@@ -598,6 +598,7 @@ function UGLightbox(){
 		
 		if(g_temp.isArrowsOnHoverMode == true && isImageInPlace == true && isMouseInsideImage() == false)
 			hideArrows(true);
+		
 		
 		if(isImageInPlace == false){
 			var leftArrowLeft = g_functions.getElementRelativePos(g_objArrowLeft, "left", g_options.lightbox_arrows_offset);
@@ -649,6 +650,7 @@ function UGLightbox(){
 			g_functions.placeElement(g_objArrowLeft, leftArrowLeft, leftArrowTop);
 			g_functions.placeElement(g_objArrowRight, rightArrowLeft, rightArrowTop);
 		}
+		
 		
 		if(toShow == true)
 			showArrows(isAnimation);
@@ -1257,14 +1259,26 @@ function UGLightbox(){
 	/**
 	 * on gallery keypres, do operations
 	 */
-	function onKeyPress(data, key){
+	function onKeyPress(data, key, event){
+		
+		var isScrollKey = false;
 		
 		switch(key){
 			case 27:		//escape - close lightbox
 				if(g_temp.isOpened == true)
 					t.close("keypress");
 			break;
+			case 38:	//up and down arrows
+			case 40:
+			case 33:	//page up and down
+			case 34:
+				isScrollKey = true;
+			break;
 		}
+		
+		if(g_temp.isOpened == true && isScrollKey == true)
+			event.preventDefault();
+		
 		
 	}
 	

@@ -8,7 +8,7 @@
 		
 		if(!options)
 			var options = {};
-		
+				
 		var objGallery = new UniteGalleryMain();
 		objGallery.run(galleryID, options);
 		
@@ -626,22 +626,24 @@ function UniteGalleryMain(){
 					 jQuery.removeData(objChild, "lazyload-src");
 				 }
 				 
-				 var imageSrc = objChild.attr("src");
+				 //get the big image
+				 var imageSrc = objChild.data("image");
+				 if(!imageSrc || typeof imageSrc == "undefined")				 
+					 imageSrc = objChild.attr("src");
+				 
 				 var dataThumb = objChild.data("thumb");
 				 
 				 //if exists data-thumb, then the big image is src
 				 if(typeof dataThumb != "undefined" && dataThumb != ""){
 					 objItem.urlThumb = dataThumb;
 					 objItem.urlImage = imageSrc;
-					 objChild.attr("src", dataThumb);
+					 //objChild.attr("src", dataThumb);
 				 }else{
-					 
 					 //if not, the thumb is src
-
 					 objItem.urlThumb = imageSrc;
 					 objItem.urlImage = objChild.data("image");
 				 }
-				 
+				 				 
 				 objItem.title = objChild.attr("alt");
 				 
 				 //always set thumb image to object
@@ -791,6 +793,7 @@ function UniteGalleryMain(){
 			 numIndex++;
 			 
 		 }
+		 
 		 
 		 g_numItems = g_arrItems.length;
 		 
@@ -1114,21 +1117,32 @@ function UniteGalleryMain(){
 		var obj = jQuery(event.target);
 		if(obj.is("textarea") || obj.is("select") || obj.is("input"))
 			return(true);
-			
+						
 		 var keyCode = (event.charCode) ? event.charCode :((event.keyCode) ? event.keyCode :((event.which) ? event.which : 0));
+		 
+		 var wasAction = true;
 		 
 		 switch(keyCode){
 			 case 39:	//right key
 				 t.nextItem();
-				 event.preventDefault();
 			 break;
 			 case 37:	//left key
 				 t.prevItem();
-				 event.preventDefault();
 			 break;
+			 default:
+				 wasAction = false;
+			 break; 
 		 }
 		 
-		g_objGallery.trigger(t.events.GALLERY_KEYPRESS, keyCode);
+		 //only first page gallery affected
+		 
+		 if(wasAction == true){
+			 event.preventDefault();
+			 event.stopPropagation();
+			 event.stopImmediatePropagation();
+		 }
+		 
+		g_objGallery.trigger(t.events.GALLERY_KEYPRESS, [keyCode,event]);
 	}
 	
 	

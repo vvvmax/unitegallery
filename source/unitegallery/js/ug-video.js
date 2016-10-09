@@ -874,7 +874,6 @@ function UGYoutubeAPI(){
 	 */
 	function onPlayerReady(){
 		g_isPlayerReady = true;
-		
 	}
 	
 	

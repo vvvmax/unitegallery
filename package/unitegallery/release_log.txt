@@ -1,3 +1,19 @@
+version 1.7.32
+
+-bug fix: fixed left arrow inside arrows not in place bug
+
+version 1.7.31
+
+-bug fix: on keyboard event only first gallery affected
+
+version 1.7.30
+
+-bug fix: made option for removing "src" from the image and replace it by data-image=""
+
+version 1.7.29
+
+-bug fix: fixed slash in paths issues
+
 version 1.7.28
 
 -feature: updated tiles grid with options: grid_min_cols, grid_space_between_mobile for better responsiveness

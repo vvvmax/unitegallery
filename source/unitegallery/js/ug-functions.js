@@ -1002,7 +1002,7 @@ function UGFunctions(){
 			obj.style += "left:"+obj.imageLeft+"px;";
 		}
 		
-		urlImage = urlImage.replace('"','\"');
+		urlImage = t.escapeDoubleSlash(urlImage);
 		
 		htmlImage += " style='"+obj.style+"'";
 		htmlImage += " src=\""+urlImage+"\"";
@@ -1109,6 +1109,7 @@ function UGFunctions(){
 			
 			objImage.css(objCss);			
 		}
+		
 		
 		return(obj);
 	}
@@ -1732,6 +1733,7 @@ function UGFunctions(){
 	
 	this.z_________GENERAL_FUNCTIONS_______ = function(){}
 	
+	
 	/**
 	 * check if current jquery version is more then minimal version
 	 * version can be "1.8.0" for example
@@ -2251,6 +2253,15 @@ function UGFunctions(){
 		var text = html.replace(/(<([^>]+)>)/ig,"");
 		
 		return(text);
+	}
+	
+	
+	/**
+	 * escape double slash
+	 */
+	this.escapeDoubleSlash = function(str){
+		
+		return str.replace('"','\"');
 	}
 	
 	

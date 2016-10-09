@@ -728,6 +728,7 @@ function UGSlider(){
 		
 		var objSize = g_functions.scaleImageExactSizeInParent(objImage, objItem.imageWidth, objItem.imageHeight, constantWidth, constantHeight, scaleMode);
 		
+		
 		return(objSize);
 	}
 
@@ -768,13 +769,14 @@ function UGSlider(){
 			
 			var objImageData = {};
 			
-			if(slideType != "image" && g_options.slider_video_constantsize == true)
+			if(slideType != "image" && g_options.slider_video_constantsize == true){
 				objImageData = scaleImageConstantSize(objImage, objItem);
-			else
+			}
+			else{
 				objImageData = g_functions.scaleImageFitParent(objImage, objItem.imageWidth, objItem.imageHeight, scaleMode, objPadding);
-
-			setImageDesign(objImage, slideType, objImageData);
+			}
 			
+			setImageDesign(objImage, slideType, objImageData);
 			g_objThis.trigger(t.events.AFTER_PUT_IMAGE, objSlide);
 			
 		}
@@ -792,6 +794,9 @@ function UGSlider(){
 				else
 					var objImageData = g_functions.getImageInsideParentData(objItemWrapper, objItem.imageWidth, objItem.imageHeight, scaleMode, objPadding);
 				
+				//set missing css width
+				objImage.css("width",objImageData.imageWidth+"px");
+						
 				setImageDesign(objImage, slideType, objImageData);
 				
 				g_objThis.trigger(t.events.AFTER_PUT_IMAGE, objSlide);
@@ -834,8 +839,9 @@ function UGSlider(){
 					
 					if(slideType != "image" && g_options.slider_video_constantsize == true)
 						scaleImageConstantSize(objImage, objItem);
-					else
+					else{
 						objImageData = g_functions.scaleImageFitParent(objImage, objItem.imageWidth, objItem.imageHeight, scaleMode, objPadding);
+					}
 					
 					objImage.fadeTo(0,1);
 					
@@ -2372,11 +2378,13 @@ function UGSlider(){
 		
 		var objFitSize = g_functions.getImageInsideParentData(objParent, objItem.imageWidth, objItem.imageHeight, scaleMode, objPadding);
 		var objSize = g_functions.getElementSize(objImage);
+
+		var output = false;
 		
 		if(objFitSize.imageWidth == objSize.width)
-			return(true);
-		
-		return(false);
+			output = true;
+				
+		return(output);
 	}
 	
 	
