@@ -648,6 +648,9 @@ function UniteGalleryMain(){
 				 
 				 //always set thumb image to object
 				 objItem.objThumbImage = objChild;
+				 
+				 objItem.objThumbImage.attr("src", objItem.urlThumb);
+				 
 			 }else{
 				 
 				 if(itemType == "image")

@@ -138,7 +138,7 @@ function UGThumbsGeneral(){
 				 var objThumbWrapper = jQuery(htmlThumb);
 				 
 				 var objImage = objItem.objThumbImage;
-				 
+				
 				 if(g_temp.customThumbs == false){
  				 
 					 if(g_options.thumb_show_loader == true && objImage){

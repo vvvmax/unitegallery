@@ -1,4 +1,4 @@
-// Unite Gallery, Version: 1.7.32, released 09 Oct 2016 
+// Unite Gallery, Version: 1.7.33, released 12 Oct 2016 
 
 
 
@@ -2458,7 +2458,7 @@ function UGThumbsGeneral(){
 				 var objThumbWrapper = jQuery(htmlThumb);
 				 
 				 var objImage = objItem.objThumbImage;
-				 
+				
 				 if(g_temp.customThumbs == false){
  				 
 					 if(g_options.thumb_show_loader == true && objImage){
@@ -19779,6 +19779,9 @@ function UniteGalleryMain(){
 				 
 				 //always set thumb image to object
 				 objItem.objThumbImage = objChild;
+				 
+				 objItem.objThumbImage.attr("src", objItem.urlThumb);
+				 
 			 }else{
 				 
 				 if(itemType == "image")
