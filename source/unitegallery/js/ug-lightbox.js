@@ -132,7 +132,7 @@ function UGLightbox(){
 		
 		g_options = jQuery.extend(g_options, g_defaults);
 		g_options = jQuery.extend(g_options, customOptions);
-	
+		
 		g_temp.originalOptions = jQuery.extend({}, g_options);
 		
 		if(g_options.lightbox_type == "compact"){
@@ -598,7 +598,6 @@ function UGLightbox(){
 		
 		if(g_temp.isArrowsOnHoverMode == true && isImageInPlace == true && isMouseInsideImage() == false)
 			hideArrows(true);
-		
 		
 		if(isImageInPlace == false){
 			var leftArrowLeft = g_functions.getElementRelativePos(g_objArrowLeft, "left", g_options.lightbox_arrows_offset);
@@ -1572,7 +1571,12 @@ function UGLightbox(){
 		g_temp.isCompact = false;
 		modifyOptions();
 		
+		g_temp.isArrowsInside = false;
+		g_temp.isArrowsOnHoverMode = false;
+	
 		g_options = jQuery.extend({}, g_temp.originalOptions);
+		
+		g_options.lightbox_arrows_position = "sides";
 		
 		g_objSlider.setOptions(g_options);
 	}
@@ -1584,8 +1588,9 @@ function UGLightbox(){
 	this.putHtml = function(){
 		
 		//check if switch to wide mode
-		var isMobile = g_gallery.isMobileMode();
-		if(isMobile && g_temp.isCompact == true)
+		var isSmallWindow = g_gallery.isSmallWindow();
+		
+		if(isSmallWindow && g_temp.isCompact == true)
 			switchToWide();
 		
 		putLightboxHtml();

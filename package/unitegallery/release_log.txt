@@ -1,3 +1,11 @@
+version 1.7.35
+
+-bug fix: fixed some errors related to jquery 3.0
+
+version 1.7.34
+
+-bug fix: the lightbox was switched to wide even on normal screens
+
 version 1.7.33
 
 -bug fix: fixed no thumb image bug

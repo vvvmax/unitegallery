@@ -1,4 +1,4 @@
-// Unite Gallery, Version: 1.7.33, released 12 Oct 2016 
+// Unite Gallery, Version: 1.7.35, released 29 Oct 2016 
 
 
 
@@ -2316,7 +2316,8 @@ jQuery.easing.jswing=jQuery.easing.swing,jQuery.extend(jQuery.easing,{def:"easeO
 /**
  * ismouseover function - check if the mouse over some object
  */
-!function(t){function e(){var i=this===document?t(this):t(this).contents();i.mousemove(function(e){t.mlp={x:e.pageX,y:e.pageY}}),i.find("iframe").load(e)}t.mlp={x:0,y:0},t(e),t.fn.ismouseover=function(){var e=!1;return this.eq(0).each(function(){var i=t(this).is("iframe")?t(this).contents().find("body"):t(this),n=i.offset();e=n.left<=t.mlp.x&&n.left+i.outerWidth()>t.mlp.x&&n.top<=t.mlp.y&&n.top+i.outerHeight()>t.mlp.y}),e}}(jQuery);
+!function(t){function e(){var i=this===document?t(this):t(this).contents();i.mousemove(function(e){t.mlp={x:e.pageX,y:e.pageY}}),i.find("iframe").on("load",e)}t.mlp={x:0,y:0},t(e),t.fn.ismouseover=function(){var e=!1;return this.eq(0).each(function(){var i=t(this).is("iframe")?t(this).contents().find("body"):t(this),n=i.offset();e=n.left<=t.mlp.x&&n.left+i.outerWidth()>t.mlp.x&&n.top<=t.mlp.y&&n.top+i.outerHeight()>t.mlp.y}),e}}(jQuery);
+
 
 
 function UGThumbsGeneral(){
@@ -21328,6 +21329,24 @@ function UniteGalleryMain(){
 	
 	
 	/**
+	 * get if small screen
+	 */
+	this.isSmallWindow = function(){
+		
+		var windowWidth = jQuery(window).width();
+		
+		
+		if(!windowWidth)
+			return(true);
+		
+		if(windowWidth <= 480)
+			return(true);
+		
+		return(false);
+	}
+	
+	
+	/**
 	 * change gallery items
 	 */
 	this.changeItems = function(itemsContent, cacheID){
@@ -21643,7 +21662,7 @@ function UGLightbox(){
 		
 		g_options = jQuery.extend(g_options, g_defaults);
 		g_options = jQuery.extend(g_options, customOptions);
-	
+		
 		g_temp.originalOptions = jQuery.extend({}, g_options);
 		
 		if(g_options.lightbox_type == "compact"){
@@ -22109,7 +22128,6 @@ function UGLightbox(){
 		
 		if(g_temp.isArrowsOnHoverMode == true && isImageInPlace == true && isMouseInsideImage() == false)
 			hideArrows(true);
-		
 		
 		if(isImageInPlace == false){
 			var leftArrowLeft = g_functions.getElementRelativePos(g_objArrowLeft, "left", g_options.lightbox_arrows_offset);
@@ -23083,7 +23101,12 @@ function UGLightbox(){
 		g_temp.isCompact = false;
 		modifyOptions();
 		
+		g_temp.isArrowsInside = false;
+		g_temp.isArrowsOnHoverMode = false;
+	
 		g_options = jQuery.extend({}, g_temp.originalOptions);
+		
+		g_options.lightbox_arrows_position = "sides";
 		
 		g_objSlider.setOptions(g_options);
 	}
@@ -23095,8 +23118,9 @@ function UGLightbox(){
 	this.putHtml = function(){
 		
 		//check if switch to wide mode
-		var isMobile = g_gallery.isMobileMode();
-		if(isMobile && g_temp.isCompact == true)
+		var isSmallWindow = g_gallery.isSmallWindow();
+		
+		if(isSmallWindow && g_temp.isCompact == true)
 			switchToWide();
 		
 		putLightboxHtml();

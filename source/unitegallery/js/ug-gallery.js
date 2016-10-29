@@ -2197,6 +2197,24 @@ function UniteGalleryMain(){
 	
 	
 	/**
+	 * get if small screen
+	 */
+	this.isSmallWindow = function(){
+		
+		var windowWidth = jQuery(window).width();
+		
+		
+		if(!windowWidth)
+			return(true);
+		
+		if(windowWidth <= 480)
+			return(true);
+		
+		return(false);
+	}
+	
+	
+	/**
 	 * change gallery items
 	 */
 	this.changeItems = function(itemsContent, cacheID){
