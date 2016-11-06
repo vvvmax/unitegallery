@@ -592,7 +592,7 @@ function UniteGalleryMain(){
 	function fillItemsArray(arrChildren){
 		
 		g_arrItems = [];
-				
+		
 		var isMobile = t.isMobileMode();
 		
 		 var numIndex = 0;
@@ -626,23 +626,33 @@ function UniteGalleryMain(){
 					 jQuery.removeData(objChild, "lazyload-src");
 				 }
 				 
-				 //get the big image
-				 var imageSrc = objChild.data("image");
-				 if(!imageSrc || typeof imageSrc == "undefined")				 
-					 imageSrc = objChild.attr("src");
+				 //src is thumb
+				 var urlImage = objChild.data("image");
+				 var urlThumb = objChild.data("thumb");
 				 
-				 var dataThumb = objChild.data("thumb");
+				 if(typeof(urlImage) == "undefined")
+					 urlImage = null;
 				 
-				 //if exists data-thumb, then the big image is src
-				 if(typeof dataThumb != "undefined" && dataThumb != ""){
-					 objItem.urlThumb = dataThumb;
-					 objItem.urlImage = imageSrc;
-					 //objChild.attr("src", dataThumb);
-				 }else{
-					 //if not, the thumb is src
-					 objItem.urlThumb = imageSrc;
-					 objItem.urlImage = objChild.data("image");
-				 }
+				 if(typeof(urlThumb) == "undefined")
+					 urlThumb = null;
+				 
+				 var imageSrc = objChild.attr("src");
+				 
+				 if(!urlImage)
+					 urlImage = imageSrc;
+					 
+				 if(!urlThumb)
+					 urlThumb = imageSrc;
+				 
+				 if(!urlThumb)
+					 urlThumb = urlImage;
+				 
+				 if(!urlImage)
+					 urlImage = urlThumb;
+				 
+				 
+				 objItem.urlThumb = urlThumb;
+				 objItem.urlImage = urlImage;
 				 				 
 				 objItem.title = objChild.attr("alt");
 				 
@@ -653,8 +663,12 @@ function UniteGalleryMain(){
 				 
 			 }else{
 				 
-				 if(itemType == "image")
+				 if(itemType == "image"){
+					 trace("Problematic gallery item found:");
+					 trace(objChild);
+					 trace("Please look for some third party js script that could add this item to the gallery");
 					 throw new Error("The item should not be image type");
+				 }
 				 
 				 objItem.urlThumb = objChild.data("thumb");
 				 objItem.title = objChild.data("title");
@@ -1181,6 +1195,7 @@ function UniteGalleryMain(){
 			
 			storeLastSize();
 			g_objGallery.trigger(t.events.SIZE_CHANGE);
+			
 		}
 		
 	}
@@ -1282,6 +1297,9 @@ function UniteGalleryMain(){
 			 g_objWrapper.css("width","auto");
 			 g_functions.whenContiniousEventOver("gallery_resize", onGalleryResized, g_temp.resizeDelay);
 		 });
+		 
+		 //check resize once in a time
+		 setInterval(onGalleryResized, 2000);
 		 
 		 //fullscreen:
 		 g_functions.addFullScreenChangeEvent(onFullScreenChange);

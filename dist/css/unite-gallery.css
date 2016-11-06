@@ -24,7 +24,9 @@
 .ug-videoplayer-wrapper video{
 	height:100%;
 	width:100%;
+	visibility: visible !important;
 }
+
 
 .---------General_Styles--------{}
 

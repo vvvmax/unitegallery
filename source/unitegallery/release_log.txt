@@ -1,3 +1,25 @@
+version 1.7.37
+
+-bug fix: fixed the thumb image as big image bug
+
+version 1.7.36
+
+-protection: made some protection against video visibility:hidden
+-protection: added some protection against js scripts that add additional items inside the gallery
+-change: add a check if the gallery resized once in 2 seconds
+
+version 1.7.35
+
+-bug fix: fixed some errors related to jquery 3.0
+
+version 1.7.34
+
+-bug fix: the lightbox was switched to wide even on normal screens
+
+version 1.7.33
+
+-bug fix: fixed no thumb image bug
+
 version 1.7.32
 
 -bug fix: fixed left arrow inside arrows not in place bug

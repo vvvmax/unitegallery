@@ -411,6 +411,7 @@ function UGTheme_default(){
 		 g_objSlider.setPosition(sliderLeft, sliderTop);		
 	}
 	
+	
 	/**
 	 * check if need to hide the panel according the options.
 	 */
