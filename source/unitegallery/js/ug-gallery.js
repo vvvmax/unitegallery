@@ -7,8 +7,12 @@
 		var galleryID = "#" + element.attr("id");
 		
 		if(!options)
-			var options = {};
-				
+			options = {};
+
+		var ug_options = jQuery(galleryID).data("ug");
+		if ((typeof ug_options != "undefined") && (ug_options != null) && (typeof ug_options == "object"))
+			options = jQuery.extend(ug_options, options);
+
 		var objGallery = new UniteGalleryMain();
 		objGallery.run(galleryID, options);
 		
