@@ -547,7 +547,7 @@ function UGVimeoAPI(){
 	this.isAPILoaded = false;
 	
 	var t = this, g_objThis = jQuery(this), g_intHandle;
-	var g_player = null, g_isPlayerReady = false, g_lastCotnainerID, g_cueChangeAutoplay = false;
+	var g_player = null, g_isPlayerReady = false, g_lastContainerID, g_cueChangeAutoplay = false;
 	
 	
 	this.events = {
@@ -616,7 +616,7 @@ function UGVimeoAPI(){
 			
 		});
 		
-		g_lastCotnainerID = divID;		
+		g_lastContainerID = divID;
 	}
 	
 	/**
@@ -697,8 +697,8 @@ function UGVimeoAPI(){
 			g_isPlayerReady = false;
 		}
 		
-		if(g_lastCotnainerID){
-			jQuery("#" + g_lastCotnainerID).html("");			
+		if(g_lastContainerID){
+			jQuery("#" + g_lastContainerID).html("");
 		}
 	
 	}
