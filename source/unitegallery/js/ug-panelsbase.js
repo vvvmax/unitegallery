@@ -74,14 +74,26 @@ function UGPanelsBase(){
 		// set handle events
 		if (g_objHandle){
 			g_objHandle.initEvents();
-			
+
 			//set on slider action events
-			g_objGallery.on(g_gallery.events.SLIDER_ACTION_START, function(){			
-				g_objHandle.hideHandle();
+			g_objGallery.on(g_gallery.events.SLIDER_ACTION_START, function(){
+
+				var objects = this.getObjects();
+				var options = objects.g_objSlider.getOptions();
+
+				if (options.slider_video_hide_handle_tip_on_start_player)
+					g_objHandle.hideHandle();
+
 			});
 			
-			g_objGallery.on(g_gallery.events.SLIDER_ACTION_END, function(){			
-				g_objHandle.showHandle();
+			g_objGallery.on(g_gallery.events.SLIDER_ACTION_END, function(){
+
+				var objects = this.getObjects();
+				var options = objects.g_objSlider.getOptions();
+
+				if (options.slider_video_hide_handle_tip_on_start_player)
+					g_objHandle.showHandle();
+
 			});
 			
 		}

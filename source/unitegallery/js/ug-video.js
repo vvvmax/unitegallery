@@ -1127,8 +1127,8 @@ function UGVideoPlayer(){
 		html += "<div id='"+g_temp.soundCloudPlayerID+"' class='ug-videoplayer-wrapper ug-videoplayer-soundcloud'></div>";
 		html += "<div id='"+g_temp.wistiaPlayerID+"' class='ug-videoplayer-wrapper ug-videoplayer-wistia'></div>";
 		
-		if(g_temp.standAloneMode == false && g_options.video_enable_closebutton == true)
-			html += "<div class='ug-videoplayer-button-close'></div>";
+		if(g_temp.standAloneMode == false && g_options.video_enable_closebutton)
+			html += "<div class='ug-videoplayer-button-close ug-skin-"+g_options.slider_video_closebutton_skin+"'></div>";
 		
 		html += "</div>";
 		
@@ -1141,7 +1141,7 @@ function UGVideoPlayer(){
 		g_objSoundCloud = g_objPlayer.children(".ug-videoplayer-soundcloud");
 		g_objWistia = g_objPlayer.children(".ug-videoplayer-wistia");
 		
-		if(g_temp.standAloneMode == false && g_options.video_enable_closebutton == true)
+		if(g_temp.standAloneMode == false && g_options.video_enable_closebutton)
 			g_objButtonClose = g_objPlayer.children(".ug-videoplayer-button-close")
 	}
 
@@ -1162,7 +1162,7 @@ function UGVideoPlayer(){
 		
 		g_objThis.trigger(t.events.PLAY_START);
 		
-		if(g_objButtonClose)
+		if(g_objButtonClose && g_options.slider_video_hide_close_button_on_event_playstart)
 			g_objButtonClose.hide();
 	}
 	
@@ -1174,7 +1174,7 @@ function UGVideoPlayer(){
 		
 		g_objThis.trigger(t.events.PLAY_STOP);
 		
-		if(g_objButtonClose)
+		if(g_objButtonClose && g_options.slider_video_hide_close_button_on_event_playstart)
 			g_objButtonClose.show();
 	}
 	
@@ -1274,7 +1274,7 @@ function UGVideoPlayer(){
 		g_functions.setElementSize(g_objPlayer, width, height);
 		
 		if(g_objButtonClose)
-			g_functions.placeElement(g_objButtonClose, "right", "top");
+			g_functions.placeElement(g_objButtonClose, g_options.slider_video_closebutton_align_hor, g_options.slider_video_closebutton_align_vert, g_options.slider_video_closebutton_offset_hor, g_options.slider_video_closebutton_offset_vert);
 		
 	}
 	
