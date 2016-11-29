@@ -2286,6 +2286,9 @@ function UGSlider(){
 			case "vimeo":
 				g_objVideoPlayer.playVimeo(objItem.videoid);
 			break;
+			case "rutube":
+				g_objVideoPlayer.playRutube(objItem.videoid);
+			break;
 			case "html5video":
 				g_objVideoPlayer.playHtml5Video(objItem.videoogv, objItem.videowebm, objItem.videomp4, objItem.urlImage);
 			break;

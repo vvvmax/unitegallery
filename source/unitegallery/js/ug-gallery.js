@@ -182,6 +182,7 @@ function UniteGalleryMain(){
 		thumbsType:null,
 		isYoutubePresent:false,			//flag if present youtube items
 		isVimeoPresent:false,			//flag if present vimeo items
+		isRutubePresent:false,			//flag if present rutube items
 		isHtml5VideoPresent:false,		//flag if present html5 video items
 		isSoundCloudPresent:false,		//flag if present soundcloud items
 		isWistiaPresent: false,			//flag if some wistia movie present
@@ -761,11 +762,13 @@ function UniteGalleryMain(){
 					 g_temp.isYoutubePresent = true;
 				break;
 			 	case "vimeo":
-			 		
 					objItem.videoid = objChild.data("videoid");
-										
 					g_temp.isVimeoPresent = true;
 			 	break;
+				case "rutube":
+					objItem.videoid = objChild.data("videoid");
+					g_temp.isRutubePresent = true;
+				break;
 			 	case "html5video":
 			 		objItem.videoogv = objChild.data("videoogv");
 			 		objItem.videowebm = objChild.data("videowebm");
@@ -833,6 +836,9 @@ function UniteGalleryMain(){
 		if(g_temp.isVimeoPresent)
 			g_ugVimeoAPI.loadAPI();
 		
+		if(g_temp.isRutubePresent)
+			g_ugRutubeAPI.loadAPI();
+
 		if(g_temp.isHtml5VideoPresent)
 			g_ugHtml5MediaAPI.loadAPI();
 		
