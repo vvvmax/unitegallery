@@ -1298,8 +1298,11 @@ function UniteGalleryMain(){
 			 g_functions.whenContiniousEventOver("gallery_resize", onGalleryResized, g_temp.resizeDelay);
 		 });
 		 
-		 //check resize once in a time
-		 setInterval(onGalleryResized, 2000);
+		 //check resize once in a time, start from 10 seconds
+		 setTimeout(function(){
+			 setInterval(onGalleryResized, 2000);			 
+		 }, 10000);
+		 
 		 
 		 //fullscreen:
 		 g_functions.addFullScreenChangeEvent(onFullScreenChange);

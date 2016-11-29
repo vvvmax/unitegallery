@@ -1,4 +1,4 @@
-// Unite Gallery, Version: 1.7.37, released 06 Nov 2016 
+// Unite Gallery, Version: 1.7.40, released 29 Nov 2016 
 
 
 
@@ -1467,6 +1467,7 @@ function UGFunctions(){
 	
 	this.z_________DATA_FUNCTIONS_______ = function(){}
 	
+	
 	/**
 	 * set data value
 	 */
@@ -2295,13 +2296,7 @@ var g_ugFunctions = new UGFunctions();
 
 /** -------------- EASING FUNCTIONS ---------------------*/
 
-//   swing, easeInQuad, easeOutQuad, easeInOutQuad, easeInCubic, easeOutCubic, easeInOutCubic, 
-//   easeInQuart, easeOutQuart, easeInOutQuart, easeInQuint, easeOutQuint, easeInOutQuint, easeInSine, 
-//   easeOutSine, easeInOutSine, easeInExpo, easeOutExpo, easeInOutExpo, easeInCirc, easeOutCirc, easeInOutCirc, 
-//   easeInElastic, easeOutElastic, easeInOutElastic, easeInBack, easeOutBack, easeInOutBack, easeInBounce, easeOutBounce, easeInOutBounce
-
-jQuery.easing.jswing=jQuery.easing.swing,jQuery.extend(jQuery.easing,{def:"easeOutQuad",swing:function(n,e,t,u,a){return jQuery.easing[jQuery.easing.def](n,e,t,u,a)},easeInQuad:function(n,e,t,u,a){return u*(e/=a)*e+t},easeOutQuad:function(n,e,t,u,a){return-u*(e/=a)*(e-2)+t},easeInOutQuad:function(n,e,t,u,a){return(e/=a/2)<1?u/2*e*e+t:-u/2*(--e*(e-2)-1)+t},easeInCubic:function(n,e,t,u,a){return u*(e/=a)*e*e+t},easeOutCubic:function(n,e,t,u,a){return u*((e=e/a-1)*e*e+1)+t},easeInOutCubic:function(n,e,t,u,a){return(e/=a/2)<1?u/2*e*e*e+t:u/2*((e-=2)*e*e+2)+t},easeInQuart:function(n,e,t,u,a){return u*(e/=a)*e*e*e+t},easeOutQuart:function(n,e,t,u,a){return-u*((e=e/a-1)*e*e*e-1)+t},easeInOutQuart:function(n,e,t,u,a){return(e/=a/2)<1?u/2*e*e*e*e+t:-u/2*((e-=2)*e*e*e-2)+t},easeInQuint:function(n,e,t,u,a){return u*(e/=a)*e*e*e*e+t},easeOutQuint:function(n,e,t,u,a){return u*((e=e/a-1)*e*e*e*e+1)+t},easeInOutQuint:function(n,e,t,u,a){return(e/=a/2)<1?u/2*e*e*e*e*e+t:u/2*((e-=2)*e*e*e*e+2)+t},easeInSine:function(n,e,t,u,a){return-u*Math.cos(e/a*(Math.PI/2))+u+t},easeOutSine:function(n,e,t,u,a){return u*Math.sin(e/a*(Math.PI/2))+t},easeInOutSine:function(n,e,t,u,a){return-u/2*(Math.cos(Math.PI*e/a)-1)+t},easeInExpo:function(n,e,t,u,a){return 0==e?t:u*Math.pow(2,10*(e/a-1))+t},easeOutExpo:function(n,e,t,u,a){return e==a?t+u:u*(-Math.pow(2,-10*e/a)+1)+t},easeInOutExpo:function(n,e,t,u,a){return 0==e?t:e==a?t+u:(e/=a/2)<1?u/2*Math.pow(2,10*(e-1))+t:u/2*(-Math.pow(2,-10*--e)+2)+t},easeInCirc:function(n,e,t,u,a){return-u*(Math.sqrt(1-(e/=a)*e)-1)+t},easeOutCirc:function(n,e,t,u,a){return u*Math.sqrt(1-(e=e/a-1)*e)+t},easeInOutCirc:function(n,e,t,u,a){return(e/=a/2)<1?-u/2*(Math.sqrt(1-e*e)-1)+t:u/2*(Math.sqrt(1-(e-=2)*e)+1)+t},easeInElastic:function(n,e,t,u,a){var r=1.70158,i=0,s=u;if(0==e)return t;if(1==(e/=a))return t+u;if(i||(i=.3*a),s<Math.abs(u)){s=u;var r=i/4}else var r=i/(2*Math.PI)*Math.asin(u/s);return-(s*Math.pow(2,10*(e-=1))*Math.sin(2*(e*a-r)*Math.PI/i))+t},easeOutElastic:function(n,e,t,u,a){var r=1.70158,i=0,s=u;if(0==e)return t;if(1==(e/=a))return t+u;if(i||(i=.3*a),s<Math.abs(u)){s=u;var r=i/4}else var r=i/(2*Math.PI)*Math.asin(u/s);return s*Math.pow(2,-10*e)*Math.sin(2*(e*a-r)*Math.PI/i)+u+t},easeInOutElastic:function(n,e,t,u,a){var r=1.70158,i=0,s=u;if(0==e)return t;if(2==(e/=a/2))return t+u;if(i||(i=.3*a*1.5),s<Math.abs(u)){s=u;var r=i/4}else var r=i/(2*Math.PI)*Math.asin(u/s);return 1>e?-.5*s*Math.pow(2,10*(e-=1))*Math.sin(2*(e*a-r)*Math.PI/i)+t:s*Math.pow(2,-10*(e-=1))*Math.sin(2*(e*a-r)*Math.PI/i)*.5+u+t},easeInBack:function(n,e,t,u,a,r){return void 0==r&&(r=1.70158),u*(e/=a)*e*((r+1)*e-r)+t},easeOutBack:function(n,e,t,u,a,r){return void 0==r&&(r=1.70158),u*((e=e/a-1)*e*((r+1)*e+r)+1)+t},easeInOutBack:function(n,e,t,u,a,r){return void 0==r&&(r=1.70158),(e/=a/2)<1?u/2*e*e*(((r*=1.525)+1)*e-r)+t:u/2*((e-=2)*e*(((r*=1.525)+1)*e+r)+2)+t},easeInBounce:function(n,e,t,u,a){return u-jQuery.easing.easeOutBounce(n,a-e,0,u,a)+t},easeOutBounce:function(n,e,t,u,a){return(e/=a)<1/2.75?7.5625*u*e*e+t:2/2.75>e?u*(7.5625*(e-=1.5/2.75)*e+.75)+t:2.5/2.75>e?u*(7.5625*(e-=2.25/2.75)*e+.9375)+t:u*(7.5625*(e-=2.625/2.75)*e+.984375)+t},easeInOutBounce:function(n,e,t,u,a){return a/2>e?.5*jQuery.easing.easeInBounce(n,2*e,0,u,a)+t:.5*jQuery.easing.easeOutBounce(n,2*e-a,0,u,a)+.5*u+t}});
-
+(function(factory){if(typeof define==="function"&&define.amd){define(["jquery"],function($){return factory($)})}else if(typeof module==="object"&&typeof module.exports==="object"){exports=factory(require("jquery"))}else{factory(jQuery)}})(function($){$.easing["jswing"]=$.easing["swing"];var pow=Math.pow,sqrt=Math.sqrt,sin=Math.sin,cos=Math.cos,PI=Math.PI,c1=1.70158,c2=c1*1.525,c3=c1+1,c4=2*PI/3,c5=2*PI/4.5;function bounceOut(x){var n1=7.5625,d1=2.75;if(x<1/d1){return n1*x*x}else if(x<2/d1){return n1*(x-=1.5/d1)*x+.75}else if(x<2.5/d1){return n1*(x-=2.25/d1)*x+.9375}else{return n1*(x-=2.625/d1)*x+.984375}}$.extend($.easing,{def:"easeOutQuad",swing:function(x){return $.easing[$.easing.def](x)},easeInQuad:function(x){return x*x},easeOutQuad:function(x){return 1-(1-x)*(1-x)},easeInOutQuad:function(x){return x<.5?2*x*x:1-pow(-2*x+2,2)/2},easeInCubic:function(x){return x*x*x},easeOutCubic:function(x){return 1-pow(1-x,3)},easeInOutCubic:function(x){return x<.5?4*x*x*x:1-pow(-2*x+2,3)/2},easeInQuart:function(x){return x*x*x*x},easeOutQuart:function(x){return 1-pow(1-x,4)},easeInOutQuart:function(x){return x<.5?8*x*x*x*x:1-pow(-2*x+2,4)/2},easeInQuint:function(x){return x*x*x*x*x},easeOutQuint:function(x){return 1-pow(1-x,5)},easeInOutQuint:function(x){return x<.5?16*x*x*x*x*x:1-pow(-2*x+2,5)/2},easeInSine:function(x){return 1-cos(x*PI/2)},easeOutSine:function(x){return sin(x*PI/2)},easeInOutSine:function(x){return-(cos(PI*x)-1)/2},easeInExpo:function(x){return x===0?0:pow(2,10*x-10)},easeOutExpo:function(x){return x===1?1:1-pow(2,-10*x)},easeInOutExpo:function(x){return x===0?0:x===1?1:x<.5?pow(2,20*x-10)/2:(2-pow(2,-20*x+10))/2},easeInCirc:function(x){return 1-sqrt(1-pow(x,2))},easeOutCirc:function(x){return sqrt(1-pow(x-1,2))},easeInOutCirc:function(x){return x<.5?(1-sqrt(1-pow(2*x,2)))/2:(sqrt(1-pow(-2*x+2,2))+1)/2},easeInElastic:function(x){return x===0?0:x===1?1:-pow(2,10*x-10)*sin((x*10-10.75)*c4)},easeOutElastic:function(x){return x===0?0:x===1?1:pow(2,-10*x)*sin((x*10-.75)*c4)+1},easeInOutElastic:function(x){return x===0?0:x===1?1:x<.5?-(pow(2,20*x-10)*sin((20*x-11.125)*c5))/2:pow(2,-20*x+10)*sin((20*x-11.125)*c5)/2+1},easeInBack:function(x){return c3*x*x*x-c1*x*x},easeOutBack:function(x){return 1+c3*pow(x-1,3)+c1*pow(x-1,2)},easeInOutBack:function(x){return x<.5?pow(2*x,2)*((c2+1)*2*x-c2)/2:(pow(2*x-2,2)*((c2+1)*(x*2-2)+c2)+2)/2},easeInBounce:function(x){return 1-bounceOut(1-x)},easeOutBounce:bounceOut,easeInOutBounce:function(x){return x<.5?(1-bounceOut(1-2*x))/2:(1+bounceOut(2*x-1))/2}})});
 
 /** -------------- JQuery Color Animations ---------------------*/
 
@@ -2316,7 +2311,7 @@ jQuery.easing.jswing=jQuery.easing.swing,jQuery.extend(jQuery.easing,{def:"easeO
 /**
  * ismouseover function - check if the mouse over some object
  */
-!function(t){function e(){var i=this===document?t(this):t(this).contents();i.mousemove(function(e){t.mlp={x:e.pageX,y:e.pageY}}),i.find("iframe").on("load",e)}t.mlp={x:0,y:0},t(e),t.fn.ismouseover=function(){var e=!1;return this.eq(0).each(function(){var i=t(this).is("iframe")?t(this).contents().find("body"):t(this),n=i.offset();e=n.left<=t.mlp.x&&n.left+i.outerWidth()>t.mlp.x&&n.top<=t.mlp.y&&n.top+i.outerHeight()>t.mlp.y}),e}}(jQuery);
+!function(t){function e(){try{var i=this===document?t(this):t(this).contents();}catch(error){return(false);}i.mousemove(function(e){t.mlp={x:e.pageX,y:e.pageY}}),i.find("iframe").on("load",e)}t.mlp={x:0,y:0},t(e),t.fn.ismouseover=function(){var e=!1;return this.eq(0).each(function(){var i=t(this).is("iframe")?t(this).contents().find("body"):t(this),n=i.offset();e=n.left<=t.mlp.x&&n.left+i.outerWidth()>t.mlp.x&&n.top<=t.mlp.y&&n.top+i.outerHeight()>t.mlp.y}),e}}(jQuery);
 
 
 
@@ -2934,6 +2929,7 @@ function UGThumbsGeneral(){
 		 */
 		function onMouseOver(objThumb){
 			
+			
 			//if touch enabled unbind event
 			if(g_temp.touchEnabled == true){
 				objThumbs.off("mouseenter").off("mouseleave");
@@ -3004,7 +3000,7 @@ function UGThumbsGeneral(){
 			objItem.isThumbImageLoaded = true;
 			
 			var objSize = g_functions.getImageOriginalSize(objImage);
-						
+			
 			objItem.thumbWidth = objSize.width;
 			objItem.thumbHeight = objSize.height;
 			objItem.thumbRatioByWidth = objSize.width / objSize.height;
@@ -8596,7 +8592,8 @@ function UGTiles(){
 	
 	this.events = {
 			THUMB_SIZE_CHANGE: "thumb_size_change",
-			TILES_FIRST_PLACED: "tiles_first_placed"		//only in case of justified
+			TILES_FIRST_PLACED: "tiles_first_placed",		//only in case of justified
+			ALL_TILES_LOADED: "all_tiles_loaded"
 	};
 	
 	var g_temp = {
@@ -8604,7 +8601,8 @@ function UGTiles(){
 			isFirstTimeRun:true,   //if run once
 			handle:null,		   //interval handle
 			isTransActive: false,  //is transition active
-			isTransInited: false  //if the transition function is set
+			isTransInited: false,  //if the transition function is set
+			isAllLoaded: false
 	};
 	
     var g_nestedWork = {
@@ -8935,7 +8933,7 @@ function UGTiles(){
 		if(g_vars.colHeights[numCol] !== undefined)
 			posy = g_vars.colHeights[numCol];
 		
-		var itemHeight = g_objTileDesign.getTileHeightByWidth(g_vars.colWidth, objTile);
+		var itemHeight = g_objTileDesign.getTileHeightByWidth(g_vars.colWidth, objTile, "placeTile");
 		
 		if(itemHeight === null){	//for custom html tile
 			if(g_options.tiles_enable_transition == true)
@@ -8981,7 +8979,7 @@ function UGTiles(){
 		
 		//do some operation before the transition
 		doBeforeTransition();
-				
+		
 		//resize all thumbs
 		g_objTileDesign.resizeAllTiles(g_vars.colWidth, g_objTileDesign.resizemode.VISIBLE_ELEMENTS);
 		
@@ -9056,7 +9054,7 @@ function UGTiles(){
 		var col = g_functions.getColByIndex(g_vars.numCols, index);
 
 		var objItem = g_gallery.getItem(index);
-		
+				
 		g_objTileDesign.resizeTile(objTile, g_vars.colWidth);
 		
 		placeTile(objTile, true, true, col);
@@ -9097,7 +9095,7 @@ function UGTiles(){
 			placeOrderedTile(objTile);
 		
 		}else{
-						
+			
 			g_objTileDesign.resizeTile(objTile, g_vars.colWidth);
 			placeTile(objTile, true, true);
 		}
@@ -9110,8 +9108,10 @@ function UGTiles(){
 	 * run columns type
 	 */
 	function runColumnsType(){
-
+		
 		var objThumbs = g_thumbs.getThumbs();
+		
+		g_temp.isAllLoaded = false;
 		
 		fillTilesVars();
 		
@@ -9141,6 +9141,7 @@ function UGTiles(){
 			
 			g_functions.checkImagesLoaded(objImages, function(){
 				setTransition();
+				g_objThis.trigger(t.events.ALL_TILES_LOADED);
 			});
 			
 		}else{	//dynamic size type
@@ -9159,6 +9160,8 @@ function UGTiles(){
 				}
 				
 				setTransition();
+				
+				g_objThis.trigger(t.events.ALL_TILES_LOADED);
 				
 			} ,function(objImage, isError){
 				
@@ -9391,6 +9394,8 @@ function UGTiles(){
 		
 		var objImages = jQuery(g_objWrapper).find("img.ug-thumb-image");
 		var objTiles = g_thumbs.getThumbs();
+
+		g_temp.isAllLoaded = false;
 		
 		objTiles.fadeTo(0,0);				
 		
@@ -9401,8 +9406,11 @@ function UGTiles(){
 				objTiles.fadeTo(0,1);
 				g_objThis.trigger(t.events.TILES_FIRST_PLACED);
 				setTransition();
+				
+				g_objThis.trigger(t.events.ALL_TILES_LOADED);
+				
 			});
-			
+						
 		}, function(objImage, isError){
 
 			objImage = jQuery(objImage);
@@ -9426,6 +9434,8 @@ function UGTiles(){
 
         var objImages = jQuery(g_objWrapper).find("img.ug-thumb-image");
         var objTiles = g_thumbs.getThumbs();
+
+        g_temp.isAllLoaded = false;
         
         objTiles.fadeTo(0, 0);
 
@@ -9439,6 +9449,8 @@ function UGTiles(){
             
             g_objThis.trigger(t.events.TILES_FIRST_PLACED);
             setTransition();
+			
+            g_objThis.trigger(t.events.ALL_TILES_LOADED);
 
         }, function (objImage, isError) {
 
@@ -9484,7 +9496,7 @@ function UGTiles(){
         g_nestedWork.gridY = 0;
         g_arrNestedItems = []
         
-        trace(g_nestedWork);
+        //trace(g_nestedWork);
         
     	var objTiles = g_thumbs.getThumbs();
 		objTiles.each(function(){
@@ -10204,7 +10216,10 @@ function UGTiles(){
 		
 		if(g_temp.isFirstTimeRun == true)
 			return(true);
-			
+		
+		if(g_temp.isAllLoaded == false)
+			return(false);
+		
 		switch(g_options.tiles_type){
 			case "columns":
 				placeTiles(false);
@@ -10232,8 +10247,18 @@ function UGTiles(){
 	 */
 	function initEvents(){
 		
-		g_objGallery.on(g_gallery.events.SIZE_CHANGE, onResize);
+		//only on first placed start size change event
+		g_objThis.on(t.events.ALL_TILES_LOADED, function(){
+						
+			if(g_temp.isAllLoaded == true)
+				return(true);
+			
+			g_temp.isAllLoaded = true;
+			
+		});
 		
+		g_objGallery.on(g_gallery.events.SIZE_CHANGE, onResize);
+				
 		g_objTileDesign.initEvents();
 				
 	}
@@ -10963,7 +10988,7 @@ function UGTileDesign(){
 	/**
 	 * get tile ratio
 	 */
-	function getTileRatio(objTile){
+	function getTileRatio(objTile, fromWhere){
 		
 		//global ratio
 		var ratio = g_temp.ratioByHeight;
@@ -10980,7 +11005,7 @@ function UGTileDesign(){
 				var item = t.getItemByTile(objTile);
 								
 				if(typeof item.thumbRatioByHeight != "undefined"){
-				
+					
 					if(item.thumbRatioByHeight == 0){
 						trace(item);
 						throw new Error("the item ratio not inited yet");
@@ -11408,7 +11433,7 @@ function UGTileDesign(){
 	 * set tile over style
 	 */
 	function setOverStyle(data, objTile){
-		
+				
 		objTile = jQuery(objTile);
 				
 		if(g_options.tile_enable_image_effect)
@@ -11699,7 +11724,7 @@ function UGTileDesign(){
 			}else{		//only height is missing
 				if(!newHeight){
 					
-					var newHeight = t.getTileHeightByWidth(newWidth, objTile);
+					var newHeight = t.getTileHeightByWidth(newWidth, objTile, "resizeTile");
 				}
 			}
 						
@@ -11744,7 +11769,7 @@ function UGTileDesign(){
 		var newHeight = null;
 		
 		if(g_options.tile_size_by == t.sizeby.GLOBAL_RATIO)
-			newHeight = t.getTileHeightByWidth(newWidth);
+			newHeight = t.getTileHeightByWidth(newWidth,null,"resizeAllTiles");
 		
 		var objTiles = g_thumbs.getThumbs();
 		objTiles.each(function(index, objTile){
@@ -11907,9 +11932,9 @@ function UGTileDesign(){
 	/**
 	 * get tile height by width
 	 */
-	this.getTileHeightByWidth = function(newWidth, objTile){
+	this.getTileHeightByWidth = function(newWidth, objTile, fromWhere){
 		
-		var ratio = getTileRatio(objTile);
+		var ratio = getTileRatio(objTile, fromWhere);
 		
 		if(ratio === null)
 			return(null);
@@ -20430,8 +20455,11 @@ function UniteGalleryMain(){
 			 g_functions.whenContiniousEventOver("gallery_resize", onGalleryResized, g_temp.resizeDelay);
 		 });
 		 
-		 //check resize once in a time
-		 setInterval(onGalleryResized, 2000);
+		 //check resize once in a time, start from 10 seconds
+		 setTimeout(function(){
+			 setInterval(onGalleryResized, 2000);			 
+		 }, 10000);
+		 
 		 
 		 //fullscreen:
 		 g_functions.addFullScreenChangeEvent(onFullScreenChange);
