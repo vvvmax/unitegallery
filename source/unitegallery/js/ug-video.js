@@ -540,6 +540,179 @@ function UGHtml5MediaAPI(){
 }
 
 
+/** -------------- VK API class ------------------------*/
+
+function UGVkAPI(){
+
+	this.isAPILoaded = false;
+
+	var t = this, g_objThis = jQuery(this), g_intHandle;
+	var g_player = null, g_isPlayerReady = false, g_lastContainerID;
+
+	this.events = {
+			START_PLAYING: "start_playing",
+			STOP_PLAYING: "stop_playing",
+			VIDEO_ENDED: "video_ended"
+	};
+
+	/**
+	 * load vk API
+	 */
+	this.loadAPI = function(){
+
+		if(g_ugVkAPI.isAPILoaded == true)
+			return(true);
+
+		g_ugVkAPI.isAPILoaded = true;
+	}
+
+	/**
+	 * actually put the video
+	 */
+	function putVideoActually(divID, videoID, width, height, isAutoplay){
+
+		g_player = null;
+		g_isPlayerReady = false;
+
+		var url = location.protocol+"//vk.com/video_ext.php?";
+		var vid = videoID.split('_');
+
+		var html = '';
+		var style = "margin: 0; padding: 0; background-color: transparent;";
+
+		var iframeID = divID + "_iframe";
+		var iframe = null;
+		var g_document = null;
+
+		url += 'oid=' + encodeURIComponent(vid[0]);
+		url += '&amp;id=' + encodeURIComponent(vid[1]);
+		url += '&amp;hash=' + encodeURIComponent(vid[2]);
+
+		if(isAutoplay === true)
+			url += "&amp;autoplay=1";
+
+		html = "<iframe id='" + iframeID + "' width='" + width + "' height='" + height + "' frameborder='0' webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>";
+
+		jQuery("#"+divID).html(html);
+
+		html  = "<html style='" + style + "'>";
+		html += "<head>";
+		html += "<script type='text/javascript'>";
+		html += "var p_window = null;";
+		html += "function onIframeLoad(o){ p_window = o; };";
+		html += "</script>";
+		html += "</head>";
+		html += "<body style='" + style + "'>";
+		html += "<iframe onload='onIframeLoad(this)' src='" + url + "' width='" + width + "' height='" + height + "' style='" + style + "' frameborder='0' webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>";
+		html += "</body>";
+		html += "</html>";
+
+		iframe = jQuery('#' + iframeID).get(0);
+
+		if(iframe.contentDocument) {
+			g_document = iframe.contentDocument;
+		}
+		else if (iframe.contentWindow) {
+			g_document = iframe.contentWindow.document;
+		}
+		else {
+			g_document = iframe.document;
+		};
+
+		if (g_document) {
+			g_document.open();
+			g_document.writeln(html);
+			g_document.close();
+			g_player = jQuery("#"+iframeID)[0].contentWindow;
+			initEvents();
+		};
+
+		g_lastContainerID = divID;
+	}
+
+	/**
+	 * init player events function
+	 */
+	function initEvents(){
+
+		/**
+		 * this procedure is a stub, while VK makes the API
+		 */
+
+		if(!g_player)
+			return(false);
+
+		g_isPlayerReady = true;
+
+		g_ugFunctions.addEvent(g_player, "message", function(e){
+
+			//console.log('<' + g_lastContainerID + '> ' + e.data);
+
+		});
+
+	}
+
+	/**
+	 * put the vk video
+	 */
+	this.putVideo = function(divID, data, width, height, isAutoplay){
+
+		putVideoActually(divID, data, width, height, isAutoplay);
+		return(true);
+
+	}
+
+	/**
+	 * do some command
+	 */
+	this.doCommand = function(command){
+
+		if((g_player == null) || (!g_player.p_window))
+			return(false);
+
+		if(g_isPlayerReady == false)
+			return(false);
+
+		switch(command){
+			case "play":
+				g_player.p_window.contentWindow.postMessage('video_play', '*');
+			break;
+			case "pause":
+				g_player.p_window.contentWindow.postMessage('video_pause', '*');
+			break;
+		}
+
+	}
+
+	/**
+	 * pause video
+	 */
+	this.pause = function(){
+		t.doCommand("pause");
+	}
+
+	/**
+	 * play video
+	 */
+	this.play = function(){
+		t.doCommand("play");
+	}
+
+	/**
+	 * destroy the player and empty the div
+	 */
+	this.destroy = function(){
+
+		g_player = null;
+		g_isPlayerReady = false;
+
+		if(g_lastContainerID)
+			jQuery("#" + g_lastContainerID).html("");
+
+	}
+
+}
+
 /** -------------- Dailymotion API ---------------------*/
 
 function UGDailymotionAPI(){
@@ -1436,9 +1609,9 @@ function UGYoutubeAPI(){
 function UGVideoPlayer(){
 	
 	var t = this, g_galleryID, g_objThis = jQuery(this), g_functions = new UGFunctions();
-	var g_youtubeAPI = new UGYoutubeAPI(), g_vimeoAPI = new UGVimeoAPI(), g_rutubeAPI = new UGRutubeAPI(), g_dailymotionAPI = new UGDailymotionAPI();
+	var g_youtubeAPI = new UGYoutubeAPI(), g_vimeoAPI = new UGVimeoAPI(), g_rutubeAPI = new UGRutubeAPI(), g_dailymotionAPI = new UGDailymotionAPI(), g_vkAPI = new UGVkAPI();
 	var g_html5API = new UGHtml5MediaAPI(), g_soundCloudAPI = new UGSoundCloudAPI(), g_wistiaAPI = new UGWistiaAPI();
-	var g_objPlayer, g_objYoutube, g_objVimeo, g_objRutube, g_objDailymotion, g_objHtml5, g_objButtonClose, g_objSoundCloud, g_objWistia;
+	var g_objPlayer, g_objYoutube, g_objVimeo, g_objRutube, g_objDailymotion, g_objVk, g_objHtml5, g_objButtonClose, g_objSoundCloud, g_objWistia;
 	var g_activePlayerType = null;
 	
 	var g_options = {
@@ -1459,6 +1632,7 @@ function UGVideoPlayer(){
 			vimeoPlayerID:"",
 			rutubePlayerID:"",
 			dailymotionPlayerID:"",
+			vkPlayerID:"",
 			html5PlayerID:"",
 			wistiaPlayerID:"",
 			soundCloudPlayerID:""
@@ -1493,6 +1667,7 @@ function UGVideoPlayer(){
 		g_temp.vimeoPlayerID = g_galleryID + "_videoplayer_vimeo";
 		g_temp.rutubePlayerID = g_galleryID + "_videoplayer_rutube";
 		g_temp.dailymotionPlayerID = g_galleryID + "_videoplayer_dailymotion";
+		g_temp.vkPlayerID = g_galleryID + "_videoplayer_vk";
 		g_temp.html5PlayerID = g_galleryID + "_videoplayer_html5";
 		g_temp.wistiaPlayerID = g_galleryID + "_videoplayer_wistia";
 		g_temp.soundCloudPlayerID = g_galleryID + "_videoplayer_soundcloud";
@@ -1503,6 +1678,7 @@ function UGVideoPlayer(){
 		html += "<div id='"+g_temp.vimeoPlayerID+"' class='ug-videoplayer-wrapper ug-videoplayer-vimeo' style='display:none'></div>";
 		html += "<div id='"+g_temp.rutubePlayerID+"' class='ug-videoplayer-wrapper ug-videoplayer-rutube' style='display:none'></div>";
 		html += "<div id='"+g_temp.dailymotionPlayerID+"' class='ug-videoplayer-wrapper ug-videoplayer-dailymotion' style='display:none'></div>";
+		html += "<div id='"+g_temp.vkPlayerID+"' class='ug-videoplayer-wrapper ug-videoplayer-vk' style='display:none'></div>";
 		html += "<div id='"+g_temp.html5PlayerID+"' class='ug-videoplayer-wrapper ug-videoplayer-html5'></div>";
 		html += "<div id='"+g_temp.soundCloudPlayerID+"' class='ug-videoplayer-wrapper ug-videoplayer-soundcloud'></div>";
 		html += "<div id='"+g_temp.wistiaPlayerID+"' class='ug-videoplayer-wrapper ug-videoplayer-wistia'></div>";
@@ -1519,6 +1695,7 @@ function UGVideoPlayer(){
 		g_objVimeo = g_objPlayer.children(".ug-videoplayer-vimeo");
 		g_objRutube = g_objPlayer.children(".ug-videoplayer-rutube");
 		g_objDailymotion = g_objPlayer.children(".ug-videoplayer-dailymotion");
+		g_objVk = g_objPlayer.children(".ug-videoplayer-vk");
 		g_objHtml5 = g_objPlayer.children(".ug-videoplayer-html5");
 		g_objSoundCloud = g_objPlayer.children(".ug-videoplayer-soundcloud");
 		g_objWistia = g_objPlayer.children(".ug-videoplayer-wistia");
@@ -1601,6 +1778,11 @@ function UGVideoPlayer(){
 		jQuery(g_dailymotionAPI).on(g_dailymotionAPI.events.STOP_PLAYING, onPlayStop);
 		jQuery(g_dailymotionAPI).on(g_dailymotionAPI.events.VIDEO_ENDED, onVideoEnded);
 
+		//vk events
+		jQuery(g_vkAPI).on(g_vkAPI.events.START_PLAYING, onPlayStart);
+		jQuery(g_vkAPI).on(g_vkAPI.events.STOP_PLAYING, onPlayStop);
+		jQuery(g_vkAPI).on(g_vkAPI.events.VIDEO_ENDED, onVideoEnded);
+
 		//html5 video events
 		jQuery(g_html5API).on(g_html5API.events.START_PLAYING, onPlayStart);
 		jQuery(g_html5API).on(g_html5API.events.STOP_PLAYING, onPlayStop);
@@ -1642,6 +1824,10 @@ function UGVideoPlayer(){
 		//dailymotion events
 		jQuery(g_dailymotionAPI).off(g_dailymotionAPI.events.START_PLAYING);
 		jQuery(g_dailymotionAPI).off(g_dailymotionAPI.events.STOP_PLAYING);
+
+		//vk events
+		jQuery(g_vkAPI).off(g_vkAPI.events.START_PLAYING);
+		jQuery(g_vkAPI).off(g_vkAPI.events.STOP_PLAYING);
 
 		//html5 video events
 		jQuery(g_html5API).off(g_html5API.events.START_PLAYING);
@@ -1750,6 +1936,9 @@ function UGVideoPlayer(){
 			case "dailymotion":
 				return g_dailymotionAPI;
 			break;
+			case "vk":
+				return g_vkAPI;
+			break;
 			case "wistia":
 				return g_wistiaAPI;
 			break;
@@ -1795,7 +1984,7 @@ function UGVideoPlayer(){
 	 */
 	function stopAndHidePlayers(except){
 		
-		var arrPlayers = ["youtube", "vimeo", "rutube", "dailymotion", "html5", "soundcloud", "wistia"];
+		var arrPlayers = ["youtube", "vimeo", "rutube", "dailymotion", "vk", "html5", "soundcloud", "wistia"];
 		for(var index in arrPlayers){
 			var player = arrPlayers[index];
 			if(player == except)
@@ -1820,6 +2009,11 @@ function UGVideoPlayer(){
 					g_dailymotionAPI.pause();
 					g_dailymotionAPI.destroy();
 					g_objDailymotion.hide();
+				break;
+				case "vk":
+					g_vkAPI.pause();
+					g_vkAPI.destroy();
+					g_objVk.hide();
 				break;
 				case "html5":
 					g_html5API.pause();
@@ -1933,6 +2127,25 @@ function UGVideoPlayer(){
 
 
 	/**
+	 * play vk
+	 */
+	this.playVk = function(videoID, isAutoplay){
+
+		if(typeof isAutoplay == "undefined")
+			var isAutoplay = true;
+
+		stopAndHidePlayers("vk");
+
+		g_objVk.show();
+
+		g_vkAPI.putVideo(g_temp.vkPlayerID, videoID, "100%", "100%", isAutoplay);
+
+		g_activePlayerType = "vk";
+
+	}
+
+
+	/**
 	 * play html5 video
 	 */
 	this.playHtml5Video = function(ogv, webm, mp4, posterImage, isAutoplay){
@@ -2003,6 +2216,7 @@ var g_ugYoutubeAPI = new UGYoutubeAPI();
 var g_ugVimeoAPI = new UGVimeoAPI();
 var g_ugRutubeAPI = new UGRutubeAPI();
 var g_ugDailymotionAPI = new UGDailymotionAPI();
+var g_ugVkAPI = new UGVkAPI();
 var g_ugHtml5MediaAPI = new UGHtml5MediaAPI();
 var g_ugSoundCloudAPI = new UGSoundCloudAPI();
 var g_ugWistiaAPI = new UGWistiaAPI();

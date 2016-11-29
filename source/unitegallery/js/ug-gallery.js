@@ -184,6 +184,7 @@ function UniteGalleryMain(){
 		isVimeoPresent:false,			//flag if present vimeo items
 		isRutubePresent:false,			//flag if present rutube items
 		isDailymotionPresent:false,		//flag if present dailymotion items
+		isVkPresent:false,			//flag if present vk items
 		isHtml5VideoPresent:false,		//flag if present html5 video items
 		isSoundCloudPresent:false,		//flag if present soundcloud items
 		isWistiaPresent: false,			//flag if some wistia movie present
@@ -774,6 +775,10 @@ function UniteGalleryMain(){
 					objItem.videoid = objChild.data("videoid");
 					g_temp.isDailymotionPresent = true;
 				break;
+				case "vk":
+					objItem.videoid = objChild.data("videoid");
+					g_temp.isVkPresent = true;
+				break;
 			 	case "html5video":
 			 		objItem.videoogv = objChild.data("videoogv");
 			 		objItem.videowebm = objChild.data("videowebm");
@@ -846,6 +851,9 @@ function UniteGalleryMain(){
 
 		if(g_temp.isDailymotionPresent)
 			g_ugDailymotionAPI.loadAPI();
+
+		if(g_temp.isVkPresent)
+			g_ugVkAPI.loadAPI();
 
 		if(g_temp.isHtml5VideoPresent)
 			g_ugHtml5MediaAPI.loadAPI();
