@@ -35,7 +35,8 @@ function UGTiles(){
 	
 	this.events = {
 			THUMB_SIZE_CHANGE: "thumb_size_change",
-			TILES_FIRST_PLACED: "tiles_first_placed"		//only in case of justified
+			TILES_FIRST_PLACED: "tiles_first_placed",		//only in case of justified
+			ALL_TILES_LOADED: "all_tiles_loaded"
 	};
 	
 	var g_temp = {
@@ -43,7 +44,8 @@ function UGTiles(){
 			isFirstTimeRun:true,   //if run once
 			handle:null,		   //interval handle
 			isTransActive: false,  //is transition active
-			isTransInited: false  //if the transition function is set
+			isTransInited: false,  //if the transition function is set
+			isAllLoaded: false
 	};
 	
     var g_nestedWork = {
@@ -374,7 +376,7 @@ function UGTiles(){
 		if(g_vars.colHeights[numCol] !== undefined)
 			posy = g_vars.colHeights[numCol];
 		
-		var itemHeight = g_objTileDesign.getTileHeightByWidth(g_vars.colWidth, objTile);
+		var itemHeight = g_objTileDesign.getTileHeightByWidth(g_vars.colWidth, objTile, "placeTile");
 		
 		if(itemHeight === null){	//for custom html tile
 			if(g_options.tiles_enable_transition == true)
@@ -420,7 +422,7 @@ function UGTiles(){
 		
 		//do some operation before the transition
 		doBeforeTransition();
-				
+		
 		//resize all thumbs
 		g_objTileDesign.resizeAllTiles(g_vars.colWidth, g_objTileDesign.resizemode.VISIBLE_ELEMENTS);
 		
@@ -495,7 +497,7 @@ function UGTiles(){
 		var col = g_functions.getColByIndex(g_vars.numCols, index);
 
 		var objItem = g_gallery.getItem(index);
-		
+				
 		g_objTileDesign.resizeTile(objTile, g_vars.colWidth);
 		
 		placeTile(objTile, true, true, col);
@@ -536,7 +538,7 @@ function UGTiles(){
 			placeOrderedTile(objTile);
 		
 		}else{
-						
+			
 			g_objTileDesign.resizeTile(objTile, g_vars.colWidth);
 			placeTile(objTile, true, true);
 		}
@@ -549,8 +551,10 @@ function UGTiles(){
 	 * run columns type
 	 */
 	function runColumnsType(){
-
+		
 		var objThumbs = g_thumbs.getThumbs();
+		
+		g_temp.isAllLoaded = false;
 		
 		fillTilesVars();
 		
@@ -580,6 +584,7 @@ function UGTiles(){
 			
 			g_functions.checkImagesLoaded(objImages, function(){
 				setTransition();
+				g_objThis.trigger(t.events.ALL_TILES_LOADED);
 			});
 			
 		}else{	//dynamic size type
@@ -598,6 +603,8 @@ function UGTiles(){
 				}
 				
 				setTransition();
+				
+				g_objThis.trigger(t.events.ALL_TILES_LOADED);
 				
 			} ,function(objImage, isError){
 				
@@ -830,6 +837,8 @@ function UGTiles(){
 		
 		var objImages = jQuery(g_objWrapper).find("img.ug-thumb-image");
 		var objTiles = g_thumbs.getThumbs();
+
+		g_temp.isAllLoaded = false;
 		
 		objTiles.fadeTo(0,0);				
 		
@@ -840,8 +849,11 @@ function UGTiles(){
 				objTiles.fadeTo(0,1);
 				g_objThis.trigger(t.events.TILES_FIRST_PLACED);
 				setTransition();
+				
+				g_objThis.trigger(t.events.ALL_TILES_LOADED);
+				
 			});
-			
+						
 		}, function(objImage, isError){
 
 			objImage = jQuery(objImage);
@@ -865,6 +877,8 @@ function UGTiles(){
 
         var objImages = jQuery(g_objWrapper).find("img.ug-thumb-image");
         var objTiles = g_thumbs.getThumbs();
+
+        g_temp.isAllLoaded = false;
         
         objTiles.fadeTo(0, 0);
 
@@ -878,6 +892,8 @@ function UGTiles(){
             
             g_objThis.trigger(t.events.TILES_FIRST_PLACED);
             setTransition();
+			
+            g_objThis.trigger(t.events.ALL_TILES_LOADED);
 
         }, function (objImage, isError) {
 
@@ -923,7 +939,7 @@ function UGTiles(){
         g_nestedWork.gridY = 0;
         g_arrNestedItems = []
         
-        trace(g_nestedWork);
+        //trace(g_nestedWork);
         
     	var objTiles = g_thumbs.getThumbs();
 		objTiles.each(function(){
@@ -1643,7 +1659,10 @@ function UGTiles(){
 		
 		if(g_temp.isFirstTimeRun == true)
 			return(true);
-			
+		
+		if(g_temp.isAllLoaded == false)
+			return(false);
+		
 		switch(g_options.tiles_type){
 			case "columns":
 				placeTiles(false);
@@ -1671,8 +1690,18 @@ function UGTiles(){
 	 */
 	function initEvents(){
 		
-		g_objGallery.on(g_gallery.events.SIZE_CHANGE, onResize);
+		//only on first placed start size change event
+		g_objThis.on(t.events.ALL_TILES_LOADED, function(){
+						
+			if(g_temp.isAllLoaded == true)
+				return(true);
+			
+			g_temp.isAllLoaded = true;
+			
+		});
 		
+		g_objGallery.on(g_gallery.events.SIZE_CHANGE, onResize);
+				
 		g_objTileDesign.initEvents();
 				
 	}

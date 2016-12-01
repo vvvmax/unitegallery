@@ -636,7 +636,7 @@ function UGTileDesign(){
 	/**
 	 * get tile ratio
 	 */
-	function getTileRatio(objTile){
+	function getTileRatio(objTile, fromWhere){
 		
 		//global ratio
 		var ratio = g_temp.ratioByHeight;
@@ -653,7 +653,7 @@ function UGTileDesign(){
 				var item = t.getItemByTile(objTile);
 								
 				if(typeof item.thumbRatioByHeight != "undefined"){
-				
+					
 					if(item.thumbRatioByHeight == 0){
 						trace(item);
 						throw new Error("the item ratio not inited yet");
@@ -1081,7 +1081,7 @@ function UGTileDesign(){
 	 * set tile over style
 	 */
 	function setOverStyle(data, objTile){
-		
+				
 		objTile = jQuery(objTile);
 				
 		if(g_options.tile_enable_image_effect)
@@ -1372,7 +1372,7 @@ function UGTileDesign(){
 			}else{		//only height is missing
 				if(!newHeight){
 					
-					var newHeight = t.getTileHeightByWidth(newWidth, objTile);
+					var newHeight = t.getTileHeightByWidth(newWidth, objTile, "resizeTile");
 				}
 			}
 						
@@ -1417,7 +1417,7 @@ function UGTileDesign(){
 		var newHeight = null;
 		
 		if(g_options.tile_size_by == t.sizeby.GLOBAL_RATIO)
-			newHeight = t.getTileHeightByWidth(newWidth);
+			newHeight = t.getTileHeightByWidth(newWidth,null,"resizeAllTiles");
 		
 		var objTiles = g_thumbs.getThumbs();
 		objTiles.each(function(index, objTile){
@@ -1580,9 +1580,9 @@ function UGTileDesign(){
 	/**
 	 * get tile height by width
 	 */
-	this.getTileHeightByWidth = function(newWidth, objTile){
+	this.getTileHeightByWidth = function(newWidth, objTile, fromWhere){
 		
-		var ratio = getTileRatio(objTile);
+		var ratio = getTileRatio(objTile, fromWhere);
 		
 		if(ratio === null)
 			return(null);

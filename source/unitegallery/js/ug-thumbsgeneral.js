@@ -613,6 +613,7 @@ function UGThumbsGeneral(){
 		 */
 		function onMouseOver(objThumb){
 			
+			
 			//if touch enabled unbind event
 			if(g_temp.touchEnabled == true){
 				objThumbs.off("mouseenter").off("mouseleave");
@@ -683,7 +684,7 @@ function UGThumbsGeneral(){
 			objItem.isThumbImageLoaded = true;
 			
 			var objSize = g_functions.getImageOriginalSize(objImage);
-						
+			
 			objItem.thumbWidth = objSize.width;
 			objItem.thumbHeight = objSize.height;
 			objItem.thumbRatioByWidth = objSize.width / objSize.height;
