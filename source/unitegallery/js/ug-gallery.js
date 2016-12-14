@@ -107,6 +107,7 @@ function UniteGalleryMain(){
 	var g_objThumbs, g_objSlider, g_functions = new UGFunctions(), g_objTabs;
 	var g_arrItems = [], g_numItems, g_selectedItem = null, g_selectedItemIndex = -1;
 	var g_objTheme, g_objCache = {};
+	var g_panel = null;
 	
 	this.events = {
 			ITEM_CHANGE: "item_change",
@@ -1371,6 +1372,48 @@ function UniteGalleryMain(){
 	
 	
 	/**
+	 * get gridpanel or strippanel
+	 */
+	this.getPanel = function() {
+		return (g_panel);
+	}
+
+	/**
+	 * set gridpanel or strippanel
+	 */
+	this.setPanel = function(panel) {
+		g_panel = panel;
+	}
+
+	/**
+	 * toggle gridpanel or strippanel (show, hide)
+	 */
+	function togglePanel(noAnimation) {
+		if (g_panel) {
+			if (g_panel.isPanelClosed() == false)
+				g_panel.openPanel(noAnimation);
+			else
+				g_panel.closePanel(noAnimation);
+		};
+	}
+
+	/**
+	 * open gridpanel or strippanel
+	 */
+	this.openPanel = function(noAnimation) {
+		if (g_panel)
+			g_panel.openPanel(noAnimation);
+	}
+
+	/**
+	 * close gridpanel or strippanel
+	 */
+	this.closePanel = function(noAnimation) {
+		if (g_panel)
+			g_panel.closePanel(noAnimation);
+	}
+
+	/**
 	 * destroy all gallery events
 	 */
 	this.destroy = function(){
@@ -1423,6 +1466,7 @@ function UniteGalleryMain(){
 		 }
 
 		 g_objWrapper.html("");
+		 g_panel = null;
 	}
 	
 	

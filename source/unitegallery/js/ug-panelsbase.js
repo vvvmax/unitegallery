@@ -70,7 +70,9 @@ function UGPanelsBase(){
 	 * init common events
 	 */
 	this.initEvents = function(){
-		
+
+		g_gallery.setPanel(this);
+
 		// set handle events
 		if (g_objHandle){
 			g_objHandle.initEvents();

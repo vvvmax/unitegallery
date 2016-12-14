@@ -227,6 +227,30 @@ function UG_API(gallery){
 	
 	
 	/**
+	 * toggle gridpanel or strippanel (show, hide)
+	 */
+	this.togglePanel = function(noAnimation) {
+		g_gallery.togglePanel(noAnimation);
+	}
+
+
+	/**
+	 * open gridpanel or strippanel
+	 */
+	this.openPanel = function(noAnimation) {
+		g_gallery.openPanel(noAnimation);
+	}
+
+
+	/**
+	 * close gridpanel or strippanel
+	 */
+	this.closePanel = function(noAnimation) {
+		g_gallery.openPanel(noAnimation);
+	}
+
+
+	/**
 	 * get some item by index
 	 */
 	this.getItem = function(numItem){
