@@ -540,6 +540,553 @@ function UGHtml5MediaAPI(){
 }
 
 
+/** -------------- VK API class ------------------------*/
+
+function UGVkAPI(){
+
+	this.isAPILoaded = false;
+
+	var t = this, g_objThis = jQuery(this), g_intHandle;
+	var g_player = null, g_isPlayerReady = false, g_lastContainerID;
+
+	this.events = {
+			START_PLAYING: "start_playing",
+			STOP_PLAYING: "stop_playing",
+			VIDEO_ENDED: "video_ended"
+	};
+
+	/**
+	 * load vk API
+	 */
+	this.loadAPI = function(){
+
+		if(g_ugVkAPI.isAPILoaded == true)
+			return(true);
+
+		g_ugVkAPI.isAPILoaded = true;
+	}
+
+	/**
+	 * actually put the video
+	 */
+	function putVideoActually(divID, videoID, width, height, isAutoplay){
+
+		g_player = null;
+		g_isPlayerReady = false;
+
+		var url = location.protocol+"//vk.com/video_ext.php?";
+		var vid = videoID.split('_');
+
+		var html = '';
+		var style = "margin: 0; padding: 0; background-color: transparent;";
+
+		var iframeID = divID + "_iframe";
+		var iframe = null;
+		var g_document = null;
+
+		url += 'oid=' + encodeURIComponent(vid[0]);
+		url += '&amp;id=' + encodeURIComponent(vid[1]);
+		url += '&amp;hash=' + encodeURIComponent(vid[2]);
+
+		if(isAutoplay === true)
+			url += "&amp;autoplay=1";
+
+		html = "<iframe id='" + iframeID + "' width='" + width + "' height='" + height + "' frameborder='0' webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>";
+
+		jQuery("#"+divID).html(html);
+
+		html  = "<html style='" + style + "'>";
+		html += "<head>";
+		html += "<script type='text/javascript'>";
+		html += "var p_window = null;";
+		html += "function onIframeLoad(o){ p_window = o; };";
+		html += "</script>";
+		html += "</head>";
+		html += "<body style='" + style + "'>";
+		html += "<iframe onload='onIframeLoad(this)' src='" + url + "' width='" + width + "' height='" + height + "' style='" + style + "' frameborder='0' webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>";
+		html += "</body>";
+		html += "</html>";
+
+		iframe = jQuery('#' + iframeID).get(0);
+
+		if(iframe.contentDocument) {
+			g_document = iframe.contentDocument;
+		}
+		else if (iframe.contentWindow) {
+			g_document = iframe.contentWindow.document;
+		}
+		else {
+			g_document = iframe.document;
+		};
+
+		if (g_document) {
+			g_document.open();
+			g_document.writeln(html);
+			g_document.close();
+			g_player = jQuery("#"+iframeID)[0].contentWindow;
+			initEvents();
+		};
+
+		g_lastContainerID = divID;
+	}
+
+	/**
+	 * init player events function
+	 */
+	function initEvents(){
+
+		/**
+		 * this procedure is a stub, while VK makes the API
+		 */
+
+		if(!g_player)
+			return(false);
+
+		g_isPlayerReady = true;
+
+		g_ugFunctions.addEvent(g_player, "message", function(e){
+
+			//console.log('<' + g_lastContainerID + '> ' + e.data);
+
+		});
+
+	}
+
+	/**
+	 * put the vk video
+	 */
+	this.putVideo = function(divID, data, width, height, isAutoplay){
+
+		putVideoActually(divID, data, width, height, isAutoplay);
+		return(true);
+
+	}
+
+	/**
+	 * do some command
+	 */
+	this.doCommand = function(command){
+
+		if((g_player == null) || (!g_player.p_window))
+			return(false);
+
+		if(g_isPlayerReady == false)
+			return(false);
+
+		switch(command){
+			case "play":
+				g_player.p_window.contentWindow.postMessage('video_play', '*');
+			break;
+			case "pause":
+				g_player.p_window.contentWindow.postMessage('video_pause', '*');
+			break;
+		}
+
+	}
+
+	/**
+	 * pause video
+	 */
+	this.pause = function(){
+		t.doCommand("pause");
+	}
+
+	/**
+	 * play video
+	 */
+	this.play = function(){
+		t.doCommand("play");
+	}
+
+	/**
+	 * destroy the player and empty the div
+	 */
+	this.destroy = function(){
+
+		g_player = null;
+		g_isPlayerReady = false;
+
+		if(g_lastContainerID)
+			jQuery("#" + g_lastContainerID).html("");
+
+	}
+
+}
+
+/** -------------- Dailymotion API ---------------------*/
+
+function UGDailymotionAPI(){
+
+	this.isAPILoaded = false;
+
+	var t = this, g_objThis = jQuery(this), g_intHandle;
+	var g_player = null, g_isPlayerReady = false, g_lastContainerID;
+
+	this.events = {
+			START_PLAYING: "start_playing",
+			STOP_PLAYING: "stop_playing",
+			VIDEO_ENDED: "video_ended"
+	};
+
+	/**
+	 * check if dailymotion active
+	 */
+	function isDailymotionActive(){
+		return(typeof DM != "undefined");
+	}
+
+	/**
+	 * load dailymotion API
+	 */
+	this.loadAPI = function(){
+
+		if(g_ugDailymotionAPI.isAPILoaded == true)
+			return(true);
+
+		if(isDailymotionActive()){
+			g_ugDailymotionAPI.isAPILoaded = true;
+			return(true);
+		}
+
+		g_ugFunctions.loadJs("api.dmcdn.net/all.js", true);
+
+		g_ugDailymotionAPI.isAPILoaded = true;
+	}
+
+	/**
+	 * actually put the video
+	 */
+	function putVideoActually(divID, videoID, width, height, isAutoplay){
+
+		g_player = null;
+		g_isPlayerReady = false;
+
+		var htmlID = divID + "_video";
+
+		var html = "<div id='"+htmlID+"' class='dailymotion_embed' style='width:"+width+";height:"+height+";' data-video-width='"+width+"' data-video-height='"+height+"'>&nbsp;</div>";
+
+		jQuery("#"+divID).html(html);
+
+		g_player = DM.player(jQuery("#"+divID)[0], {
+			  video: videoID,
+			  width: width,
+			  height: height,
+			  params: { autoplay: isAutoplay }
+		});
+
+		g_lastContainerID = divID;
+		g_isPlayerReady = true;
+		initEvents();
+
+	}
+
+
+	/**
+	 * init events
+	 */
+	function initEvents(){
+
+		g_ugFunctions.addEvent(g_player, "playing", function(){
+			g_objThis.trigger(t.events.START_PLAYING);
+		});
+
+		g_ugFunctions.addEvent(g_player, "pause", function(){
+			g_objThis.trigger(t.events.STOP_PLAYING);
+		});
+
+		g_ugFunctions.addEvent(g_player, "end", function(){
+			g_objThis.trigger(t.events.STOP_PLAYING);
+			g_objThis.trigger(t.events.VIDEO_ENDED);
+		});
+
+	}
+
+
+	/**
+	 * do some command
+	 */
+	this.doCommand = function(command){
+
+		if(g_player == null)
+			return(false);
+
+		if(g_isPlayerReady == false)
+			return(false);
+
+		switch(command){
+			case "play":
+				g_player.play();
+			break;
+			case "pause":
+				g_player.pause();
+			break;
+		}
+
+	}
+
+	/**
+	 * do pause command
+	 */
+	this.pause = function(){
+		t.doCommand("pause");
+	}
+
+	/**
+	 * do play command
+	 */
+	this.play = function(){
+		t.doCommand("play");
+	}
+
+
+	/**
+	 * put the dailymotion video
+	 */
+	this.putVideo = function(divID, videoID, width, height, isAutoplay){
+
+		if(isDailymotionActive()){
+			putVideoActually(divID, videoID, width, height, isAutoplay);
+			return(true);
+		}
+
+
+		//if no API present, wait for the API being ready
+		this.loadAPI();
+		g_intHandle = setInterval(function(){
+
+			if(isDailymotionActive()){
+				putVideoActually(divID, videoID, width, height, isAutoplay);
+				clearInterval(g_intHandle);
+			}
+
+		}, 500);
+
+	}
+
+
+	/**
+	 * get if the player is ready
+	 */
+	this.isPlayerReady = function(){
+
+		if(g_isPlayerReady && g_player)
+			return(true);
+
+		return(false);
+	}
+
+
+	/**
+	 * destroy the player and empty the div
+	 */
+	this.destroy = function(){
+
+		g_player = null;
+		g_isPlayerReady = false;
+
+		if(g_lastContainerID)
+			jQuery("#" + g_lastContainerID).html("");
+
+	}
+
+}
+
+/** -------------- Rutube API class --------------------*/
+
+function UGRutubeAPI(){
+
+	this.isAPILoaded = false;
+
+	var t = this, g_objThis = jQuery(this), g_intHandle;
+	var g_player = null, g_isPlayerReady = false, g_lastContainerID;
+
+	this.events = {
+			START_PLAYING: "start_playing",
+			STOP_PLAYING: "stop_playing",
+			VIDEO_ENDED: "video_ended"
+	};
+
+	/**
+	 * load rutube API
+	 */
+	this.loadAPI = function(){
+
+		if(g_ugRutubeAPI.isAPILoaded == true)
+			return(true);
+
+		g_ugRutubeAPI.isAPILoaded = true;
+	}
+
+	/**
+	 * actually put the video
+	 */
+	function putVideoActually(divID, videoID, width, height, isAutoplay){
+
+		g_player = null;
+		g_isPlayerReady = false;
+
+		var url = location.protocol+"//rutube.ru/play/embed/";
+		var vid = videoID.split('_');
+
+		var iframeID = divID + "_iframe";
+		var iframe = null;
+		var g_document = null;
+
+		var html = '';
+		var style = "margin: 0; padding: 0; background-color: transparent;";
+
+		url += vid[0];
+		url += "?sTitle=false&sAuthor=false&autoStart=";
+
+		if(isAutoplay === true) { url += "true"; } else { url += "false"; };
+
+		html = "<iframe id='" + iframeID + "' width='" + width + "' height='" + height + "' frameborder='0' webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>";
+
+		jQuery("#"+divID).html(html);
+
+		html  = "<html style='" + style + "'>";
+		html += "<head>";
+		html += "<script type='text/javascript'>";
+		html += "var p_window = null;";
+		html += "function onIframeLoad(o){ p_window = o; };";
+		html += "</script>";
+		html += "</head>";
+		html += "<body style='" + style + "'>";
+		html += "<iframe onload='onIframeLoad(this)' src='" + url + "' width='" + width + "' height='" + height + "' style='" + style + "' frameborder='0' webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>";
+		html += "</body>";
+		html += "</html>";
+
+		iframe = jQuery('#' + iframeID).get(0);
+
+		if(iframe.contentDocument) {
+			g_document = iframe.contentDocument;
+		}
+		else if (iframe.contentWindow) {
+			g_document = iframe.contentWindow.document;
+		}
+		else {
+			g_document = iframe.document;
+		};
+
+		if (g_document) {
+			g_document.open();
+			g_document.writeln(html);
+			g_document.close();
+			g_player = jQuery("#"+iframeID)[0].contentWindow;
+			initEvents();
+		};
+
+		g_lastContainerID = divID;
+	}
+
+	/**
+	 * init player events function
+	 */
+	function initEvents(){
+
+		if(!g_player)
+			return(false);
+
+		g_ugFunctions.addEvent(g_player, "message", function(e){
+
+			var message = jQuery.parseJSON(e.data);
+
+			//if (message.type != 'player:currentTime') { console.log('<' + g_lastContainerID + '> ' + e.data); };
+
+			if (message.type == 'player:ready') {
+				g_isPlayerReady = true;
+			}
+			else if (message.type == 'player:playComplete') {
+			}
+			else if ((message.type == 'player:changeState') && (message.data.state == 'playing')){
+				g_isPlayerReady = true;
+				g_objThis.trigger(t.events.START_PLAYING);
+			}
+			else if ((message.type == 'player:changeState') && (message.data.state == 'paused')){
+				g_isPlayerReady = true;
+				g_objThis.trigger(t.events.STOP_PLAYING);
+			}
+			else if ((message.type == 'player:changeState') && (message.data.state == 'stopped')){
+				g_objThis.trigger(t.events.STOP_PLAYING);
+				g_objThis.trigger(t.events.VIDEO_ENDED);
+			};
+
+		});
+
+	}
+
+	/**
+	 * put the rutube video
+	 */
+	this.putVideo = function(divID, data, width, height, isAutoplay){
+
+		putVideoActually(divID, data, width, height, isAutoplay);
+		return(true);
+
+	}
+
+	/**
+	 * do some command
+	 */
+	this.doCommand = function(command){
+
+		if((g_player == null) || (!g_player.p_window))
+			return(false);
+
+		if(g_isPlayerReady == false)
+			return(false);
+
+		switch(command){
+			// https://github.com/rutube/RutubePlayerJSAPI
+			case "play":
+				g_player.p_window.contentWindow.postMessage(JSON.stringify({ type: 'player:play', data: {} }), '*');
+			break;
+			case "pause":
+				g_player.p_window.contentWindow.postMessage(JSON.stringify({ type: 'player:pause', data: {} }), '*');
+			break;
+			case "stop":
+				g_player.p_window.contentWindow.postMessage(JSON.stringify({ type: 'player:stop', data: {} }), '*');
+			break;
+		}
+
+	}
+
+	/**
+	 * stop video
+	 */
+	this.pause = function(){
+		t.doCommand("stop");
+	}
+
+	/**
+	 * pause video
+	 */
+	this.pause = function(){
+		t.doCommand("pause");
+	}
+
+	/**
+	 * play video
+	 */
+	this.play = function(){
+		t.doCommand("play");
+	}
+
+	/**
+	 * destroy the player and empty the div
+	 */
+	this.destroy = function(){
+
+		g_player = null;
+		g_isPlayerReady = false;
+
+		if(g_lastContainerID)
+			jQuery("#" + g_lastContainerID).html("");
+
+	}
+
+}
+
 /** -------------- Vimeo API class ---------------------*/
 
 function UGVimeoAPI(){
@@ -547,7 +1094,7 @@ function UGVimeoAPI(){
 	this.isAPILoaded = false;
 	
 	var t = this, g_objThis = jQuery(this), g_intHandle;
-	var g_player = null, g_isPlayerReady = false, g_lastCotnainerID, g_cueChangeAutoplay = false;
+	var g_player = null, g_isPlayerReady = false, g_lastContainerID, g_cueChangeAutoplay = false;
 	
 	
 	this.events = {
@@ -616,7 +1163,7 @@ function UGVimeoAPI(){
 			
 		});
 		
-		g_lastCotnainerID = divID;		
+		g_lastContainerID = divID;
 	}
 	
 	/**
@@ -697,8 +1244,8 @@ function UGVimeoAPI(){
 			g_isPlayerReady = false;
 		}
 		
-		if(g_lastCotnainerID){
-			jQuery("#" + g_lastCotnainerID).html("");			
+		if(g_lastContainerID){
+			jQuery("#" + g_lastContainerID).html("");
 		}
 	
 	}
@@ -1062,9 +1609,9 @@ function UGYoutubeAPI(){
 function UGVideoPlayer(){
 	
 	var t = this, g_galleryID, g_objThis = jQuery(this), g_functions = new UGFunctions();
-	var g_youtubeAPI = new UGYoutubeAPI(), g_vimeoAPI = new UGVimeoAPI();
+	var g_youtubeAPI = new UGYoutubeAPI(), g_vimeoAPI = new UGVimeoAPI(), g_rutubeAPI = new UGRutubeAPI(), g_dailymotionAPI = new UGDailymotionAPI(), g_vkAPI = new UGVkAPI();
 	var g_html5API = new UGHtml5MediaAPI(), g_soundCloudAPI = new UGSoundCloudAPI(), g_wistiaAPI = new UGWistiaAPI();
-	var g_objPlayer, g_objYoutube, g_objVimeo, g_objHtml5, g_objButtonClose, g_objSoundCloud, g_objWistia;
+	var g_objPlayer, g_objYoutube, g_objVimeo, g_objRutube, g_objDailymotion, g_objVk, g_objHtml5, g_objButtonClose, g_objSoundCloud, g_objWistia;
 	var g_activePlayerType = null;
 	
 	var g_options = {
@@ -1083,6 +1630,9 @@ function UGVideoPlayer(){
 			standAloneMode: false,
 			youtubeInnerID:"",
 			vimeoPlayerID:"",
+			rutubePlayerID:"",
+			dailymotionPlayerID:"",
+			vkPlayerID:"",
 			html5PlayerID:"",
 			wistiaPlayerID:"",
 			soundCloudPlayerID:""
@@ -1115,6 +1665,9 @@ function UGVideoPlayer(){
 		
 		g_temp.youtubeInnerID = g_galleryID + "_youtube_inner";
 		g_temp.vimeoPlayerID = g_galleryID + "_videoplayer_vimeo";
+		g_temp.rutubePlayerID = g_galleryID + "_videoplayer_rutube";
+		g_temp.dailymotionPlayerID = g_galleryID + "_videoplayer_dailymotion";
+		g_temp.vkPlayerID = g_galleryID + "_videoplayer_vk";
 		g_temp.html5PlayerID = g_galleryID + "_videoplayer_html5";
 		g_temp.wistiaPlayerID = g_galleryID + "_videoplayer_wistia";
 		g_temp.soundCloudPlayerID = g_galleryID + "_videoplayer_soundcloud";
@@ -1123,12 +1676,15 @@ function UGVideoPlayer(){
 		var html = "<div class='ug-videoplayer' style='display:none'>";
 		html += "<div class='ug-videoplayer-wrapper ug-videoplayer-youtube' style='display:none'><div id='"+g_temp.youtubeInnerID+"'></div></div>";
 		html += "<div id='"+g_temp.vimeoPlayerID+"' class='ug-videoplayer-wrapper ug-videoplayer-vimeo' style='display:none'></div>";
+		html += "<div id='"+g_temp.rutubePlayerID+"' class='ug-videoplayer-wrapper ug-videoplayer-rutube' style='display:none'></div>";
+		html += "<div id='"+g_temp.dailymotionPlayerID+"' class='ug-videoplayer-wrapper ug-videoplayer-dailymotion' style='display:none'></div>";
+		html += "<div id='"+g_temp.vkPlayerID+"' class='ug-videoplayer-wrapper ug-videoplayer-vk' style='display:none'></div>";
 		html += "<div id='"+g_temp.html5PlayerID+"' class='ug-videoplayer-wrapper ug-videoplayer-html5'></div>";
 		html += "<div id='"+g_temp.soundCloudPlayerID+"' class='ug-videoplayer-wrapper ug-videoplayer-soundcloud'></div>";
 		html += "<div id='"+g_temp.wistiaPlayerID+"' class='ug-videoplayer-wrapper ug-videoplayer-wistia'></div>";
 		
-		if(g_temp.standAloneMode == false && g_options.video_enable_closebutton == true)
-			html += "<div class='ug-videoplayer-button-close'></div>";
+		if(g_temp.standAloneMode == false && g_options.video_enable_closebutton)
+			html += "<div class='ug-videoplayer-button-close ug-skin-"+g_options.slider_video_closebutton_skin+"'></div>";
 		
 		html += "</div>";
 		
@@ -1137,11 +1693,14 @@ function UGVideoPlayer(){
 		g_objPlayer = objParent.children(".ug-videoplayer");
 		g_objYoutube = g_objPlayer.children(".ug-videoplayer-youtube");
 		g_objVimeo = g_objPlayer.children(".ug-videoplayer-vimeo");
+		g_objRutube = g_objPlayer.children(".ug-videoplayer-rutube");
+		g_objDailymotion = g_objPlayer.children(".ug-videoplayer-dailymotion");
+		g_objVk = g_objPlayer.children(".ug-videoplayer-vk");
 		g_objHtml5 = g_objPlayer.children(".ug-videoplayer-html5");
 		g_objSoundCloud = g_objPlayer.children(".ug-videoplayer-soundcloud");
 		g_objWistia = g_objPlayer.children(".ug-videoplayer-wistia");
 		
-		if(g_temp.standAloneMode == false && g_options.video_enable_closebutton == true)
+		if(g_temp.standAloneMode == false && g_options.video_enable_closebutton)
 			g_objButtonClose = g_objPlayer.children(".ug-videoplayer-button-close")
 	}
 
@@ -1162,7 +1721,7 @@ function UGVideoPlayer(){
 		
 		g_objThis.trigger(t.events.PLAY_START);
 		
-		if(g_objButtonClose)
+		if(g_objButtonClose && g_options.slider_video_hide_close_button_on_event_playstart)
 			g_objButtonClose.hide();
 	}
 	
@@ -1174,7 +1733,7 @@ function UGVideoPlayer(){
 		
 		g_objThis.trigger(t.events.PLAY_STOP);
 		
-		if(g_objButtonClose)
+		if(g_objButtonClose && g_options.slider_video_hide_close_button_on_event_playstart)
 			g_objButtonClose.show();
 	}
 	
@@ -1209,6 +1768,21 @@ function UGVideoPlayer(){
 		jQuery(g_vimeoAPI).on(g_vimeoAPI.events.STOP_PLAYING, onPlayStop);
 		jQuery(g_vimeoAPI).on(g_vimeoAPI.events.VIDEO_ENDED, onVideoEnded);
 		
+		//rutube events
+		jQuery(g_rutubeAPI).on(g_rutubeAPI.events.START_PLAYING, onPlayStart);
+		jQuery(g_rutubeAPI).on(g_rutubeAPI.events.STOP_PLAYING, onPlayStop);
+		jQuery(g_rutubeAPI).on(g_rutubeAPI.events.VIDEO_ENDED, onVideoEnded);
+
+		//dailymotion events
+		jQuery(g_dailymotionAPI).on(g_dailymotionAPI.events.START_PLAYING, onPlayStart);
+		jQuery(g_dailymotionAPI).on(g_dailymotionAPI.events.STOP_PLAYING, onPlayStop);
+		jQuery(g_dailymotionAPI).on(g_dailymotionAPI.events.VIDEO_ENDED, onVideoEnded);
+
+		//vk events
+		jQuery(g_vkAPI).on(g_vkAPI.events.START_PLAYING, onPlayStart);
+		jQuery(g_vkAPI).on(g_vkAPI.events.STOP_PLAYING, onPlayStop);
+		jQuery(g_vkAPI).on(g_vkAPI.events.VIDEO_ENDED, onVideoEnded);
+
 		//html5 video events
 		jQuery(g_html5API).on(g_html5API.events.START_PLAYING, onPlayStart);
 		jQuery(g_html5API).on(g_html5API.events.STOP_PLAYING, onPlayStop);
@@ -1243,6 +1817,18 @@ function UGVideoPlayer(){
 		jQuery(g_vimeoAPI).off(g_vimeoAPI.events.START_PLAYING);
 		jQuery(g_vimeoAPI).off(g_vimeoAPI.events.STOP_PLAYING);
 		
+		//rutube events
+		jQuery(g_rutubeAPI).off(g_rutubeAPI.events.START_PLAYING);
+		jQuery(g_rutubeAPI).off(g_rutubeAPI.events.STOP_PLAYING);
+
+		//dailymotion events
+		jQuery(g_dailymotionAPI).off(g_dailymotionAPI.events.START_PLAYING);
+		jQuery(g_dailymotionAPI).off(g_dailymotionAPI.events.STOP_PLAYING);
+
+		//vk events
+		jQuery(g_vkAPI).off(g_vkAPI.events.START_PLAYING);
+		jQuery(g_vkAPI).off(g_vkAPI.events.STOP_PLAYING);
+
 		//html5 video events
 		jQuery(g_html5API).off(g_html5API.events.START_PLAYING);
 		jQuery(g_html5API).off(g_html5API.events.STOP_PLAYING);
@@ -1274,7 +1860,7 @@ function UGVideoPlayer(){
 		g_functions.setElementSize(g_objPlayer, width, height);
 		
 		if(g_objButtonClose)
-			g_functions.placeElement(g_objButtonClose, "right", "top");
+			g_functions.placeElement(g_objButtonClose, g_options.slider_video_closebutton_align_hor, g_options.slider_video_closebutton_align_vert, g_options.slider_video_closebutton_offset_hor, g_options.slider_video_closebutton_offset_vert);
 		
 	}
 	
@@ -1344,6 +1930,15 @@ function UGVideoPlayer(){
 			case "vimeo":
 				return g_vimeoAPI;
 			break;
+			case "rutube":
+				return g_rutubeAPI;
+			break;
+			case "dailymotion":
+				return g_dailymotionAPI;
+			break;
+			case "vk":
+				return g_vkAPI;
+			break;
 			case "wistia":
 				return g_wistiaAPI;
 			break;
@@ -1389,7 +1984,7 @@ function UGVideoPlayer(){
 	 */
 	function stopAndHidePlayers(except){
 		
-		var arrPlayers = ["youtube", "vimeo", "html5", "soundcloud", "wistia"];
+		var arrPlayers = ["youtube", "vimeo", "rutube", "dailymotion", "vk", "html5", "soundcloud", "wistia"];
 		for(var index in arrPlayers){
 			var player = arrPlayers[index];
 			if(player == except)
@@ -1404,6 +1999,21 @@ function UGVideoPlayer(){
 					g_vimeoAPI.pause();
 					g_vimeoAPI.destroy();
 					g_objVimeo.hide();
+				break;
+				case "rutube":
+					g_rutubeAPI.pause();
+					g_rutubeAPI.destroy();
+					g_objRutube.hide();
+				break;
+				case "dailymotion":
+					g_dailymotionAPI.pause();
+					g_dailymotionAPI.destroy();
+					g_objDailymotion.hide();
+				break;
+				case "vk":
+					g_vkAPI.pause();
+					g_vkAPI.destroy();
+					g_objVk.hide();
 				break;
 				case "html5":
 					g_html5API.pause();
@@ -1479,6 +2089,63 @@ function UGVideoPlayer(){
 	
 	
 	/**
+	 * play rutube
+	 */
+	this.playRutube = function(videoID, isAutoplay){
+
+		if(typeof isAutoplay == "undefined")
+			var isAutoplay = true;
+
+		stopAndHidePlayers("rutube");
+
+		g_objRutube.show();
+
+		g_rutubeAPI.putVideo(g_temp.rutubePlayerID, videoID, "100%", "100%", isAutoplay);
+
+		g_activePlayerType = "rutube";
+
+	}
+
+
+	/**
+	 * play dailymotion
+	 */
+	this.playDailymotion = function(videoID, isAutoplay){
+
+		if(typeof isAutoplay == "undefined")
+			var isAutoplay = true;
+
+		stopAndHidePlayers("dailymotion");
+
+		g_objDailymotion.show();
+
+		g_dailymotionAPI.putVideo(g_temp.dailymotionPlayerID, videoID, "100%", "100%", isAutoplay);
+
+		g_activePlayerType = "dailymotion";
+
+	}
+
+
+	/**
+	 * play vk
+	 */
+	this.playVk = function(videoID, isAutoplay){
+
+		if(typeof isAutoplay == "undefined")
+			var isAutoplay = true;
+
+		stopAndHidePlayers("vk");
+
+		g_objVk.show();
+
+		g_vkAPI.putVideo(g_temp.vkPlayerID, videoID, "100%", "100%", isAutoplay);
+
+		g_activePlayerType = "vk";
+
+	}
+
+
+	/**
 	 * play html5 video
 	 */
 	this.playHtml5Video = function(ogv, webm, mp4, posterImage, isAutoplay){
@@ -1547,6 +2214,9 @@ function UGVideoPlayer(){
 
 var g_ugYoutubeAPI = new UGYoutubeAPI();
 var g_ugVimeoAPI = new UGVimeoAPI();
+var g_ugRutubeAPI = new UGRutubeAPI();
+var g_ugDailymotionAPI = new UGDailymotionAPI();
+var g_ugVkAPI = new UGVkAPI();
 var g_ugHtml5MediaAPI = new UGHtml5MediaAPI();
 var g_ugSoundCloudAPI = new UGSoundCloudAPI();
 var g_ugWistiaAPI = new UGWistiaAPI();

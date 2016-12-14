@@ -32,6 +32,7 @@ function UGStripPanel() {
 		strippanel_buttons_role : "scroll_strip",   // scroll_strip, advance_item - the role of the side buttons
 		
 		strippanel_enable_handle : true,  // enable grid handle
+		strippanel_close_at_start : 0,    // close panel at start if number of elements in gallery less than this value
 		strippanel_handle_align : "top",  // top, middle, bottom , left, right, center - close handle tip align on the handle bar according panel orientation
 		strippanel_handle_offset : 0, 	  // offset of handle bar according the valign
 										

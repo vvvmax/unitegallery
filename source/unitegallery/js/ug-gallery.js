@@ -7,13 +7,28 @@
 		var galleryID = "#" + element.attr("id");
 		
 		if(!options)
-			var options = {};
-				
+			options = {};
+
+		var ug_options = jQuery(galleryID).data("ug");
+		if ((typeof ug_options != "undefined") && (ug_options != null) && (typeof ug_options == "object"))
+			options = jQuery.extend(ug_options, options);
+
 		var objGallery = new UniteGalleryMain();
 		objGallery.run(galleryID, options);
 		
 		var api = new UG_API(objGallery);
 		
+		if ((options.gallery_theme == 'grid') && (options.gallery_will_be_expanding_on_height_grid) && (!options.gallery_preserve_ratio) &&
+			(options.theme_panel_position == 'top' || options.theme_panel_position == 'bottom')) {
+
+			var objects = objGallery.getObjects();
+			var objSize = objects.g_objThumbs.getSize();
+			api.resize(parseInt(options.gallery_width, 10), parseInt(options.gallery_height, 10) + parseInt(objSize.height, 10));
+
+		};
+
+		objGallery.closePanelAtStart();
+
 		return(api);
 	}
 
@@ -103,6 +118,7 @@ function UniteGalleryMain(){
 	var g_objThumbs, g_objSlider, g_functions = new UGFunctions(), g_objTabs;
 	var g_arrItems = [], g_numItems, g_selectedItem = null, g_selectedItemIndex = -1;
 	var g_objTheme, g_objCache = {};
+	var g_panel = null;
 	
 	this.events = {
 			ITEM_CHANGE: "item_change",
@@ -178,6 +194,9 @@ function UniteGalleryMain(){
 		thumbsType:null,
 		isYoutubePresent:false,			//flag if present youtube items
 		isVimeoPresent:false,			//flag if present vimeo items
+		isRutubePresent:false,			//flag if present rutube items
+		isDailymotionPresent:false,		//flag if present dailymotion items
+		isVkPresent:false,			//flag if present vk items
 		isHtml5VideoPresent:false,		//flag if present html5 video items
 		isSoundCloudPresent:false,		//flag if present soundcloud items
 		isWistiaPresent: false,			//flag if some wistia movie present
@@ -757,11 +776,21 @@ function UniteGalleryMain(){
 					 g_temp.isYoutubePresent = true;
 				break;
 			 	case "vimeo":
-			 		
 					objItem.videoid = objChild.data("videoid");
-										
 					g_temp.isVimeoPresent = true;
 			 	break;
+				case "rutube":
+					objItem.videoid = objChild.data("videoid");
+					g_temp.isRutubePresent = true;
+				break;
+				case "dailymotion":
+					objItem.videoid = objChild.data("videoid");
+					g_temp.isDailymotionPresent = true;
+				break;
+				case "vk":
+					objItem.videoid = objChild.data("videoid");
+					g_temp.isVkPresent = true;
+				break;
 			 	case "html5video":
 			 		objItem.videoogv = objChild.data("videoogv");
 			 		objItem.videowebm = objChild.data("videowebm");
@@ -829,6 +858,15 @@ function UniteGalleryMain(){
 		if(g_temp.isVimeoPresent)
 			g_ugVimeoAPI.loadAPI();
 		
+		if(g_temp.isRutubePresent)
+			g_ugRutubeAPI.loadAPI();
+
+		if(g_temp.isDailymotionPresent)
+			g_ugDailymotionAPI.loadAPI();
+
+		if(g_temp.isVkPresent)
+			g_ugVkAPI.loadAPI();
+
 		if(g_temp.isHtml5VideoPresent)
 			g_ugHtml5MediaAPI.loadAPI();
 		
@@ -1345,6 +1383,56 @@ function UniteGalleryMain(){
 	
 	
 	/**
+	 * get gridpanel or strippanel
+	 */
+	this.getPanel = function() {
+		return (g_panel);
+	}
+
+	/**
+	 * set gridpanel or strippanel
+	 */
+	this.setPanel = function(panel) {
+		g_panel = panel;
+	}
+
+	/**
+	 * toggle gridpanel or strippanel (show, hide)
+	 */
+	function togglePanel(noAnimation) {
+		if (g_panel) {
+			if (g_panel.isPanelClosed() == false)
+				g_panel.openPanel(noAnimation);
+			else
+				g_panel.closePanel(noAnimation);
+		};
+	}
+
+	/**
+	 * open gridpanel or strippanel
+	 */
+	this.openPanel = function(noAnimation) {
+		if (g_panel)
+			g_panel.openPanel(noAnimation);
+	}
+
+	/**
+	 * close gridpanel or strippanel
+	 */
+	this.closePanel = function(noAnimation) {
+		if (g_panel)
+			g_panel.closePanel(noAnimation);
+	}
+
+	/**
+	 * close gridpanel or strippanel on start
+	 */
+	this.closePanelAtStart = function(noAnimation) {
+		if ((g_panel) && (g_panel.isClosedAtStart()))
+			g_panel.closePanel(noAnimation);
+	}
+
+	/**
 	 * destroy all gallery events
 	 */
 	this.destroy = function(){
@@ -1397,6 +1485,7 @@ function UniteGalleryMain(){
 		 }
 
 		 g_objWrapper.html("");
+		 g_panel = null;
 	}
 	
 	

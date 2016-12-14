@@ -73,8 +73,17 @@ function UGSlider(){
 		  slider_video_padding_bottom: 0,				//padding bottom of the video player inside the item
 		  slider_video_padding_left: 0,					//padding left of the video player inside the item
 		  slider_video_padding_right: 0,				//padding right of the video player inside the item
+		  slider_video_hide_image_on_start_player: false,		//hide image on start player (it could be useful if slider_video_padding_* != 0)
+		  slider_video_hide_textpanel_on_start_player: false,		//hide textpanel on start player
+		  slider_video_hide_handle_tip_on_start_player: true,		//hide handle tip on start player (it could be useful if slider_video_padding_* != 0)
+		  slider_video_hide_close_button_on_event_playstart: true,	//hide video close button on event playstart
 		  
-		  slider_video_enable_closebutton: true,		//enable video close button
+		  slider_video_enable_closebutton: true,			//enable video close button
+		  slider_video_closebutton_skin: "",				//skin of video close button, if empty inherit from gallery skin
+		  slider_video_closebutton_align_hor: "right",			//left, center, right - video close button horizontal align inside the video player
+		  slider_video_closebutton_align_vert: "top",			//top, middle, bottom - video close button vertical align inside the video player
+		  slider_video_closebutton_offset_hor: 0,			//video close button horizontal offset
+		  slider_video_closebutton_offset_vert: 0,			//video close button vertical offset
 		  
 		  slider_transition: "slide",					//fade, slide - the transition of the slide change
 		  slider_transition_speed:300,				 	//transition duration of slide change
@@ -301,6 +310,9 @@ function UGSlider(){
 		
 		if(g_options.slider_fullscreen_button_skin == "")
 			g_options.slider_fullscreen_button_skin = globalSkin;
+		
+		if(g_options.slider_video_closebutton_skin == "")
+			g_options.slider_video_closebutton_skin = globalSkin;
 		
 		g_options.video_enable_closebutton = g_options.slider_video_enable_closebutton;
 		
@@ -1671,6 +1683,30 @@ function UGSlider(){
 		//on item change, change the item in the slider.
 		g_objGallery.on(g_gallery.events.ITEM_CHANGE, onItemChange);
 		
+		g_objGallery.on(g_gallery.events.SLIDER_ACTION_START, function(){
+
+			var slides = t.getSlidesReference();
+
+			if (g_options.slider_video_hide_image_on_start_player)
+				slides.objCurrentSlide.css("opacity", 0);
+
+			if (g_options.slider_video_hide_textpanel_on_start_player)
+				g_objSlider.children(".ug-textpanel").css("z-index", -1);
+
+		});
+
+		g_objGallery.on(g_gallery.events.SLIDER_ACTION_END, function(){
+
+			var slides = t.getSlidesReference();
+
+			if (g_options.slider_video_hide_image_on_start_player)
+				slides.objCurrentSlide.css("opacity", 1);
+
+			if (g_options.slider_video_hide_textpanel_on_start_player)
+				g_objSlider.children(".ug-textpanel").css("z-index", "");
+
+		});
+
 		if(g_objBullets)
 			jQuery(g_objBullets).on(g_objBullets.events.BULLET_CLICK,onBulletClick);
 		
@@ -1765,6 +1801,8 @@ function UGSlider(){
 				
 		g_objGallery.off(g_gallery.events.ITEM_IMAGE_UPDATED);
 		g_objGallery.off(g_gallery.events.ITEM_CHANGE);
+		g_objGallery.off(g_gallery.events.SLIDER_ACTION_START);
+		g_objGallery.off(g_gallery.events.SLIDER_ACTION_END);
 		
 		if(g_objBullets)
 			jQuery(g_objBullets).on(g_objBullets.events.BULLET_CLICK);
@@ -2247,6 +2285,15 @@ function UGSlider(){
 			break;
 			case "vimeo":
 				g_objVideoPlayer.playVimeo(objItem.videoid);
+			break;
+			case "rutube":
+				g_objVideoPlayer.playRutube(objItem.videoid);
+			break;
+			case "dailymotion":
+				g_objVideoPlayer.playDailymotion(objItem.videoid);
+			break;
+			case "vk":
+				g_objVideoPlayer.playVk(objItem.videoid);
 			break;
 			case "html5video":
 				g_objVideoPlayer.playHtml5Video(objItem.videoogv, objItem.videowebm, objItem.videomp4, objItem.urlImage);
