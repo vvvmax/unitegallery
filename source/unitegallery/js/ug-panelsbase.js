@@ -6,6 +6,7 @@ function UGPanelsBase(){
 	var g_gallery = new UniteGalleryMain();
 	var t = this, g_objHandle, g_objGallery;
 	var g_functions = new UGFunctions();
+	var g_close_at_start = false;
 	
 	
 	/**
@@ -17,6 +18,7 @@ function UGPanelsBase(){
 		g_gallery = gallery;
 		g_options = options;
 		g_objThis = g_objThisArg;
+		g_close_at_start = false;
 		
 		g_objGallery = jQuery(g_gallery);
 	}
@@ -71,6 +73,16 @@ function UGPanelsBase(){
 	 */
 	this.initEvents = function(){
 
+		var close_at_start = 0;
+
+		if (g_temp.panelType == "strip")
+			close_at_start = parseInt(g_options.strippanel_close_at_start, 10);
+		else
+			close_at_start = parseInt(g_options.gridpanel_close_at_start, 10);
+
+		if (g_gallery.getNumItems() < close_at_start)
+			g_close_at_start = true;
+
 		g_gallery.setPanel(this);
 
 		// set handle events
@@ -100,6 +112,13 @@ function UGPanelsBase(){
 			
 		}
 		
+	}
+	
+	/**
+	 * return g_close_at_start value
+	 */
+	this.isClosedAtStart = function() {
+		return (g_close_at_start);
 	}
 	
 	/**

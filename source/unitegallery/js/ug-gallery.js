@@ -18,6 +18,17 @@
 		
 		var api = new UG_API(objGallery);
 		
+		if ((options.gallery_theme == 'grid') && (options.gallery_will_be_expanding_on_height_grid) && (!options.gallery_preserve_ratio) &&
+			(options.theme_panel_position == 'top' || options.theme_panel_position == 'bottom')) {
+
+			var objects = objGallery.getObjects();
+			var objSize = objects.g_objThumbs.getSize();
+			api.resize(parseInt(options.gallery_width, 10), parseInt(options.gallery_height, 10) + parseInt(objSize.height, 10));
+
+		};
+
+		objGallery.closePanelAtStart();
+
 		return(api);
 	}
 
@@ -1410,6 +1421,14 @@ function UniteGalleryMain(){
 	 */
 	this.closePanel = function(noAnimation) {
 		if (g_panel)
+			g_panel.closePanel(noAnimation);
+	}
+
+	/**
+	 * close gridpanel or strippanel on start
+	 */
+	this.closePanelAtStart = function(noAnimation) {
+		if ((g_panel) && (g_panel.isClosedAtStart()))
 			g_panel.closePanel(noAnimation);
 	}
 

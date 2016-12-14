@@ -35,6 +35,7 @@ function UGGridPanel(){
 			gridpanel_arrows_always_on: false,			//always show arrows even if the grid is one pane only
 
 			gridpanel_enable_handle: true,				//enable grid handle			
+			gridpanel_close_at_start : 0,				//close panel at start if number of elements in gallery less than this value
 			gridpanel_handle_align: "top",				//top, middle, bottom , left, right, center - close handle tip align on the handle bar according panel orientation
 			gridpanel_handle_offset: 0,					//offset of handle bar according the valign
 			gridpanel_handle_skin: "",					//skin of the handle, if empty inherit from gallery skin

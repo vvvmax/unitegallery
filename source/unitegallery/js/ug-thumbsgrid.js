@@ -10,6 +10,7 @@ function UGThumbsGrid(){
 	var g_thumbs = new UGThumbsGeneral(), g_tilesDesign = new UGTileDesign();
 	
 	var g_options = {
+		gallery_will_be_expanding_on_height_grid: false,	//gallery will be expanding on height grid
 		grid_panes_direction: "left",				//where panes will move -> left, bottom
 		grid_num_cols: 2,							//number of grid columns
 		grid_min_cols: 2,							//minimum number of columns (for horizontal type) - the tile size is dynamic 
