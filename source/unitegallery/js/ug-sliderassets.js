@@ -45,7 +45,9 @@ function UGTextPanel(){
 	
 	var g_temp = {
 			isFirstTime: true,
-			setInternalHeight: true		//flag if set internal height or not
+			setInternalHeight: true,	//flag if set internal height or not
+			lastTitleBottom: 0,
+			lastDescHeight: 0
 	};
 	
 	
@@ -65,11 +67,23 @@ function UGTextPanel(){
 			var titleY = maxy;
 			g_functions.placeElement(g_objTitle, 0, titleY);
 			
-			var objTitleSize = g_functions.getElementSize(g_objTitle);		
-						
-			var maxy = objTitleSize.bottom;			
+			var isTitleVisible = g_objTitle.is(":visible");
+			if(isTitleVisible == true){
+				var objTitleSize = g_functions.getElementSize(g_objTitle);
+				
+				var maxy = objTitleSize.bottom;
+				if(maxy > 0)
+					g_temp.lastTitleBottom = maxy;
+			}else{
+				var maxy = 20;		//get last or assumed maxy
+				
+				if(g_temp.lastTitleBottom > 0)
+					maxy = g_temp.lastTitleBottom;
+			}
+			
 		}
 		
+				
 		//place description
 		var textDesc = "";
 		if(g_objDesc)
@@ -83,9 +97,26 @@ function UGTextPanel(){
 				descY += g_options.textpanel_padding_title_description;
 			
 			g_functions.placeElement(g_objDesc, 0, descY);
-			var objDescSize = g_functions.getElementSize(g_objDesc);		
-			maxy = objDescSize.bottom;
+			
+			var isVisible = jQuery(g_objDesc).is(":visible");
+			
+			if(isVisible == true){
+				var objDescSize = g_functions.getElementSize(g_objDesc);
+				maxy = objDescSize.bottom;
+				
+				if(objDescSize.height > 0)
+					g_temp.lastDescHeight = objDescSize.height;
+				
+			}else{
+				var descHeight = 16;			//take from last saved
+				if(g_temp.lastDescHeight > 0)
+					descHeight = g_temp.lastDescHeight;
+				
+				maxy = descY + descHeight;
+			}
+			
 		}
+		
 		
 		//change panel height
 		if(!g_options.textpanel_height && g_temp.setInternalHeight == true){
@@ -543,7 +574,7 @@ function UGTextPanel(){
 		
 		if(customLeft !== undefined && customLeft !== null)
 			objCss.left = customLeft;
-			
+		
 		g_objPanel.css(objCss);
 	}
 	

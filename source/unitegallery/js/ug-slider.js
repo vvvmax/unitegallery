@@ -1742,11 +1742,11 @@ function UGSlider(){
 		//image mouseenter / mouseleave event
 		
 		//set mouseover events on the images
-		g_objSlider.delegate(".ug-item-wrapper img","mouseenter",function(event){
+		g_objSlider.on("mouseenter",".ug-item-wrapper img",function(event){
 			g_objThis.trigger(t.events.IMAGE_MOUSEENTER);
 		});
-
-		g_objSlider.delegate(".ug-item-wrapper img","mouseleave",function(event){
+		
+		g_objSlider.on("mouseleave",".ug-item-wrapper img",function(event){
 			var isMouseOver = t.isMouseInsideSlideImage(event);
 			
 			if(isMouseOver == false)
@@ -1785,8 +1785,8 @@ function UGSlider(){
 		
 		g_objVideoPlayer.destroy();
 		
-		g_objSlider.undelegate(".ug-item-wrapper img","mouseenter");
-		g_objSlider.undelegate(".ug-item-wrapper img","mouseleave");
+		g_objSlider.off("mouseenter",".ug-item-wrapper img");
+		g_objSlider.off("mouseleave",".ug-item-wrapper img");
 	}
 	
 	

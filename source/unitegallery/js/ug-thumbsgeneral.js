@@ -8,7 +8,14 @@ function UGThumbsGeneral(){
 	var g_functions = new UGFunctions();
 	var g_strip;
 	var outer_options;
-
+	
+	this.type = {
+			GET_THUMBS_ALL: "all",
+			GET_THUMBS_RATIO: "ratio",
+			GET_THUMBS_NO_RATIO: "no_ratio",
+			GET_THUMBS_NEW:"new"
+	};
+	
 	this.events = {		
 		SETOVERSTYLE: "thumbmouseover",
 		SETNORMALSTYLE: "thumbmouseout",
@@ -64,7 +71,8 @@ function UGThumbsGeneral(){
 			isEffectImage: false,
 			colorOverlayOpacity: 1,
 			thumbInnerReduce: 0,
-			allowOnResize: true		//allow onresize event
+			allowOnResize: true,		//allow onresize event
+			classNewThumb: "ug-new-thumb"
 		};
 		
 	
@@ -95,98 +103,128 @@ function UGThumbsGeneral(){
 		
 		this._____________EXTERNAL_SETTERS__________ = function(){};
 		
+		
+		/**
+		 * append html from item
+		 */
+		function appendHtmlThumbFromItem(itemIndex, imageEffectClass){
+			
+			var objItem = g_arrItems[itemIndex];
+			 
+			 var classAddition = "";
+			 if(g_temp.customThumbs == false)
+				 classAddition = " ug-thumb-generated";
+			
+			var zIndex = objItem.index + 1;
+			var thumbStyle = "style='z-index:"+zIndex+";'";
+			
+		 	var htmlThumb = "<div class='ug-thumb-wrapper"+classAddition+"' " + thumbStyle + "></div>";
+
+			 if(g_options.thumb_wrapper_as_link == true){
+				 var urlLink = objItem.link;
+				 if(objItem.link == "")
+					 urlLink = "javascript:void(0)";
+				
+				 var linkTarget = "";
+					if(g_options.thumb_link_newpage == true && objItem.link)
+						linkTarget = " target='_blank'";
+				 
+				 var htmlThumb = "<a href='" + urlLink + "'"+linkTarget+" class='ug-thumb-wrapper"+classAddition+"'></a>";
+			 }
+			 
+			 var objThumbWrapper = jQuery(htmlThumb);
+			 
+			 var objImage = objItem.objThumbImage;
+			
+			 if(g_temp.customThumbs == false){
+				 
+				 if(g_options.thumb_show_loader == true && objImage){
+					 
+					 var loaderClass = "ug-thumb-loader-dark";
+					 if(g_options.thumb_loader_type == "bright")
+						 loaderClass = "ug-thumb-loader-bright";
+					 
+					 objThumbWrapper.append("<div class='ug-thumb-loader " + loaderClass + "'></div>");
+					 objThumbWrapper.append("<div class='ug-thumb-error' style='display:none'></div>");
+				 }
+				 					 
+				 if(objImage){
+					 objImage.addClass("ug-thumb-image");
+					 
+					 //if image overlay effects active, clone the image, and set the effects class on it
+					 if(g_options.thumb_image_overlay_effect == true){
+						var objImageOverlay = objImage.clone().appendTo(objThumbWrapper);
+						
+						objImageOverlay.addClass("ug-thumb-image-overlay " + imageEffectClass).removeClass("ug-thumb-image");
+						objImageOverlay.fadeTo(0,0);
+						objItem.objImageOverlay = objImageOverlay;
+					 }
+							 
+					 objThumbWrapper.append(objImage);
+				 }
+				 
+			 }//end if not custom thumb
+			 
+			 if(g_temp.isEffectBorder)
+				 objThumbWrapper.append("<div class='ug-thumb-border-overlay'></div>");
+			 
+			 if(g_temp.isEffectOverlay)
+				 objThumbWrapper.append("<div class='ug-thumb-overlay'></div>");
+			 
+			 g_objParent.append(objThumbWrapper);
+
+			 //only custom thumbs function
+			 if(g_temp.customThumbs){
+				 
+				 g_temp.funcSetCustomThumbHtml(objThumbWrapper, objItem);
+				 
+			 }
+			 
+			 //add thumb wrapper object to items array
+			 g_arrItems[itemIndex].objThumbWrapper = objThumbWrapper;
+			
+			 return(objThumbWrapper);
+		}
+		
+		
 		/**
 		 * append the thumbs html to some parent
 		 */
-		this.setHtmlThumbs = function(objParent){
-					
+		this.setHtmlThumbs = function(objParent, isAppend){
+			
 			g_objParent = objParent;
 			
-			var numItems = g_gallery.getNumItems();
-
 			//set image effect class
 			if(g_temp.isEffectImage == true){
 				var imageEffectClass = getImageEffectsClass();
 			}
 			
-			 //append thumbs to strip
-			 for(var i=0;i<numItems;i++){
-				 
-				 var objItem = g_arrItems[i];
-				 
-				 var classAddition = "";
-				 if(g_temp.customThumbs == false)
-					 classAddition = " ug-thumb-generated";
+			if(isAppend !== true){		//set all thumbs
+				var numItems = g_gallery.getNumItems();
 				
-				var zIndex = objItem.index + 1;
-				var thumbStyle = "style='z-index:"+zIndex+";'";
-				
-			 	var htmlThumb = "<div class='ug-thumb-wrapper"+classAddition+"' " + thumbStyle + "></div>";
-
-				 if(g_options.thumb_wrapper_as_link == true){
-					 var urlLink = objItem.link;
-					 if(objItem.link == "")
-						 urlLink = "javascript:void(0)";
-					
-					 var linkTarget = "";
-						if(g_options.thumb_link_newpage == true && objItem.link)
-							linkTarget = " target='_blank'";
-					 
-					 var htmlThumb = "<a href='" + urlLink + "'"+linkTarget+" class='ug-thumb-wrapper"+classAddition+"'></a>";
+				 //append thumbs to strip
+				 for(var i=0;i<numItems;i++){
+					 appendHtmlThumbFromItem(i, imageEffectClass);
 				 }
-				 
-				 var objThumbWrapper = jQuery(htmlThumb);
-				 
-				 var objImage = objItem.objThumbImage;
 				
-				 if(g_temp.customThumbs == false){
- 				 
-					 if(g_options.thumb_show_loader == true && objImage){
-						 
-						 var loaderClass = "ug-thumb-loader-dark";
-						 if(g_options.thumb_loader_type == "bright")
-							 loaderClass = "ug-thumb-loader-bright";
-						 
-						 objThumbWrapper.append("<div class='ug-thumb-loader " + loaderClass + "'></div>");
-						 objThumbWrapper.append("<div class='ug-thumb-error' style='display:none'></div>");
-					 }
-					 					 
-					 if(objImage){
-						 objImage.addClass("ug-thumb-image");
-						 
-						 //if image overlay effects active, clone the image, and set the effects class on it
-						 if(g_options.thumb_image_overlay_effect == true){
-							var objImageOverlay = objImage.clone().appendTo(objThumbWrapper);
-							
-							objImageOverlay.addClass("ug-thumb-image-overlay " + imageEffectClass).removeClass("ug-thumb-image");
-							objImageOverlay.fadeTo(0,0);
-							objItem.objImageOverlay = objImageOverlay;
-						 }
-								 
-						 objThumbWrapper.append(objImage);
-					 }
+			}else{		//append only new items, mark only new added thumbs as new thumbs
+				
+				var objThumbs = t.getThumbs();
+				
+				objThumbs.removeClass(g_temp.classNewThumb);
+				
+				var arrNewIndexes = g_gallery.getNewAddedItemsIndexes();
+				
+				 jQuery.each(arrNewIndexes,function(i,itemIndex){
 					 
-				 }//end if not custom thumb
-				 
-				 if(g_temp.isEffectBorder)
-					 objThumbWrapper.append("<div class='ug-thumb-border-overlay'></div>");
-				 
-				 if(g_temp.isEffectOverlay)
-					 objThumbWrapper.append("<div class='ug-thumb-overlay'></div>");
-				 
-				 g_objParent.append(objThumbWrapper);
-
-				 //only custom thumbs function
-				 if(g_temp.customThumbs){
+					 var objThumbWrapper = appendHtmlThumbFromItem(itemIndex, imageEffectClass);
+					 objThumbWrapper.addClass(g_temp.classNewThumb);
 					 
-					 g_temp.funcSetCustomThumbHtml(objThumbWrapper, objItem);
-					 
-				 }
-				 
-				 //add thumb wrapper object to items array
-				 g_arrItems[i].objThumbWrapper = objThumbWrapper;
-				 
-			 }
+				 });
+				 					
+			}
+			
+			 
 		}
 
 		
@@ -198,7 +236,7 @@ function UGThumbsGeneral(){
 		 * else, set to all the thumbs
 		 */
 		function setThumbSize(width, height, objThumb, innerOnly){
-						
+			
 			var objCss = {
 				width: width+"px",
 				height: height+"px"
@@ -216,7 +254,7 @@ function UGThumbsGeneral(){
 				if(innerOnly !== true)
 					objThumb.css(objCss);
 				
-				objThumb.children(selectorsString).css(objCssInner);
+				objThumb.find(selectorsString).css(objCssInner);
 			}
 			else{	//set to all items
 				g_objParent.children(".ug-thumb-wrapper").css(objCss);
@@ -419,7 +457,7 @@ function UGThumbsGeneral(){
 		/**
 		 * set border radius of all the thmbs
 		 */
-		function setThumbsBorderRadius(){
+		function setThumbsBorderRadius(objThumbs){
 						
 			if(g_options.thumb_round_corners_radius <= 0)
 				return(false);
@@ -429,7 +467,12 @@ function UGThumbsGeneral(){
 				"border-radius":g_options.thumb_round_corners_radius + "px"
 			};
 			
-			g_objParent.find(".ug-thumb-wrapper, .ug-thumb-wrapper .ug-thumb-border-overlay").css(objCss);
+			if(objThumbs){
+				objThumbs.css(objCss);
+				objThumbs.find(".ug-thumb-border-overlay").css(objCss);
+			}else{
+				g_objParent.find(".ug-thumb-wrapper, .ug-thumb-wrapper .ug-thumb-border-overlay").css(objCss);
+			}
 			
 		}
 		
@@ -677,18 +720,20 @@ function UGThumbsGeneral(){
 		 * on image loaded - set appropriete item vars
 		 */
 		function onThumbImageLoaded(data, objThumb, objImage){
-			
+						
 			objItem = t.getItemByThumb(objThumb);
 						
 			objItem.isLoaded = true;
 			objItem.isThumbImageLoaded = true;
 			
 			var objSize = g_functions.getImageOriginalSize(objImage);
-			
+						
 			objItem.thumbWidth = objSize.width;
 			objItem.thumbHeight = objSize.height;
 			objItem.thumbRatioByWidth = objSize.width / objSize.height;
 			objItem.thumbRatioByHeight = objSize.height / objSize.width;
+			
+			objThumb.addClass("ug-thumb-ratio-set");
 			
 		}
 
@@ -696,21 +741,24 @@ function UGThumbsGeneral(){
 		/**
 		 * set thumbnails html properties
 		 */
-		this.setHtmlProperties = function(){
-						
-			 //set thumb params
+		this.setHtmlProperties = function(objThumbs){
+			
+			if(!objThumbs)
+				var objThumbs = t.getThumbs();
+			
+			//set thumb params
 			if(g_temp.customThumbs == false){
 				var objThumbCss = {};
 			
 				//set thumb fixed size
 				if(g_options.thumb_fixed_size == true)
-					setThumbSize(g_options.thumb_width, g_options.thumb_height);
-					
-				 setThumbsBorderRadius();
+					setThumbSize(g_options.thumb_width, g_options.thumb_height, objThumbs);
+				
+				 setThumbsBorderRadius(objThumbs);
 			}
 			 
 			 //set normal style to all the thumbs
-			 g_objParent.children(".ug-thumb-wrapper").each(function(){
+			objThumbs.each(function(){
 				 var objThumb = jQuery(this);
 				 redrawThumbStyle(objThumb);
 			 });
@@ -730,7 +778,7 @@ function UGThumbsGeneral(){
 						g_temp.colorOverlayOpacity = g_options.thumb_overlay_opacity;
 					}
 					
-					g_objParent.find(".ug-thumb-wrapper .ug-thumb-overlay").css(objCss);
+					objThumbs.find(".ug-thumb-overlay").css(objCss);
 				}
 				
 			}
@@ -869,9 +917,30 @@ function UGThumbsGeneral(){
 		/**
 		 * get all thumbs jquery object
 		 */
-		this.getThumbs = function(){
-			return(g_objParent.children(".ug-thumb-wrapper"));
+		this.getThumbs = function(mode){
+			
+			var thumbClass = ".ug-thumb-wrapper";
+			var classRatio = ".ug-thumb-ratio-set";
+			
+			switch(mode){
+				default:
+				case t.type.GET_THUMBS_ALL:
+					var objThumbs = g_objParent.children(thumbClass)
+				break;
+				case t.type.GET_THUMBS_NO_RATIO:
+					var objThumbs = g_objParent.children(thumbClass).not(classRatio);
+				break;
+				case t.type.GET_THUMBS_RATIO:
+					var objThumbs = g_objParent.children(thumbClass + classRatio);
+				break;
+				case t.type.GET_THUMBS_NEW:
+					var objThumbs = g_objParent.children("."+g_temp.classNewThumb);
+				break;
+			}
+			
+			return(objThumbs);
 		}
+		
 		
 		/**
 		 * get item by thumb object
@@ -916,33 +985,36 @@ function UGThumbsGeneral(){
 		this._____________EXTERNAL_OTHERS__________ = function(){};
 
 
-		
 		/**
 		 * init events
 		 */
 		this.initEvents = function(){
 			
-			var objThumbs = g_objParent.find(".ug-thumb-wrapper");
+			var selectorThumb = ".ug-thumb-wrapper";
 			
-			objThumbs.on("touchstart",function(){
-				g_temp.touchEnabled = true;
-				objThumbs.off("mouseenter").off("mouseleave");
-			});
-			
+			//one time event
 			if(g_temp.allowOnResize == true)
 				g_objWrapper.on(g_serviceParams.eventSizeChange, onThumbSizeChange);
 			
-			objThumbs.hover(function(event){		//on mouse enter
+			//on image loaded event - for setting the image sizes
+			g_objThis.on(t.events.THUMB_IMAGE_LOADED, onThumbImageLoaded);
+									
+			//thumbs events						
+			g_objParent.on("touchstart",selectorThumb,function(){
+				g_temp.touchEnabled = true;
+				g_objParent.off("mouseenter").off("mouseleave");
+			});
+			
+			g_objParent.on("mouseenter",selectorThumb,function(event){				
 				var objThumb = jQuery(this);
 				onMouseOver(objThumb);
-			}, function(event){		//on mouse leave
+			});
+
+			g_objParent.on("mouseleave",selectorThumb,function(event){
 				var objThumb = jQuery(this);
 				onMouseOut(objThumb);
 			});
 			
-			
-			//on image loaded event - for setting the image sizes
-			g_objThis.on(t.events.THUMB_IMAGE_LOADED, onThumbImageLoaded);
 			
 		}
 		
@@ -951,11 +1023,13 @@ function UGThumbsGeneral(){
 		 * destroy the thumb element
 		 */
 		this.destroy = function(){
-			var objThumbs = g_objParent.find(".ug-thumb-wrapper");
-			objThumbs.off("touchstart");
+			
+			var selectorThumb = ".ug-thumb-wrapper";
+			
+			g_objParent.off("touchstart",selectorThumb);
 			g_objWrapper.off(g_serviceParams.eventSizeChange);
-			objThumbs.off("mouseenter");
-			objThumbs.off("mouseleave");
+			g_objParent.off("mouseenter",selectorThumb);
+			g_objParent.off("mouseleave",selectorThumb);
 			g_objThis.off(t.events.THUMB_IMAGE_LOADED);
 		}
 		

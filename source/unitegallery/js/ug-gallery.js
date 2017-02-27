@@ -100,7 +100,7 @@ function UniteGalleryMain(){
 	var t = this;
 	var g_galleryID;
 	var g_objGallery = jQuery(t), g_objWrapper, g_objParent;
-	var g_objThumbs, g_objSlider, g_functions = new UGFunctions(), g_objTabs;
+	var g_objThumbs, g_objSlider, g_functions = new UGFunctions(), g_objTabs, g_objLoadMore;
 	var g_arrItems = [], g_numItems, g_selectedItem = null, g_selectedItemIndex = -1;
 	var g_objTheme, g_objCache = {};
 	
@@ -153,6 +153,7 @@ function UniteGalleryMain(){
 			gallery_shuffle:false,						//randomise position of items at start.
 			gallery_urlajax:null,						//ajax url for requesting new items etc.
 			gallery_enable_tabs: false,					//enable/disable category tabs
+			gallery_enable_loadmore: false,				//enable / disable loadmore button
 			gallery_enable_cache: true,					//enable caching items
 			gallery_initial_catid: ""					//initial category id (for caching)
 	};
@@ -358,6 +359,12 @@ function UniteGalleryMain(){
 				 g_objTabs.init(t, g_options);
 			 }
 			 
+			 //init loadmore button
+			 if(g_temp.isRunFirstTime == true && g_options.gallery_enable_loadmore == true){
+				 g_objLoadMore = new UGLoadMore();
+				 g_objLoadMore.init(t, g_options);
+			 }
+			 
 			 //modify and verify the params
 			 if(isCustomOptions)
 				 modifyInitParams(g_temp.objCustomOptions);
@@ -367,7 +374,7 @@ function UniteGalleryMain(){
 			 //shuffle items
 			 if(g_options.gallery_shuffle == true)
 				 t.shuffleItems();
-			 			 
+			 
 			 //init the theme
 			 initTheme(g_temp.objCustomOptions);
 			 			 				 
@@ -405,6 +412,7 @@ function UniteGalleryMain(){
 		 if(g_objTabs && g_temp.isRunFirstTime)
 			 g_objTabs.run();
 		 
+		 
 		 preloadBigImages();
 		 
 		 initEvents();
@@ -430,8 +438,10 @@ function UniteGalleryMain(){
 	function showErrorMessage(message, prefix){
 
 		if(typeof prefix == "undefined")
-			var prefix = "<b>Unite Gallery Error: </b>";
-				
+			var prefix = "<b>Unite Gallery Error: </b>";			
+		else
+			prefix = "<b>"+prefix+": </b>";
+		
 		message = prefix + message;
 		
 		var html = "<div class='ug-error-message-wrapper'><div class='ug-error-message'>" + message + "</div></div>";
@@ -587,230 +597,251 @@ function UniteGalleryMain(){
 
 	
 	/**
-	 * fill items array from images object
+	 * fill item by html child
 	 */
-	function fillItemsArray(arrChildren){
-		
-		g_arrItems = [];
+	function fillItemByChild(objChild){
 		
 		var isMobile = t.isMobileMode();
 		
-		 var numIndex = 0;
+		 var tagname = objChild.prop("tagName").toLowerCase();
+		 
+		 //handle link wrapper
+		 var itemLink = "";
+		 if(tagname == "a"){
+			 itemLink = objChild.attr("href");
+			 objChild = objChild.children();
+			 var tagname = objChild.prop("tagName").toLowerCase();				 
+		 }
+		 
+		 var itemType = objChild.data("type");
+		 if(itemType == undefined)
+			 itemType = "image";
+		 
+		 var objItem = {};
+		 objItem.type = itemType;
+		 
+		 if(tagname == "img"){
+			 
+			 //protection agains lasy load
+			 var lasyLoadSrc = objChild.data("lazyload-src");
+			 if(lasyLoadSrc && lasyLoadSrc != ""){
+				 objChild.attr("src", lasyLoadSrc);
+				 jQuery.removeData(objChild, "lazyload-src");
+			 }
+			 
+			 //src is thumb
+			 var urlImage = objChild.data("image");
+			 var urlThumb = objChild.data("thumb");
+			 
+			 if(typeof(urlImage) == "undefined")
+				 urlImage = null;
+			 
+			 if(typeof(urlThumb) == "undefined")
+				 urlThumb = null;
+			 
+			 var imageSrc = objChild.attr("src");
+			 
+			 if(!urlImage)
+				 urlImage = imageSrc;
+				 
+			 if(!urlThumb)
+				 urlThumb = imageSrc;
+			 
+			 if(!urlThumb)
+				 urlThumb = urlImage;
+			 
+			 if(!urlImage)
+				 urlImage = urlThumb;
+			 
+			 objItem.urlThumb = urlThumb;
+			 objItem.urlImage = urlImage;
+			 				 
+			 objItem.title = objChild.attr("alt");
+			 
+			 //always set thumb image to object
+			 objItem.objThumbImage = objChild;
+			 
+			 objItem.objThumbImage.attr("src", objItem.urlThumb);
+			 
+		 }else{
+			 
+			 if(itemType == "image"){
+				 trace("Problematic gallery item found:");
+				 trace(objChild);
+				 trace("Please look for some third party js script that could add this item to the gallery");
+				 throw new Error("The item should not be image type");
+			 }
+			 
+			 objItem.urlThumb = objChild.data("thumb");
+			 objItem.title = objChild.data("title");
+			 objItem.objThumbImage = null;
+			 objItem.urlImage = objChild.data("image");
+		 }
+		 
+		 //trace(isMobile);
+		 
+		 //check mobile version images
+		 if(isMobile == true){
+			 
+			 var urlThumbMobile = objChild.data("thumb-mobile");
+			 if(typeof urlThumbMobile != "undefined" && urlThumbMobile != ""){
+				 objItem.urlThumb = urlThumbMobile;
+ 			 	 
+				 if(tagname == "img")
+ 					 objChild.attr("src",objItem.urlThumb);
+			 }
+			 
+			 var urlImageMobile = objChild.data("image-mobile");
+			 if(typeof urlImageMobile != "undefined" && urlImageMobile != "")
+				 objItem.urlImage = urlImageMobile;
+		 }
+		 
+		 objItem.link = itemLink;
+		 
+		 //get description:
+		 objItem.description = objChild.attr("title");
+		 if(!objItem.description)				 
+			 objItem.description = objChild.data("description");
+		 
+		 if(!objItem.description)
+			 objItem.description = "";
+		 
+		 objItem.isNewAdded = false;		//fill outside
+		 objItem.isLoaded = false;
+		 objItem.isThumbImageLoaded = false;	//if the image loaded or error load
+		 objItem.objPreloadImage = null;
+		 objItem.isBigImageLoadStarted = false;
+		 objItem.isBigImageLoaded = false;
+		 objItem.isBigImageLoadError = false;			 
+		 objItem.imageWidth = 0;
+		 objItem.imageHeight = 0;
+		 
+		 //set thumb size
+		 objItem.thumbWidth = 0;
+		 objItem.thumbHeight = 0;
+		 objItem.thumbRatioByWidth = 0;
+		 objItem.thumbRatioByHeight = 0;
+		 
+		 var dataWidth = objChild.data("width");
+		 var dataHeight = objChild.data("height");
+		 if(dataWidth && typeof dataWidth == "number" && dataHeight && typeof dataHeight == "number"){
+			 objItem.thumbWidth = dataWidth;
+			 objItem.thumbHeight = dataHeight;
+			 objItem.thumbRatioByWidth = dataWidth / dataHeight;
+			 objItem.thumbRatioByHeight = dataHeight / dataWidth;
+		 }
+		 
+		 objItem.addHtml = null;
+		 
+		 var isImageMissing = (objItem.urlImage == undefined || objItem.urlImage == "");
+		 var isThumbMissing = (objItem.urlThumb == undefined || objItem.urlThumb == "");
+		 
+		 switch(objItem.type){
+		 	case "youtube":			 		
+				 objItem.videoid = objChild.data("videoid");
+		 		 
+				 if(isImageMissing || isThumbMissing){
+					 
+					 var objImages = g_ugYoutubeAPI.getVideoImages(objItem.videoid);
+				 		
+			 		 //set preview image
+			 		 if(isImageMissing)
+			 			objItem.urlImage = objImages.preview;
+			 		
+			 		 //set thumb image
+			 		 if(isThumbMissing){
+			 			 	objItem.urlThumb = objImages.thumb;
+			 				
+			 			 	 if(tagname == "img")
+			 					 objChild.attr("src",objItem.urlThumb);
+			 		 }
+					 
+				 }
+				 
+				 g_temp.isYoutubePresent = true;
+			break;
+		 	case "vimeo":
+		 		
+				objItem.videoid = objChild.data("videoid");
+									
+				g_temp.isVimeoPresent = true;
+		 	break;
+		 	case "html5video":
+		 		objItem.videoogv = objChild.data("videoogv");
+		 		objItem.videowebm = objChild.data("videowebm");
+		 		objItem.videomp4 = objChild.data("videomp4");
+		 		
+		 		g_temp.isHtml5VideoPresent = true;
+		 	break;
+		 	case "soundcloud":
+		 		objItem.trackid = objChild.data("trackid");
+		 		g_temp.isSoundCloudPresent = true;
+		 	break;
+		 	case "wistia":
+				 objItem.videoid = objChild.data("videoid");
+				 g_temp.isWistiaPresent = true;
+		 	break;
+		 	case "custom":
+				var objChildImage = objChild.children("img");
+		 		
+				if(objChildImage.length){
+					objChildImage = jQuery(objChildImage[0]);
+					
+				    objItem.urlThumb = objChildImage.attr("src");
+				    objItem.title = objChildImage.attr("alt");
+				    objItem.objThumbImage = objChildImage;
+		 		}
+		 		
+				//add additional html
+				var objChildren = objChild.children().not("img:first-child");
+		 		
+				if(objChildren.length)
+					objItem.addHtml = objChildren.clone();
+		 		
+		 	break;
+		 }
+		
+		 //clear not needed attributes
+		 if(objItem.objThumbImage){
+			 objItem.objThumbImage.removeAttr("data-description", "");
+			 objItem.objThumbImage.removeAttr("data-image", "");				 
+			 objItem.objThumbImage.removeAttr("data-thumb", "");				 
+			 objItem.objThumbImage.removeAttr("title", "");				 
+		 }
+		 
+		 
+		 return(objItem);
+	}
+	
+	
+	/**
+	 * fill items array from images object
+	 */
+	function fillItemsArray(arrChildren, isAppend){
+		
+		if(isAppend !== true){
+			g_arrItems = [];
+		}else{	 //append
+			
+			//clear last new added items
+			for(var i=0;i<g_numItems;i++)
+				g_arrItems[i].isNewAdded = false;
+		
+		}
 		 
 		 for(var i=0;i<arrChildren.length;i++){
 			 var objChild = jQuery(arrChildren[i]);
-			 
-			 var tagname = objChild.prop("tagName").toLowerCase();
-			 
-			 //handle link wrapper
-			 var itemLink = "";
-			 if(tagname == "a"){
-				 itemLink = objChild.attr("href");
-				 objChild = objChild.children();
-				 var tagname = objChild.prop("tagName").toLowerCase();				 
-			 }
-			 
-			 var itemType = objChild.data("type");
-			 if(itemType == undefined)
-				 itemType = "image";
-			 
-			 var objItem = {};
-			 objItem.type = itemType;
-			 
-			 if(tagname == "img"){
-				 
-				 //protection agains lasy load
-				 var lasyLoadSrc = objChild.data("lazyload-src");
-				 if(lasyLoadSrc && lasyLoadSrc != ""){
-					 objChild.attr("src", lasyLoadSrc);
-					 jQuery.removeData(objChild, "lazyload-src");
-				 }
-				 
-				 //src is thumb
-				 var urlImage = objChild.data("image");
-				 var urlThumb = objChild.data("thumb");
-				 
-				 if(typeof(urlImage) == "undefined")
-					 urlImage = null;
-				 
-				 if(typeof(urlThumb) == "undefined")
-					 urlThumb = null;
-				 
-				 var imageSrc = objChild.attr("src");
-				 
-				 if(!urlImage)
-					 urlImage = imageSrc;
-					 
-				 if(!urlThumb)
-					 urlThumb = imageSrc;
-				 
-				 if(!urlThumb)
-					 urlThumb = urlImage;
-				 
-				 if(!urlImage)
-					 urlImage = urlThumb;
-				 
-				 
-				 objItem.urlThumb = urlThumb;
-				 objItem.urlImage = urlImage;
-				 				 
-				 objItem.title = objChild.attr("alt");
-				 
-				 //always set thumb image to object
-				 objItem.objThumbImage = objChild;
-				 
-				 objItem.objThumbImage.attr("src", objItem.urlThumb);
-				 
-			 }else{
-				 
-				 if(itemType == "image"){
-					 trace("Problematic gallery item found:");
-					 trace(objChild);
-					 trace("Please look for some third party js script that could add this item to the gallery");
-					 throw new Error("The item should not be image type");
-				 }
-				 
-				 objItem.urlThumb = objChild.data("thumb");
-				 objItem.title = objChild.data("title");
-				 objItem.objThumbImage = null;
-				 objItem.urlImage = objChild.data("image");
-			 }
-			 
-			 
-			 //check mobile version images
-			 if(isMobile == true){
-				 
-				 var urlThumbMobile = objChild.data("thumb-mobile");
-				 if(typeof urlThumbMobile != "undefined" && urlThumbMobile != ""){
-					 objItem.urlThumb = urlThumbMobile;
-	 			 	 
-					 if(tagname == "img")
-	 					 objChild.attr("src",objItem.urlThumb);
-				 }
-				 
-				 var urlImageMobile = objChild.data("image-mobile");
-				 if(typeof urlImageMobile != "undefined" && urlImageMobile != "")
-					 objItem.urlImage = urlImageMobile;
-			 }
-			 
-			 objItem.link = itemLink;
-			 
-			 //get description:
-			 objItem.description = objChild.attr("title");
-			 if(!objItem.description)				 
-				 objItem.description = objChild.data("description");
-			 
-			 if(!objItem.description)
-				 objItem.description = "";
-			 
-			 objItem.isLoaded = false;
-			 objItem.isThumbImageLoaded = false;	//if the image loaded or error load
-			 objItem.objPreloadImage = null;
-			 objItem.isBigImageLoadStarted = false;
-			 objItem.isBigImageLoaded = false;
-			 objItem.isBigImageLoadError = false;			 
-			 objItem.imageWidth = 0;
-			 objItem.imageHeight = 0;
-			 
-			 //set thumb size
-			 objItem.thumbWidth = 0;
-			 objItem.thumbHeight = 0;
-			 objItem.thumbRatioByWidth = 0;
-			 objItem.thumbRatioByHeight = 0;
-			 
-			 var dataWidth = objChild.data("width");
-			 var dataHeight = objChild.data("height");
-			 if(dataWidth && typeof dataWidth == "number" && dataHeight && typeof dataHeight == "number"){
-				 objItem.thumbWidth = dataWidth;
-				 objItem.thumbHeight = dataHeight;
-				 objItem.thumbRatioByWidth = dataWidth / dataHeight;
-				 objItem.thumbRatioByHeight = dataHeight / dataWidth;
-			 }
-			 
-			 objItem.addHtml = null;
-			 
-			 var isImageMissing = (objItem.urlImage == undefined || objItem.urlImage == "");
-			 var isThumbMissing = (objItem.urlThumb == undefined || objItem.urlThumb == "");
-			 
-			 switch(objItem.type){
-			 	case "youtube":			 		
-					 objItem.videoid = objChild.data("videoid");
-			 		 
-					 if(isImageMissing || isThumbMissing){
-						 
-						 var objImages = g_ugYoutubeAPI.getVideoImages(objItem.videoid);
-					 		
-				 		 //set preview image
-				 		 if(isImageMissing)
-				 			objItem.urlImage = objImages.preview;
-				 		
-				 		 //set thumb image
-				 		 if(isThumbMissing){
-				 			 	objItem.urlThumb = objImages.thumb;
-				 				
-				 			 	 if(tagname == "img")
-				 					 objChild.attr("src",objItem.urlThumb);
-				 		 }
-						 
-					 }
-					 
-					 g_temp.isYoutubePresent = true;
-				break;
-			 	case "vimeo":
-			 		
-					objItem.videoid = objChild.data("videoid");
-										
-					g_temp.isVimeoPresent = true;
-			 	break;
-			 	case "html5video":
-			 		objItem.videoogv = objChild.data("videoogv");
-			 		objItem.videowebm = objChild.data("videowebm");
-			 		objItem.videomp4 = objChild.data("videomp4");
-			 		
-			 		g_temp.isHtml5VideoPresent = true;
-			 	break;
-			 	case "soundcloud":
-			 		objItem.trackid = objChild.data("trackid");
-			 		g_temp.isSoundCloudPresent = true;
-			 	break;
-			 	case "wistia":
-					 objItem.videoid = objChild.data("videoid");
-					 g_temp.isWistiaPresent = true;
-			 	break;
-			 	case "custom":
-					var objChildImage = objChild.children("img");
-			 		
-					if(objChildImage.length){
-						objChildImage = jQuery(objChildImage[0]);
-						
-					    objItem.urlThumb = objChildImage.attr("src");
-					    objItem.title = objChildImage.attr("alt");
-					    objItem.objThumbImage = objChildImage;
-			 		}
-			 		
-					//add additional html
-					var objChildren = objChild.children().not("img:first-child");
-			 		
-					if(objChildren.length)
-						objItem.addHtml = objChildren.clone();
-			 		
-			 	break;
-			 }
-			
-			 //clear not needed attributes
-			 if(objItem.objThumbImage){
-				 objItem.objThumbImage.removeAttr("data-description", "");
-				 objItem.objThumbImage.removeAttr("data-image", "");				 
-				 objItem.objThumbImage.removeAttr("data-thumb", "");				 
-				 objItem.objThumbImage.removeAttr("title", "");				 
-			 }
-			 
+			 			 
+			 var objItem = fillItemByChild(objChild);
+			 numIndex = g_arrItems.length;			 
 			 objItem.index = numIndex;
-			 g_arrItems.push(objItem);
-			 numIndex++;
 			 
+			 if(isAppend === true){
+				 objItem.isNewAdded = true;
+			 }
+			 
+			 g_arrItems.push(objItem);
 		 }
-		 
 		 
 		 g_numItems = g_arrItems.length;
 		 
@@ -1176,8 +1207,8 @@ function UniteGalleryMain(){
 		t.setSizeClass();
 		
 		var objSize = t.getSize();
-				
-		if(objSize.width != g_temp.lastWidth || objSize.height != g_temp.lastHeight){
+		
+		if(objSize.width != g_temp.lastWidth || (g_temp.isFreestyleMode == false && objSize.height != g_temp.lastHeight)){
 			
 			var heightWasSet = false;
 			
@@ -1259,7 +1290,7 @@ function UniteGalleryMain(){
 		if(t.isPlayMode() == true)
 			t.continuePlaying();
 	}
-	
+		
 	
 	/**
 	 * init all events
@@ -1300,9 +1331,8 @@ function UniteGalleryMain(){
 		 
 		 //check resize once in a time, start from 10 seconds
 		 setTimeout(function(){
-			 setInterval(onGalleryResized, 2000);			 
+			 setInterval(onGalleryResized, 2000);
 		 }, 10000);
-		 
 		 
 		 //fullscreen:
 		 g_functions.addFullScreenChangeEvent(onFullScreenChange);
@@ -1334,7 +1364,7 @@ function UniteGalleryMain(){
 			 retriggerEvent(g_objSlider, g_objSlider.events.ACTION_END, t.events.SLIDER_ACTION_END);
 			 
 			 jQuery(g_objSlider).on(g_objSlider.events.CURRENTSLIDE_LOAD_END, onCurrentSlideImageLoadEnd);
-		 
+			 
 		 }
 		  
 		 //add keyboard events
@@ -1395,8 +1425,9 @@ function UniteGalleryMain(){
 		 if(g_objTheme && typeof g_objTheme.destroy == "function"){
 			 g_objTheme.destroy();
 		 }
-
+		 
 		 g_objWrapper.html("");
+		 
 	}
 	
 	
@@ -1594,7 +1625,7 @@ function UniteGalleryMain(){
 		return(false);
 	}
 	
-	
+		
 	/**
 	 * get gallery options
 	 */
@@ -1650,7 +1681,7 @@ function UniteGalleryMain(){
 		//register button as a unite gallery belong
 		objButton.data("ug-button", true);
 
-		g_functions.setButtonOnClick(objButton, t.toggleFullscreen);
+		g_functions.setButtonOnTap(objButton, t.toggleFullscreen);
 		
 		g_objGallery.on(t.events.ENTER_FULLSCREEN,function(){
 			objButton.addClass("ug-fullscreenmode");
@@ -1777,8 +1808,6 @@ function UniteGalleryMain(){
 	}
 	
 	
-	
-	
 	/**
 	 * retrigger event from another objects
 	 * the second parameter will be the second object
@@ -1792,15 +1821,22 @@ function UniteGalleryMain(){
 	}
 	
 	
+	
 	/**
 	 * advance next play step
 	 */
 	function advanceNextStep(){
-				
+		
 		var timeNow = jQuery.now();
 		var timeDiff = timeNow - g_temp.playTimeLastStep;
-		g_temp.playTimePassed += timeDiff;
 		g_temp.playTimeLastStep = timeNow;
+		
+		var isVisible = t.isGalleryVisible();
+		if(isVisible == false){
+			return(false);
+		}
+		
+		g_temp.playTimePassed += timeDiff;
 		
 		//set the progress
 		if(g_temp.objProgress){
@@ -2236,6 +2272,17 @@ function UniteGalleryMain(){
 	
 	
 	/**
+	 * check if the gallery is visible
+	 */
+	this.isGalleryVisible = function(){
+		
+		var isVisible = g_objWrapper.is(":visible");
+		
+		return(isVisible);
+	}
+	
+	
+	/**
 	 * change gallery items
 	 */
 	this.changeItems = function(itemsContent, cacheID){
@@ -2245,6 +2292,58 @@ function UniteGalleryMain(){
 		
 		runGallery(g_galleryID, "nochange", itemsContent, cacheID);
 	}
+	
+	
+	
+	/**
+	 * add items
+	 */
+	this.addItems = function(itemsContent){
+		 
+		 if(!itemsContent || itemsContent.length == 0)
+			 return(false);
+		 
+		 //add new items wrapper
+		 var objNewItemsWrapper = g_objWrapper.children(".ug-newitems-wrapper");
+		 if(objNewItemsWrapper.length == 0)
+			 g_objWrapper.append("<div class='ug-newitems-wrapper' style='display:none'></div>");
+		 
+		 objNewItemsWrapper = g_objWrapper.children(".ug-newitems-wrapper");
+		 
+		 //add the items
+		 objNewItemsWrapper.append(itemsContent);
+		 
+		 var objChildren = jQuery(objNewItemsWrapper.children());
+		  
+		 fillItemsArray(objChildren, true);
+		 
+		 loadAPIs();
+		 
+		 if(!g_objTheme || typeof g_objTheme.addItems != "function")
+			 throw new Error("addItems function not found in the theme");
+		 
+		 objNewItemsWrapper.remove();
+		 
+		 g_objTheme.addItems();
+	}
+	
+	
+	/**
+	 * get new added items indexes array
+	 */
+	this.getNewAddedItemsIndexes = function(){
+		
+		var arrIndexes = [];
+		
+		jQuery.each(g_arrItems, function(index, objItem){
+			
+			if(objItem.isNewAdded == true)
+				arrIndexes.push(index);
+		});
+		
+		return(arrIndexes);
+	}
+	
 	
 	/**
 	 * show error message, replace whole gallery div
@@ -2260,23 +2359,57 @@ function UniteGalleryMain(){
 		g_temp.funcCustomHeight = func;
 	}
 	
+	
+	this.__________EXTERNAL_EVENTS_______ = function(){};
+	
+	
+	/**
+	 * trigger event
+	 */
+	this.triggerEvent = function(event, arrParams){
+		
+		if(!arrParams)
+			g_objGallery.trigger(event);
+		else{
+			if(jQuery.type(arrParams) != "array")
+				arrParams = [arrParams];
+			
+			g_objGallery.trigger(event, arrParams);
+		}
+		
+	}
+	
+	/**
+	 * on event
+	 */
+	this.onEvent = function(event, func){
+		
+		g_objGallery.on(event, func);
+	}
+	
+	
+	/**
+	 * destroy event
+	 */
+	this.destroyEvent = function(event){
+		
+		g_objGallery.off(event);
+	}
+	
+	
 	this.__________AJAX_REQUEST_______ = function(){};
 	
 	
 	/**
 	 * ajax request
 	 */
-	this.ajaxRequest = function(action, data, isJSON, successFunction){
+	this.ajaxRequest = function(action, data, successFunction, errorFunction){
 		
-		var dataType = "html";
-		if(isJSON == true)
-			dataType = "json";
-				
 		if(!successFunction || typeof successFunction != "function")
 			throw new Error("ajaxRequest error: success function should be passed");
-
+				
 		var urlAjax = g_options.gallery_urlajax;
-		if(urlAjax == "")
+		if(!urlAjax || urlAjax == "")
 			throw new Error("ajaxRequest error: Ajax url don't passed");
 		
 		if(typeof data == "undefined")
@@ -2298,29 +2431,30 @@ function UniteGalleryMain(){
 			success:function(response){
 				
 				if(!response){
-					showErrorMessage("Empty ajax response!", "Ajax Error");
-					return(false);					
+					throw new Error("Empty ajax response!");
 				}
 
-				if(response == -1 || response === 0){
-					showErrorMessage("ajax error!!!");
-					return(false);
-				}
+				if(response == -1 || response === 0)
+					throw new Error("ajax error!!!");
+				
 
-				if(typeof response.success == "undefined"){
-					showErrorMessage("The 'success' param is a must!");
-					return(false);
-				}
+				if(typeof response.success == "undefined")
+					throw new Error("ajax error!!!");
 				
 				if(response.success == false){
-					showErrorMessage(response.message);
+					showErrorMessage(response.message, "ajax error");
 					return(false);
 				}
 				
 				successFunction(response);
-			},		 	
+			},
 			error:function(jqXHR, textStatus, errorThrown){
 				console.log("Ajax Error!!! " + textStatus);
+				responseText = jqXHR.responseText;
+				if(errorFunction && typeof errorFunction == "function"){
+					errorFunction(responseText);
+				}else
+					trace(responseText);
 			}
 		});
 		
@@ -2352,10 +2486,10 @@ function UniteGalleryMain(){
 			
 			g_objGallery.trigger(t.events.GALLERY_BEFORE_REQUEST_ITEMS);
 			
-			t.ajaxRequest("front_get_cat_items",{catid:catID}, true, function(response){
+			t.ajaxRequest("front_get_cat_items",{catid:catID}, function(response){
 				
 				var htmlItems = response.html;
-								
+				
 				t.changeItems(htmlItems, cacheID);
 				
 			});

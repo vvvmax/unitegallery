@@ -1,3 +1,24 @@
+
+version 1.7.45
+
+-bug fix: fixed fullscreen button on webkit with touch events
+
+version 1.7.44
+
+-bug fix: fixed text panel size when the gallery is hidden
+
+version 1.7.43
+
+-bug fix: fixed tiles type resize after 10 seconds
+
+version 1.7.42
+
+-feature: added load more functionality support
+
+version 1.7.41
+
+-bug fix: fixed issue for small screen galleries
+
 version 1.7.40
 
 -bug fix: fixed some ratio related js issue

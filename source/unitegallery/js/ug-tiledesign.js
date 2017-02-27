@@ -636,7 +636,7 @@ function UGTileDesign(){
 	/**
 	 * get tile ratio
 	 */
-	function getTileRatio(objTile, fromWhere){
+	function getTileRatio(objTile){
 		
 		//global ratio
 		var ratio = g_temp.ratioByHeight;
@@ -653,7 +653,7 @@ function UGTileDesign(){
 				var item = t.getItemByTile(objTile);
 								
 				if(typeof item.thumbRatioByHeight != "undefined"){
-					
+				
 					if(item.thumbRatioByHeight == 0){
 						trace(item);
 						throw new Error("the item ratio not inited yet");
@@ -953,13 +953,15 @@ function UGTileDesign(){
 	/**
 	 * set tiles htmls
 	 */
-	this.setHtml = function(objParent){
+	this.setHtml = function(objParent, isAppend){
 		g_objParentWrapper = objParent;
 		
-		modifyOptionsBeforeRender();
+		if(isAppend !== true)
+			modifyOptionsBeforeRender();
 		
-		g_thumbs.setHtmlThumbs(objParent);
+		g_thumbs.setHtmlThumbs(objParent, isAppend);
 	}
+	
 	
 	
 	/**
@@ -1295,11 +1297,11 @@ function UGTileDesign(){
 		
 		g_objWrapper.on(g_temp.eventSizeChange, onSizeChange);
 		
-		g_objParentWrapper.delegate(".ug-tile .ug-button-play", "click", onZoomButtonClick);
+		g_objParentWrapper.on("click", ".ug-tile", onTileClick);
 		
-		g_objParentWrapper.delegate(".ug-tile", "click", onTileClick);
+		g_objParentWrapper.on("click", ".ug-tile .ug-button-play", onZoomButtonClick);
 		
-		g_objParentWrapper.delegate(".ug-tile .ug-icon-link", "click", onLinkButtonClick);
+		g_objParentWrapper.on("click", ".ug-tile .ug-icon-link", onLinkButtonClick);
 	}
 	
 	
@@ -1307,7 +1309,11 @@ function UGTileDesign(){
 	 * destroy the element events
 	 */
 	this.destroy = function(){
-				
+		
+		g_objParentWrapper.off("click", ".ug-tile");
+		g_objParentWrapper.off("click", ".ug-tile .ug-button-play");
+		g_objParentWrapper.off("click", ".ug-tile .ug-icon-link");
+		
 		jQuery(g_thumbs).off(g_thumbs.events.SETOVERSTYLE);
 		jQuery(g_thumbs).off(g_thumbs.events.SETNORMALSTYLE);
 		jQuery(g_thumbs).off(g_thumbs.events.PLACEIMAGE);
@@ -1372,7 +1378,7 @@ function UGTileDesign(){
 			}else{		//only height is missing
 				if(!newHeight){
 					
-					var newHeight = t.getTileHeightByWidth(newWidth, objTile, "resizeTile");
+					var newHeight = t.getTileHeightByWidth(newWidth, objTile);
 				}
 			}
 						
@@ -1410,16 +1416,18 @@ function UGTileDesign(){
 	/**
 	 * resize all tiles 
 	 */
-	this.resizeAllTiles = function(newWidth, resizeMode){
+	this.resizeAllTiles = function(newWidth, resizeMode, objTiles){
 		
 		modifyOptionsBeforeRender();
 		
 		var newHeight = null;
 		
 		if(g_options.tile_size_by == t.sizeby.GLOBAL_RATIO)
-			newHeight = t.getTileHeightByWidth(newWidth,null,"resizeAllTiles");
+			newHeight = t.getTileHeightByWidth(newWidth);
 		
-		var objTiles = g_thumbs.getThumbs();
+		if(!objTiles)
+			var objTiles = g_thumbs.getThumbs();
+		
 		objTiles.each(function(index, objTile){
 			t.resizeTile(jQuery(objTile), newWidth, newHeight, resizeMode);
 		});
@@ -1482,6 +1490,7 @@ function UGTileDesign(){
 		objThumbs.css("pointer-events", "auto");
 	}
 	
+	
 	/**
 	 * set new options
 	 */
@@ -1518,20 +1527,24 @@ function UGTileDesign(){
 	/**
 	 * run the tile design
 	 */
-	this.run = function(){
+	this.run = function(newOnly){
 		
 		//resize all tiles
-		var objThumbs = g_thumbs.getThumbs();
+		var getMode = g_thumbs.type.GET_THUMBS_ALL;
+		if(newOnly === true)
+			getMode = g_thumbs.type.GET_THUMBS_NEW;
+		
+		var objThumbs = g_thumbs.getThumbs(getMode);
 		
 		if(g_options.tile_size_by == t.sizeby.GLOBAL_RATIO){
-			t.resizeAllTiles(g_options.tile_width, t.resizemode.WRAPPER_ONLY);
+			t.resizeAllTiles(g_options.tile_width, t.resizemode.WRAPPER_ONLY, objThumbs);
 		}
-			
+		
 		//hide original image if image effect active
 		if(g_options.tile_enable_image_effect == true && g_options.tile_image_effect_reverse == false)
 			objThumbs.children(".ug-thumb-image").fadeTo(0,0);
 		
-		g_thumbs.setHtmlProperties();
+		g_thumbs.setHtmlProperties(objThumbs);
 		
 		if(g_options.tile_visible_before_image == true){
 			
@@ -1580,9 +1593,9 @@ function UGTileDesign(){
 	/**
 	 * get tile height by width
 	 */
-	this.getTileHeightByWidth = function(newWidth, objTile, fromWhere){
+	this.getTileHeightByWidth = function(newWidth, objTile){
 		
-		var ratio = getTileRatio(objTile, fromWhere);
+		var ratio = getTileRatio(objTile);
 		
 		if(ratio === null)
 			return(null);
