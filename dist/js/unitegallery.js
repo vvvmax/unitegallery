@@ -2446,7 +2446,7 @@ function UGThumbsGeneral(){
 					
 					 var linkTarget = "";
 						if(g_options.thumb_link_newpage == true && objItem.link)
-							linkTarget = " target='_blank'";
+							linkTarget = " target='_blank' rel='noopener noreferrer' ";
 					 
 					 var htmlThumb = "<a href='" + urlLink + "'"+linkTarget+" class='ug-thumb-wrapper"+classAddition+"'></a>";
 				 }
@@ -10717,7 +10717,7 @@ function UGTileDesign(){
 				if(g_options.tile_as_link == false){
 					var linkTarget = "";
 					if(g_options.tile_link_newpage == true)
-						linkTarget = " target='_blank'";
+						linkTarget = " target='_blank' rel='noopener noreferrer'";
 					
 					htmlAdd += "<a href='"+objItem.link+"'"+linkTarget+" class='ug-tile-icon ug-icon-link'></a>";					
 				}else{
@@ -13806,7 +13806,8 @@ function UGSlider(){
 			if(g_options.slider_links_newpage == false){
 				location.href = objItem.link;
 			}else{
-				window.open(objItem.link, '_blank');			
+				var newWnd = window.open(objItem.link, '_blank');
+				newWnd.opener = null;
 			}
 			
 			return(true);
