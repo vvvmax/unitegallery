@@ -20913,7 +20913,7 @@ function UniteGalleryMain(){
 	/**
 	 * get previous item by index (or item object)
 	 */
-	this.getPrevItem = function(index){
+	this.getPrevItem = function(index, forceCarousel){
 		
 		if(typeof index == "object")
 			index = index.index;
