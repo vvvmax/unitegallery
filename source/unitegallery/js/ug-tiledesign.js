@@ -71,7 +71,7 @@ function UGTileDesign(){
 			tile_textpanel_source: "title",			 //title,desc,desc_title,title_and_desc. source of the textpanel. desc_title - if description empty, put title
 			tile_textpanel_always_on: false,		 //textpanel always visible - for inside type
 			tile_textpanel_appear_type: "slide",	 //slide, fade - appear type of the textpanel on mouseover
-			tile_textpanel_position:"inside_bottom", //inside_bottom, inside_top, inside_center, top, bottom the position of the textpanel
+			tile_textpanel_position:"inside_bottom", //inside_bottom, inside_top, middle, top, bottom the position of the textpanel
 			tile_textpanel_offset:0					 //vertical offset of the textpanel
 	};
 	
