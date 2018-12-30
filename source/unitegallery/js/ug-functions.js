@@ -167,14 +167,18 @@ function UGFunctions(){
 	 */
 	this.addFullScreenChangeEvent = function(func){
 		
-		if(document["webkitCancelFullScreen"])
-			addEvent("webkitfullscreenchange",document,func);
-		else if(document["msExitFullscreen"])
-			addEvent("MSFullscreenChange",document,func);
-		else if(document["mozCancelFullScreen"])
-			addEvent("mozfullscreenchange",document,func);
+		// Detect if we support fullscreen, and what event define in right order
+		// based from https://github.com/h5p/h5p-php-library/blob/master/js/h5p.js
+		if (document.fullscreenEnabled)
+		    addEvent("fullscreenchange", document, func);
+		else if (document.documentElement.msRequestFullscreen)
+		    addEvent("MSFullscreenChange", document, func);
+		else if (document.documentElement.webkitRequestFullScreen)
+		    addEvent("webkitfullscreenchange", document, func);
+		else if (document.documentElement.mozRequestFullScreen)
+		    addEvent("mozfullscreenchange", document, func);
 		else
-			addEvent("fullscreenchange",document,func);
+		    addEvent("fullscreenchange", document, func);
 	}
 	
 	
