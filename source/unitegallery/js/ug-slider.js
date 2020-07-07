@@ -782,7 +782,7 @@ function UGSlider(){
 		}
 		else{		//place the image inside parent first time
 			
-			objImage = g_functions.placeImageInsideParent(urlImage, objItemWrapper, objItem.imageWidth, objItem.imageHeight, scaleMode, objPadding);
+			objImage = g_functions.placeImageInsideParent(urlImage, objItem.title, objItemWrapper, objItem.imageWidth, objItem.imageHeight, scaleMode, objPadding);
 			
 			//set image loaded on load:
 			if(objItem.isBigImageLoaded == true){
