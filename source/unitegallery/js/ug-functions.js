@@ -974,12 +974,16 @@ function UGFunctions(){
 	 * and scale it to fit the parent.
 	 * scaleMode: fit, down, fill
 	 */
-	this.placeImageInsideParent = function(urlImage, objParent, originalWidth, originalHeight, scaleMode, objPadding){
+	this.placeImageInsideParent = function(urlImage, objTitle, objParent, originalWidth, originalHeight, scaleMode, objPadding){
 		var obj = t.getImageInsideParentData(objParent, originalWidth, originalHeight, scaleMode, objPadding);
 		
 		//set html image:
 		var htmlImage = "<img";
-		
+
+		if(objTitle !== null) {
+			htmlImage += " alt = '" + objTitle + "'";
+		}
+
 		if(obj.imageWidth !== null){
 			htmlImage += " width = '" + obj.imageWidth + "'";
 			obj.style += "width:" + obj.imageWidth + ";";
