@@ -218,16 +218,14 @@ function UniteGalleryMain(){
 		 }
 		 
 		 var themeFunction = getThemeFunction(g_options.gallery_theme);
-		 
-		 try{
-			 g_options.gallery_theme = eval(themeFunction);
-		 }catch(e){
-			 //check registered themes
-		 };
-		 
-		 g_options.gallery_theme = eval(themeFunction);
-		 
-		 //init the theme
+
+		try{
+			g_options.gallery_theme = window[themeFunction];
+		}catch(e){
+			console.log("check registered themes");
+		};
+
+		//init the theme
 		 g_objTheme = new g_options.gallery_theme();
 		 g_objTheme.init(t, objCustomOptions);
 	}
